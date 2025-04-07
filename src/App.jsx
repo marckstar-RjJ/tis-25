@@ -5,7 +5,7 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <img src="/logo.png" alt="Logo UMSS" className="logo" />
+        <img src="/logo_umss.png" alt="Logo UMSS" className="logo" />
         <nav>
           <a href="#">Eventos</a>
           <a href="#">Reglamento</a>
@@ -41,7 +41,7 @@ function App() {
         </div>
       </div>
 
-      <img src="/logo-fondo.png" className="background-logo" alt="Logo de fondo" />
+      <img src="/logo_umss.png" className="background-logo" alt="Logo de fondo" />
 
       <div className="convocatoria">
         <h2>Convocatoria</h2>
