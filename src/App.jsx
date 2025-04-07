@@ -23,7 +23,7 @@ export default function LoginPage() {
       <main className="flex flex-col md:flex-row items-start justify-between px-6 md:px-20 pt-36 pb-10 relative">
         {/* Fondo transparente con logo */}
         <div className="absolute inset-0 opacity-5 z-0 flex items-center justify-center pointer-events-none">
-          <img src="tis-25\src\recursos\emblema-actual-san-simon.jpg" alt="Logo UMSS" className="w-full max-w-4xl" />
+          <img src="tis-25\src\recursos\emblema-actual-san-simon.jpg" alt="Logo umss" className="w-full max-w-4xl" />
         </div>
 
         {/* Texto informativo */}
