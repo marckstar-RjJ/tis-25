@@ -43,7 +43,7 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 20px;
+  padding-bottom: 0px;
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -211,8 +211,8 @@ a {
 }
 
 .sidebar .logo img {
-  width: 60px;
-  margin-bottom: 50px;
+  width: 90px;
+  margin-bottom: 10px;
 }
 
 .sidebar nav ul {
@@ -288,7 +288,7 @@ a {
 
 .inscripcion-form {
   max-width: 900px;
-  margin: 40px auto;
+  margin: 0px auto;
   padding: 30px;
   background: #fff;
   border-radius: 12px;
@@ -333,7 +333,7 @@ a {
 
 .subida-excel {
   max-width: 900px;
-  margin: 40px auto;
+  margin: 0px auto;
   padding: 30px;
   background: #fff;
   border-radius: 12px;
