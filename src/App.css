@@ -86,7 +86,7 @@ a {
 .container {
   display: flex;
   justify-content: space-between;
-  padding: 40px 0;
+  padding: 30px 0;
   position: relative;
   z-index: 1;
 }
@@ -269,6 +269,7 @@ a {
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
 }
 
 .card:hover {
@@ -374,6 +375,26 @@ a {
 /* ======================== */
 
 @media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    gap: 30px;
+    align-items: center;
+  }
+
+  .left-section,
+  .right-section {
+    width: 100%;
+  }
+
+  .left-section h1 {
+    font-size: 28px;
+    text-align: center;
+  }
+
+  .left-section p {
+    text-align: center;
+  }
+
   .dashboard {
     flex-direction: column;
   }
@@ -403,6 +424,32 @@ a {
 
   .logout {
     margin-top: 10px;
+  }
+
+  .header nav {
+    display: none;
+  }
+
+  .header .menu-button {
+    display: block;
+    font-size: 24px;
+    background: none;
+    border: none;
+    color: #4f46e5;
+  }
+
+  .menu-toggle {
+    display: block;
+    font-size: 24px;
+    background: none;
+    border: none;
+    color: #4f46e5;
+    cursor: pointer;
+    margin: 10px;
+  }
+
+  .sidebar.hidden {
+    display: none;
   }
 }
 

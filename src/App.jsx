@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate } from 'react-router-dom';
 import './App.css';
 import Dashboard from './Dashboard';
 import InscripcionIndividual from './InscripcionIndividual';
+import InscripcionPorLista from './InscripcionPorLista';
 
 function Home() {
   const navigate = useNavigate();
@@ -68,6 +69,7 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/inscripcion" element={<InscripcionIndividual />} />
+      <Route path="/inscripcion-lista" element={<InscripcionPorLista />} />
     </Routes>
   );
 }

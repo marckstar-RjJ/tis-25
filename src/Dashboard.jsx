@@ -13,6 +13,10 @@ function Dashboard() {
     navigate('/inscripcion');
   };
 
+  const goToInscripcionLista = () => {
+    navigate('/inscripcion-lista');
+  };
+
   return (
     <div className="dashboard">
       <aside className="sidebar">
@@ -23,9 +27,9 @@ function Dashboard() {
         <nav>
           <ul>
             <li><button onClick={goToInscripcion}>Inscripción Individual</button></li>
-            <li><a href="#">Inscripción por Lista</a></li>
-            <li><a href="#">Subir Comprobante</a></li>
-            <li><a href="#">Reportes</a></li>
+            <li><button onClick={goToInscripcionLista}>Inscripción por Lista</button></li>
+            <li><button>Subir Comprobante</button></li>
+            <li><button>Reportes</button></li>
           </ul>
         </nav>
       </aside>
@@ -39,7 +43,7 @@ function Dashboard() {
             <h3>Inscripción Individual</h3>
             <p>Registrar estudiantes de forma manual.</p>
           </div>
-          <div className="card">
+          <div className="card" onClick={goToInscripcionLista} style={{ cursor: 'pointer' }}>
             <h3>Inscripción por Lista</h3>
             <p>Sube un archivo Excel con la lista de estudiantes.</p>
           </div>
