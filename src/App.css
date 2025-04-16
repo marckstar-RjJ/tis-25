@@ -674,3 +674,192 @@ a {
   background-color: #95a5a6;
   cursor: not-allowed;
 }
+
+/* Estilos para opciones de inscripción de áreas */
+.area-option {
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.area-option:hover:not(.disabled) {
+  background-color: #f5f5f5;
+}
+
+.area-option.disabled {
+  opacity: 0.6;
+}
+
+.area-option input[type="checkbox"]:disabled + label {
+  cursor: not-allowed;
+}
+
+.disabled-text {
+  color: #999;
+}
+
+.no-disponible {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #e74c3c;
+}
+
+.info-message {
+  font-size: 0.85rem;
+  color: #3498db;
+  margin-top: 5px;
+}
+
+.areas-info {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #3498db;
+}
+
+.areas-info p {
+  margin: 0 0 5px 0;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.areas-info ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.areas-info li {
+  margin-bottom: 3px;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.form-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.back-button {
+  background-color: #95a5a6;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.back-button:hover {
+  background-color: #7f8c8d;
+}
+
+.submit-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.submit-button:hover {
+  background-color: #2980b9;
+}
+
+/* Estilos adicionales para la página de inscripción */
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.student-info {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 25px;
+  border-left: 4px solid #3498db;
+}
+
+.student-info h3 {
+  margin: 0 0 15px 0;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-label {
+  font-weight: 500;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+}
+
+.info-value {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.areas-selection {
+  margin-bottom: 25px;
+}
+
+.areas-selection h3 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+.areas-price-info {
+  font-weight: 500;
+  color: #e74c3c;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+}
+
+.areas-list {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.price-summary {
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 20px;
+  border: 1px solid #ddd;
+}
+
+.total-price {
+  font-size: 1.2rem;
+  color: #e74c3c;
+  margin-top: 10px;
+}
+
+.total-price strong {
+  font-size: 1.3rem;
+}
