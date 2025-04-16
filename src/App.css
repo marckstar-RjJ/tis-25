@@ -1,0 +1,647 @@
+/* Reset global y estilos base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background-color: #ffffff;
+  color: #111;
+}
+
+/* ======================== */
+/* === Estilos Generales === */
+/* ======================== */
+
+button {
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 6px;
+  transition: 0.3s ease;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* ======================== */
+/* === Layout Principal === */
+/* ======================== */
+
+.app {
+  position: relative;
+  padding: 20px;
+}
+
+/* ======================== */
+/* ====== Header ========= */
+/* ======================== */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.header .logo {
+  width: 60px;
+  height: auto;
+}
+
+.header nav {
+  display: flex;
+  gap: 50px;
+  align-items: center;
+}
+
+.header nav a {
+  color: #000;
+  font-weight: 500;
+}
+
+.header nav .btn {
+  padding: 8px 16px;
+  border: none;
+}
+
+.btn-ingresar {
+  background-color: #4f46e5;
+  color: #fff;
+}
+
+.btn-registrar {
+  background-color: #ffffff;
+  border: 2px solid #4f46e5;
+  color: #4f46e5;
+}
+
+/* ======================== */
+/* ==== Landing Page ====== */
+/* ======================== */
+
+.container {
+  display: flex;
+  justify-content: space-between;
+  padding: 30px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.left-section {
+  width: 80%;
+}
+
+.left-section h1 {
+  font-size: 36px;
+  font-weight: 800;
+  margin-bottom: 20px;
+}
+
+.left-section p {
+  font-size: 16px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.right-section {
+  width: 35%;
+  background-color: #f9f9f9;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Login Form */
+
+.form-login .form-group {
+  margin-bottom: 15px;
+}
+
+.form-login label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: bold;
+  color: #444;
+}
+
+.form-login input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.form-login button {
+  width: 100%;
+  padding: 10px;
+  background-color: #4f46e5;
+  color: #fff;
+  border: none;
+  margin-top: 10px;
+}
+
+.form-login a {
+  display: block;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #4f46e5;
+  text-align: center;
+}
+
+/* Imagen de fondo decorativa */
+
+.background-logo {
+  position: absolute;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30%;
+  opacity: 0.10;
+  z-index: 0;
+}
+
+/* ======================== */
+/* ==== Convocatoria ====== */
+/* ======================== */
+
+.convocatoria {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.convocatoria h2 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.convocatoria button {
+  padding: 10px 20px;
+  background-color: #e11d48;
+  color: white;
+  border: none;
+}
+
+/* ======================== */
+/* ======= Dashboard ====== */
+/* ======================== */
+
+.dashboard {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: #4f46e5;
+  color: white;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 50px;
+}
+
+.sidebar .logo img {
+  width: 90px;
+  margin-bottom: 10px;
+}
+
+.sidebar nav ul {
+  list-style: none;
+}
+
+.sidebar nav ul li {
+  margin-bottom: 15px;
+}
+
+.sidebar nav ul li a {
+  color: white;
+  font-weight: bold;
+}
+
+.sidebar nav ul li a:hover {
+  text-decoration: underline;
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 30px;
+  background-color: #f9f9f9;
+}
+
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.main-header h1 {
+  font-size: 28px;
+}
+
+.logout {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+}
+
+/* Tarjetas */
+
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.card h3 {
+  margin-bottom: 10px;
+  color: #4f46e5;
+}
+
+/* ======================== */
+/* ==== Formulario Inscripción ==== */
+/* ======================== */
+
+.inscripcion-form {
+  max-width: 900px;
+  margin: 0px auto;
+  padding: 30px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.inscripcion-form h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #4f46e5;
+  font-size: 28px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #444;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+}
+
+/* ======================== */
+/* ===== Subida Excel ===== */
+/* ======================== */
+
+.subida-excel {
+  max-width: 900px;
+  margin: 0px auto;
+  padding: 30px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.subida-excel h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #4f46e5;
+  font-size: 28px;
+}
+
+.subida-excel form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+}
+
+.subida-excel input[type='file'] {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.subida-excel button[type='submit'] {
+  padding: 12px 20px;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+}
+
+/* ======================== */
+/* ======= Responsive ===== */
+/* ======================== */
+
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    gap: 30px;
+    align-items: center;
+  }
+
+  .left-section,
+  .right-section {
+    width: 100%;
+  }
+
+  .left-section h1 {
+    font-size: 28px;
+    text-align: center;
+  }
+
+  .left-section p {
+    text-align: center;
+  }
+
+  .dashboard {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px;
+  }
+
+  .sidebar .logo {
+    display: none;
+  }
+
+  .sidebar nav ul {
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+  }
+
+  .main-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .logout {
+    margin-top: 10px;
+  }
+
+  .header nav {
+    display: none;
+  }
+
+  .header .menu-button {
+    display: block;
+    font-size: 24px;
+    background: none;
+    border: none;
+    color: #4f46e5;
+  }
+
+  .menu-toggle {
+    display: block;
+    font-size: 24px;
+    background: none;
+    border: none;
+    color: #4f46e5;
+    cursor: pointer;
+    margin: 10px;
+  }
+
+  .sidebar.hidden {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .inscripcion-form,
+  .subida-excel {
+    padding: 20px;
+  }
+
+  .inscripcion-form h2,
+  .subida-excel h2 {
+    font-size: 22px;
+  }
+
+  .subida-excel input[type='file'] {
+    font-size: 14px;
+  }
+
+  .subida-excel button[type='submit'] {
+    font-size: 15px;
+    padding: 10px 16px;
+  }
+}
+/* App.css */
+.error-message {
+  color: red;
+  font-size: 0.8em;
+  margin-top: 0.2em;
+}
+
+.error {
+  border: 1px solid red;
+}
+
+.error-checkbox > label {
+  color: red;
+}
+
+/* Estilos para el componente de Registro */
+.registro-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.registro-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.registro-header img.logo {
+  height: 60px;
+  margin-right: 1rem;
+}
+
+.registro-header h1 {
+  color: #2c3e50;
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.tipo-usuario-selector {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 1.5rem;
+}
+
+.tipo-usuario-selector h2 {
+  font-size: 1.3rem;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.tipo-usuario-options {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.tipo-usuario-options label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.tipo-usuario-options input[type="radio"] {
+  margin-right: 0.5rem;
+  cursor: pointer;
+}
+
+.registro-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.registro-form .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.registro-form label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.registro-form input,
+.registro-form select {
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.registro-form .universidad-options {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.submit-button {
+  grid-column: span 2;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 1rem;
+  font-size: 1.1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 1rem;
+}
+
+.submit-button:hover {
+  background-color: #2980b9;
+}
+
+.login-link {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.login-link a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.login-link a:hover {
+  text-decoration: underline;
+}
+
+.register-link {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.register-link a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.register-link a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .registro-form {
+    grid-template-columns: 1fr;
+  }
+
+  .submit-button {
+    grid-column: 1;
+  }
+
+  .tipo-usuario-options {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+}
+
+/* Estilos para errores en el formulario */
+.registro-form input.error,
+.registro-form select.error {
+  border-color: #e74c3c;
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+}
