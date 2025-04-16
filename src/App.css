@@ -645,3 +645,32 @@ a {
   font-size: 0.8rem;
   margin-top: 0.3rem;
 }
+
+/* Mejoras para el formulario de login */
+.form-login h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #2c3e50;
+  font-size: 1.5rem;
+}
+
+.form-login button:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+.login-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+/* Mejoras para el formulario de registro */
+.submit-button:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}

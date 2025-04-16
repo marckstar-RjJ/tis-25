@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './App.css';
+import { apiService } from './services/api';
 
 function Registro() {
   const navigate = useNavigate();
@@ -8,26 +9,32 @@ function Registro() {
   const [formData, setFormData] = useState({
     nombre: '',
     apellidos: '',
-    identificacion: '',
-    curso: '',
-    universidad: 'universidad1',
+    ci: '',
+    fechaNacimiento: '',
     email: '',
+    emailTutor: '',
+    celular: '',
+    celularTutor: '',
+    nombreTutor: '',
+    apellidosTutor: '',
+    colegio: '',
     password: '',
     confirmarPassword: ''
   });
   const [errores, setErrores] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  const cursos = [
-    'Curso 1',
-    'Curso 2',
-    'Curso 3',
-    'Curso 4',
-    'Curso 5',
-    'Curso 6',
-    'Curso 7',
-    'Curso 8',
-    'Curso 9',
-    'Curso 10'
+  const colegios = [
+    'Colegio 1',
+    'Colegio 2',
+    'Colegio 3',
+    'Colegio 4',
+    'Colegio 5',
+    'Colegio 6',
+    'Colegio 7',
+    'Colegio 8',
+    'Colegio 9',
+    'Colegio 10'
   ];
 
   // Reiniciar campos no necesarios cuando cambia el tipo de usuario
@@ -37,16 +44,22 @@ function Registro() {
     if (tipoUsuario === 'administrador') {
       newFormData = {
         ...newFormData,
-        nombre: '',
-        apellidos: '',
-        curso: '',
-        universidad: ''
+        fechaNacimiento: '',
+        emailTutor: '',
+        celular: '',
+        celularTutor: '',
+        nombreTutor: '',
+        apellidosTutor: '',
+        colegio: ''
       };
     } else if (tipoUsuario === 'tutor') {
       newFormData = {
         ...newFormData,
-        curso: '',
-        universidad: ''
+        fechaNacimiento: '',
+        emailTutor: '',
+        celularTutor: '',
+        nombreTutor: '',
+        apellidosTutor: ''
       };
     }
     
@@ -77,8 +90,16 @@ function Registro() {
     const nuevosErrores = {};
 
     // Validaciones comunes para todos los tipos de usuario
-    if (!formData.identificacion) {
-      nuevosErrores.identificacion = 'La identificación es requerida';
+    if (!formData.nombre) {
+      nuevosErrores.nombre = 'El nombre es requerido';
+    }
+    
+    if (!formData.apellidos) {
+      nuevosErrores.apellidos = 'Los apellidos son requeridos';
+    }
+    
+    if (!formData.ci) {
+      nuevosErrores.ci = 'El carnet de identidad es requerido';
     }
     
     if (!formData.email) {
@@ -98,23 +119,41 @@ function Registro() {
     }
     
     // Validaciones específicas por tipo de usuario
-    if (tipoUsuario === 'estudiante' || tipoUsuario === 'tutor') {
-      if (!formData.nombre) {
-        nuevosErrores.nombre = 'El nombre es requerido';
+    if (tipoUsuario === 'estudiante') {
+      if (!formData.fechaNacimiento) {
+        nuevosErrores.fechaNacimiento = 'La fecha de nacimiento es requerida';
       }
       
-      if (!formData.apellidos) {
-        nuevosErrores.apellidos = 'Los apellidos son requeridos';
+      if (!formData.emailTutor) {
+        nuevosErrores.emailTutor = 'El email del tutor es requerido';
+      } else if (!/\S+@\S+\.\S+/.test(formData.emailTutor)) {
+        nuevosErrores.emailTutor = 'El email del tutor no es válido';
+      }
+      
+      if (!formData.celular) {
+        nuevosErrores.celular = 'El número de celular es requerido';
+      }
+      
+      if (!formData.celularTutor) {
+        nuevosErrores.celularTutor = 'El número de celular del tutor es requerido';
+      }
+      
+      if (!formData.nombreTutor) {
+        nuevosErrores.nombreTutor = 'El nombre del tutor es requerido';
+      }
+      
+      if (!formData.apellidosTutor) {
+        nuevosErrores.apellidosTutor = 'Los apellidos del tutor son requeridos';
       }
     }
     
-    if (tipoUsuario === 'estudiante') {
-      if (!formData.curso) {
-        nuevosErrores.curso = 'Debe seleccionar un curso';
+    if (tipoUsuario === 'tutor') {
+      if (!formData.celular) {
+        nuevosErrores.celular = 'El número de celular es requerido';
       }
       
-      if (!formData.universidad) {
-        nuevosErrores.universidad = 'Debe seleccionar una universidad';
+      if (!formData.colegio) {
+        nuevosErrores.colegio = 'Debe seleccionar un colegio';
       }
     }
     
@@ -122,16 +161,46 @@ function Registro() {
     return Object.keys(nuevosErrores).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (validarFormulario()) {
-      // Aquí iría la lógica para enviar los datos al servidor
-      console.log('Datos de registro:', { tipoUsuario, ...formData });
-      
-      // Por ahora, redirigimos al usuario a la página principal
-      alert('Registro exitoso');
-      navigate('/');
+      setIsLoading(true);
+      try {
+        // Preparar los datos según el tipo de usuario
+        const userData = {
+          tipoUsuario,
+          nombre: formData.nombre,
+          apellidos: formData.apellidos,
+          ci: formData.ci,
+          email: formData.email,
+          password: formData.password
+        };
+        
+        if (tipoUsuario === 'estudiante') {
+          userData.fechaNacimiento = formData.fechaNacimiento;
+          userData.emailTutor = formData.emailTutor;
+          userData.celular = formData.celular;
+          userData.celularTutor = formData.celularTutor;
+          userData.nombreTutor = formData.nombreTutor;
+          userData.apellidosTutor = formData.apellidosTutor;
+        } else if (tipoUsuario === 'tutor') {
+          userData.celular = formData.celular;
+          userData.colegio = formData.colegio;
+        }
+        
+        // Enviar los datos al servidor
+        const result = await apiService.createUser(userData);
+        console.log('Usuario registrado:', result);
+        
+        alert('Registro exitoso');
+        navigate('/');
+      } catch (error) {
+        console.error('Error al registrar:', error);
+        alert(error.message || 'Error al registrar usuario');
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       alert('Por favor, corrija los errores en el formulario');
     }
@@ -155,7 +224,7 @@ function Registro() {
               checked={tipoUsuario === 'estudiante'}
               onChange={handleTipoUsuarioChange}
             />
-            Estudiante Universitario
+            Estudiante
           </label>
           <label>
             <input
@@ -181,101 +250,48 @@ function Registro() {
       </div>
 
       <form className="registro-form" onSubmit={handleSubmit}>
-        {(tipoUsuario === 'estudiante' || tipoUsuario === 'tutor') && (
-          <>
-            <div className="form-group">
-              <label htmlFor="nombre">Nombre</label>
-              <input
-                type="text"
-                id="nombre"
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleInputChange}
-                className={errores.nombre ? 'error' : ''}
-              />
-              {errores.nombre && <span className="error-message">{errores.nombre}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="apellidos">Apellidos</label>
-              <input
-                type="text"
-                id="apellidos"
-                name="apellidos"
-                value={formData.apellidos}
-                onChange={handleInputChange}
-                className={errores.apellidos ? 'error' : ''}
-              />
-              {errores.apellidos && <span className="error-message">{errores.apellidos}</span>}
-            </div>
-          </>
-        )}
-
+        {/* Campos comunes para todos los usuarios */}
         <div className="form-group">
-          <label htmlFor="identificacion">Identificación</label>
+          <label htmlFor="nombre">Nombres</label>
           <input
             type="text"
-            id="identificacion"
-            name="identificacion"
-            value={formData.identificacion}
+            id="nombre"
+            name="nombre"
+            value={formData.nombre}
             onChange={handleInputChange}
-            className={errores.identificacion ? 'error' : ''}
+            className={errores.nombre ? 'error' : ''}
           />
-          {errores.identificacion && <span className="error-message">{errores.identificacion}</span>}
+          {errores.nombre && <span className="error-message">{errores.nombre}</span>}
         </div>
 
-        {tipoUsuario === 'estudiante' && (
-          <>
-            <div className="form-group">
-              <label htmlFor="curso">Curso</label>
-              <select
-                id="curso"
-                name="curso"
-                value={formData.curso}
-                onChange={handleInputChange}
-                className={errores.curso ? 'error' : ''}
-              >
-                <option value="">Selecciona un curso</option>
-                {cursos.map((curso, index) => (
-                  <option key={index} value={curso}>
-                    {curso}
-                  </option>
-                ))}
-              </select>
-              {errores.curso && <span className="error-message">{errores.curso}</span>}
-            </div>
-
-            <div className="form-group">
-              <label>Universidad</label>
-              <div className="universidad-options">
-                <label>
-                  <input
-                    type="radio"
-                    name="universidad"
-                    value="universidad1"
-                    checked={formData.universidad === 'universidad1'}
-                    onChange={handleInputChange}
-                  />
-                  Universidad 1
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="universidad"
-                    value="universidad2"
-                    checked={formData.universidad === 'universidad2'}
-                    onChange={handleInputChange}
-                  />
-                  Universidad 2
-                </label>
-              </div>
-              {errores.universidad && <span className="error-message">{errores.universidad}</span>}
-            </div>
-          </>
-        )}
+        <div className="form-group">
+          <label htmlFor="apellidos">Apellidos</label>
+          <input
+            type="text"
+            id="apellidos"
+            name="apellidos"
+            value={formData.apellidos}
+            onChange={handleInputChange}
+            className={errores.apellidos ? 'error' : ''}
+          />
+          {errores.apellidos && <span className="error-message">{errores.apellidos}</span>}
+        </div>
 
         <div className="form-group">
-          <label htmlFor="email">Email</label>
+          <label htmlFor="ci">Carnet de Identidad</label>
+          <input
+            type="text"
+            id="ci"
+            name="ci"
+            value={formData.ci}
+            onChange={handleInputChange}
+            className={errores.ci ? 'error' : ''}
+          />
+          {errores.ci && <span className="error-message">{errores.ci}</span>}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="email">Correo Electrónico</label>
           <input
             type="email"
             id="email"
@@ -287,6 +303,127 @@ function Registro() {
           {errores.email && <span className="error-message">{errores.email}</span>}
         </div>
 
+        {/* Campos específicos para estudiantes */}
+        {tipoUsuario === 'estudiante' && (
+          <>
+            <div className="form-group">
+              <label htmlFor="fechaNacimiento">Fecha de Nacimiento</label>
+              <input
+                type="date"
+                id="fechaNacimiento"
+                name="fechaNacimiento"
+                value={formData.fechaNacimiento}
+                onChange={handleInputChange}
+                className={errores.fechaNacimiento ? 'error' : ''}
+              />
+              {errores.fechaNacimiento && <span className="error-message">{errores.fechaNacimiento}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="celular">Número de Celular</label>
+              <input
+                type="tel"
+                id="celular"
+                name="celular"
+                value={formData.celular}
+                onChange={handleInputChange}
+                className={errores.celular ? 'error' : ''}
+              />
+              {errores.celular && <span className="error-message">{errores.celular}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="nombreTutor">Nombres del Tutor</label>
+              <input
+                type="text"
+                id="nombreTutor"
+                name="nombreTutor"
+                value={formData.nombreTutor}
+                onChange={handleInputChange}
+                className={errores.nombreTutor ? 'error' : ''}
+              />
+              {errores.nombreTutor && <span className="error-message">{errores.nombreTutor}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="apellidosTutor">Apellidos del Tutor</label>
+              <input
+                type="text"
+                id="apellidosTutor"
+                name="apellidosTutor"
+                value={formData.apellidosTutor}
+                onChange={handleInputChange}
+                className={errores.apellidosTutor ? 'error' : ''}
+              />
+              {errores.apellidosTutor && <span className="error-message">{errores.apellidosTutor}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="emailTutor">Correo Electrónico del Tutor</label>
+              <input
+                type="email"
+                id="emailTutor"
+                name="emailTutor"
+                value={formData.emailTutor}
+                onChange={handleInputChange}
+                className={errores.emailTutor ? 'error' : ''}
+              />
+              {errores.emailTutor && <span className="error-message">{errores.emailTutor}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="celularTutor">Número de Celular del Tutor</label>
+              <input
+                type="tel"
+                id="celularTutor"
+                name="celularTutor"
+                value={formData.celularTutor}
+                onChange={handleInputChange}
+                className={errores.celularTutor ? 'error' : ''}
+              />
+              {errores.celularTutor && <span className="error-message">{errores.celularTutor}</span>}
+            </div>
+          </>
+        )}
+
+        {/* Campos específicos para tutores */}
+        {tipoUsuario === 'tutor' && (
+          <>
+            <div className="form-group">
+              <label htmlFor="celular">Número de Celular</label>
+              <input
+                type="tel"
+                id="celular"
+                name="celular"
+                value={formData.celular}
+                onChange={handleInputChange}
+                className={errores.celular ? 'error' : ''}
+              />
+              {errores.celular && <span className="error-message">{errores.celular}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="colegio">Colegio</label>
+              <select
+                id="colegio"
+                name="colegio"
+                value={formData.colegio}
+                onChange={handleInputChange}
+                className={errores.colegio ? 'error' : ''}
+              >
+                <option value="">Selecciona un colegio</option>
+                {colegios.map((colegio, index) => (
+                  <option key={index} value={colegio}>
+                    {colegio}
+                  </option>
+                ))}
+              </select>
+              {errores.colegio && <span className="error-message">{errores.colegio}</span>}
+            </div>
+          </>
+        )}
+
+        {/* Campos de contraseña para todos los usuarios */}
         <div className="form-group">
           <label htmlFor="password">Contraseña</label>
           <input
@@ -313,8 +450,8 @@ function Registro() {
           {errores.confirmarPassword && <span className="error-message">{errores.confirmarPassword}</span>}
         </div>
 
-        <button type="submit" className="submit-button">
-          Registrarse
+        <button type="submit" className="submit-button" disabled={isLoading}>
+          {isLoading ? 'Procesando...' : 'Registrarse'}
         </button>
       </form>
 
