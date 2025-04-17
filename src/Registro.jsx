@@ -11,6 +11,7 @@ function Registro() {
     apellidos: '',
     ci: '',
     fechaNacimiento: '',
+    curso: '3', // Valor predeterminado: 3° primaria
     email: '',
     emailTutor: '',
     celular: '',
@@ -23,19 +24,27 @@ function Registro() {
   });
   const [errores, setErrores] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [colegios, setColegios] = useState([]);
+  const [cargandoColegios, setCargandoColegios] = useState(true);
 
-  const colegios = [
-    'Colegio 1',
-    'Colegio 2',
-    'Colegio 3',
-    'Colegio 4',
-    'Colegio 5',
-    'Colegio 6',
-    'Colegio 7',
-    'Colegio 8',
-    'Colegio 9',
-    'Colegio 10'
-  ];
+  // Cargar la lista de colegios disponibles al iniciar
+  useEffect(() => {
+    const fetchColegios = async () => {
+      try {
+        const data = await apiService.getAllColleges();
+        setColegios(data);
+        if (data.length > 0) {
+          setFormData(prev => ({ ...prev, colegio: data[0].id }));
+        }
+      } catch (error) {
+        console.error('Error al cargar colegios:', error);
+      } finally {
+        setCargandoColegios(false);
+      }
+    };
+    
+    fetchColegios();
+  }, []);
 
   // Reiniciar campos no necesarios cuando cambia el tipo de usuario
   useEffect(() => {
@@ -45,6 +54,7 @@ function Registro() {
       newFormData = {
         ...newFormData,
         fechaNacimiento: '',
+        curso: '',
         emailTutor: '',
         celular: '',
         celularTutor: '',
@@ -56,15 +66,31 @@ function Registro() {
       newFormData = {
         ...newFormData,
         fechaNacimiento: '',
+        curso: '',
         emailTutor: '',
         celularTutor: '',
         nombreTutor: '',
         apellidosTutor: ''
       };
+      
+      // Establecer colegio predeterminado si hay colegios disponibles
+      if (colegios.length > 0 && !newFormData.colegio) {
+        newFormData.colegio = colegios[0].id;
+      }
+    } else if (tipoUsuario === 'estudiante') {
+      // Establecer curso predeterminado para estudiante
+      if (!newFormData.curso) {
+        newFormData.curso = '3'; // 3° primaria por defecto
+      }
+      
+      // Establecer colegio predeterminado si hay colegios disponibles
+      if (colegios.length > 0 && !newFormData.colegio) {
+        newFormData.colegio = colegios[0].id;
+      }
     }
     
     setFormData(newFormData);
-  }, [tipoUsuario]);
+  }, [tipoUsuario, colegios]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -124,6 +150,14 @@ function Registro() {
         nuevosErrores.fechaNacimiento = 'La fecha de nacimiento es requerida';
       }
       
+      if (!formData.curso) {
+        nuevosErrores.curso = 'Debe seleccionar un curso';
+      }
+      
+      if (!formData.colegio) {
+        nuevosErrores.colegio = 'Debe seleccionar un colegio';
+      }
+      
       if (!formData.emailTutor) {
         nuevosErrores.emailTutor = 'El email del tutor es requerido';
       } else if (!/\S+@\S+\.\S+/.test(formData.emailTutor)) {
@@ -179,6 +213,8 @@ function Registro() {
         
         if (tipoUsuario === 'estudiante') {
           userData.fechaNacimiento = formData.fechaNacimiento;
+          userData.curso = Number(formData.curso);
+          userData.colegio = formData.colegio;
           userData.emailTutor = formData.emailTutor;
           userData.celular = formData.celular;
           userData.celularTutor = formData.celularTutor;
@@ -320,6 +356,58 @@ function Registro() {
             </div>
 
             <div className="form-group">
+              <label htmlFor="curso">Curso</label>
+              <select
+                id="curso"
+                name="curso"
+                value={formData.curso}
+                onChange={handleInputChange}
+                className={errores.curso ? 'error' : ''}
+              >
+                <option value="">Seleccione un curso</option>
+                <option value="3">3° Primaria</option>
+                <option value="4">4° Primaria</option>
+                <option value="5">5° Primaria</option>
+                <option value="6">6° Primaria</option>
+                <option value="7">1° Secundaria</option>
+                <option value="8">2° Secundaria</option>
+                <option value="9">3° Secundaria</option>
+                <option value="10">4° Secundaria</option>
+                <option value="11">5° Secundaria</option>
+                <option value="12">6° Secundaria</option>
+              </select>
+              {errores.curso && <span className="error-message">{errores.curso}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="colegio">Colegio</label>
+              <select
+                id="colegio"
+                name="colegio"
+                value={formData.colegio}
+                onChange={handleInputChange}
+                className={errores.colegio ? 'error' : ''}
+                disabled={cargandoColegios || colegios.length === 0}
+              >
+                {cargandoColegios ? (
+                  <option value="">Cargando colegios...</option>
+                ) : colegios.length === 0 ? (
+                  <option value="">No hay colegios disponibles</option>
+                ) : (
+                  <>
+                    <option value="">Seleccione un colegio</option>
+                    {colegios.map(colegio => (
+                      <option key={colegio.id} value={colegio.id}>
+                        {colegio.nombre}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+              {errores.colegio && <span className="error-message">{errores.colegio}</span>}
+            </div>
+
+            <div className="form-group">
               <label htmlFor="celular">Número de Celular</label>
               <input
                 type="tel"
@@ -410,13 +498,22 @@ function Registro() {
                 value={formData.colegio}
                 onChange={handleInputChange}
                 className={errores.colegio ? 'error' : ''}
+                disabled={cargandoColegios || colegios.length === 0}
               >
-                <option value="">Selecciona un colegio</option>
-                {colegios.map((colegio, index) => (
-                  <option key={index} value={colegio}>
-                    {colegio}
-                  </option>
-                ))}
+                {cargandoColegios ? (
+                  <option value="">Cargando colegios...</option>
+                ) : colegios.length === 0 ? (
+                  <option value="">No hay colegios disponibles</option>
+                ) : (
+                  <>
+                    <option value="">Seleccione un colegio</option>
+                    {colegios.map(colegio => (
+                      <option key={colegio.id} value={colegio.id}>
+                        {colegio.nombre}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
               {errores.colegio && <span className="error-message">{errores.colegio}</span>}
             </div>
@@ -450,14 +547,18 @@ function Registro() {
           {errores.confirmarPassword && <span className="error-message">{errores.confirmarPassword}</span>}
         </div>
 
-        <button type="submit" className="submit-button" disabled={isLoading}>
-          {isLoading ? 'Procesando...' : 'Registrarse'}
+        <button
+          type="submit"
+          className="submit-button"
+          disabled={isLoading || (tipoUsuario !== 'administrador' && colegios.length === 0)}
+        >
+          {isLoading ? 'Registrando...' : 'Registrar'}
         </button>
-      </form>
 
-      <div className="login-link">
-        <p>¿Ya tienes una cuenta? <a href="/">Iniciar sesión</a></p>
-      </div>
+        <div className="login-link">
+          <p>¿Ya tienes una cuenta? <a href="/" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Inicia sesión</a></p>
+        </div>
+      </form>
     </div>
   );
 }

@@ -31,8 +31,17 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   // Si hay roles permitidos y el usuario no tiene el rol adecuado
   if (allowedRoles.length > 0 && !allowedRoles.includes(currentUser.tipoUsuario)) {
-    // Redirigir al dashboard principal
-    return <Navigate to="/dashboard" replace />;
+    // Redirigir según el rol del usuario
+    if (currentUser.tipoUsuario === 'administrador') {
+      return <Navigate to="/admin" replace />;
+    } else if (currentUser.tipoUsuario === 'tutor') {
+      return <Navigate to="/tutor" replace />;
+    } else if (currentUser.tipoUsuario === 'estudiante') {
+      return <Navigate to="/estudiante" replace />;
+    } else {
+      // Si no tiene un rol reconocido, llevarlo al dashboard general
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return children;
@@ -41,11 +50,26 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 function App() {
   const { currentUser } = useAuth();
 
+  // Función para redirigir según el tipo de usuario
+  const redirectByUserType = () => {
+    if (!currentUser) return false;
+    
+    if (currentUser.tipoUsuario === 'administrador') {
+      return <Navigate to="/admin" replace />;
+    } else if (currentUser.tipoUsuario === 'tutor') {
+      return <Navigate to="/tutor" replace />;
+    } else if (currentUser.tipoUsuario === 'estudiante') {
+      return <Navigate to="/estudiante" replace />;
+    } else {
+      return <Navigate to="/dashboard" replace />;
+    }
+  };
+
   return (
     <Routes>
       {/* Rutas públicas */}
-      <Route path="/" element={!currentUser ? <Home /> : <Navigate to="/dashboard" replace />} />
-      <Route path="/registro" element={!currentUser ? <Registro /> : <Navigate to="/dashboard" replace />} />
+      <Route path="/" element={!currentUser ? <Home /> : redirectByUserType()} />
+      <Route path="/registro" element={!currentUser ? <Registro /> : redirectByUserType()} />
       
       {/* Rutas protegidas */}
       <Route 

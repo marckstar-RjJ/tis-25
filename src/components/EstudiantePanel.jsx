@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
+import InscripcionIndividual from '../InscripcionIndividual';
 
 // Componente para mostrar información personal del estudiante
 const InformacionEstudiante = () => {
@@ -98,45 +99,81 @@ const MisAreas = () => {
   const [allAreas, setAllAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [showInscripcion, setShowInscripcion] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      // Obtener todas las áreas disponibles
+      const areasData = await apiService.getAreas();
+      setAllAreas(areasData);
+      
+      // Obtener información actualizada del estudiante
+      const estudianteData = await apiService.getCurrentStudent();
+      
+      console.log("Datos del estudiante:", estudianteData);
+      console.log("Áreas inscritas:", estudianteData.areasInscritas);
+      console.log("Todas las áreas:", areasData);
+      
+      // Si el estudiante tiene áreas inscritas
+      if (estudianteData.areasInscritas && estudianteData.areasInscritas.length > 0) {
+        // Encontrar los objetos de área completos para las áreas inscritas
+        const areasCompletas = areasData.filter(area => 
+          estudianteData.areasInscritas.includes(area.id)
+        );
+        console.log("Áreas completas encontradas:", areasCompletas);
+        setAreasInscritas(areasCompletas);
+      } else {
+        setAreasInscritas([]);
+      }
+    } catch (err) {
+      console.error('Error al cargar áreas inscritas:', err);
+      setError('No se pudieron cargar las áreas inscritas. Intente nuevamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Obtener todas las áreas disponibles
-        const areasData = await apiService.getAreas();
-        setAllAreas(areasData);
-        
-        // Obtener información actualizada del estudiante
-        const estudianteData = await apiService.getStudentById(currentUser.id);
-        
-        // Si el estudiante tiene áreas inscritas
-        if (estudianteData.areasInscritas && estudianteData.areasInscritas.length > 0) {
-          // Encontrar los objetos de área completos para las áreas inscritas
-          const areasCompletas = areasData.filter(area => 
-            estudianteData.areasInscritas.includes(area.id)
-          );
-          setAreasInscritas(areasCompletas);
-        } else {
-          setAreasInscritas([]);
-        }
-      } catch (err) {
-        console.error('Error al cargar áreas inscritas:', err);
-        setError('No se pudieron cargar las áreas inscritas. Intente nuevamente.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchData();
   }, [currentUser]);
 
   const handleInscripcion = () => {
-    navigate('/inscripcion/' + currentUser.id);
+    console.log("Iniciando proceso de inscripción...");
+    setShowInscripcion(true);
+  };
+
+  const handleBackFromInscripcion = () => {
+    console.log("Volviendo desde inscripción...");
+    setShowInscripcion(false);
+    // Recargar los datos después de la inscripción
+    fetchData();
   };
 
   if (loading) {
     return <p>Cargando áreas inscritas...</p>;
+  }
+
+  if (showInscripcion) {
+    // Renderizamos directamente el componente de inscripción
+    return (
+      <div className="inscripcion-individual-wrapper">
+        <h2>Inscripción a Áreas Académicas</h2>
+        <button 
+          onClick={handleBackFromInscripcion} 
+          className="back-button" 
+          style={{ marginBottom: '20px' }}
+        >
+          ← Volver a Mis Áreas
+        </button>
+        <InscripcionIndividual 
+          navigate={(path) => {
+            console.log("Navegación interceptada a:", path);
+            handleBackFromInscripcion();
+          }} 
+        />
+      </div>
+    );
   }
 
   return (
@@ -174,14 +211,27 @@ const MisAreas = () => {
   );
 };
 
+// Componente adaptador para InscripcionIndividual que maneja el estado interno
+const InscripcionIndividualWrapper = ({ onBack }) => {
+  const navigate = (path) => {
+    // Simular el efecto de navegación sin cambiar la URL
+    console.log("Navegación simulada a:", path);
+    onBack();
+  };
+  
+  return <InscripcionIndividual navigate={navigate} />;
+};
+
 // Componente principal del panel de estudiante
 function EstudiantePanel() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    console.log("Iniciando cierre de sesión...");
+    // Usar directamente la función logout del contexto de autenticación
+    // La redirección se maneja dentro de la función logout
     logout();
-    navigate('/');
   };
 
   return (
@@ -234,6 +284,7 @@ function EstudiantePanel() {
             } />
             <Route path="/informacion" element={<InformacionEstudiante />} />
             <Route path="/areas" element={<MisAreas />} />
+            <Route path="/inscripcion" element={<InscripcionIndividual />} />
           </Routes>
         </div>
       </main>

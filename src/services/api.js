@@ -132,6 +132,12 @@ const createUser = (userData) => {
           return;
         }
         
+        // Asegurarnos que tipoUsuario esté establecido correctamente
+        if (!userData.tipoUsuario || !['estudiante', 'tutor', 'administrador'].includes(userData.tipoUsuario)) {
+          reject({ message: 'Tipo de usuario no válido' });
+          return;
+        }
+        
         // Crear un nuevo usuario con ID único
         const newUser = {
           id: Date.now().toString(),
@@ -139,39 +145,59 @@ const createUser = (userData) => {
           createdAt: new Date().toISOString()
         };
         
-        // Si es estudiante o administrador, guardarlo directamente
-        if (userData.tipoUsuario === 'estudiante' || userData.tipoUsuario === 'administrador') {
+        // Si es estudiante, también guardarlo en la colección de estudiantes
+        if (userData.tipoUsuario === 'estudiante') {
+          // Verificar que el colegio exista si se proporciona
+          if (userData.colegio) {
+            const colleges = getColleges();
+            const college = colleges.find(college => college.id === userData.colegio);
+            
+            if (!college) {
+              reject({ message: 'El colegio seleccionado no existe' });
+              return;
+            }
+            
+            // Asociar el objeto colegio completo
+            newUser.colegio = college;
+          }
+          
+          // Guardar en usuarios
           users.push(newUser);
           saveUsers(users);
           
-          // Si es estudiante, también guardarlo en la colección de estudiantes
-          if (userData.tipoUsuario === 'estudiante') {
-            const students = getStudents();
-            const newStudent = {
-              ...newUser,
-              areasInscritas: []
-            };
-            students.push(newStudent);
-            saveStudents(students);
-          }
+          // Guardar en estudiantes
+          const students = getStudents();
+          const newStudent = {
+            ...newUser,
+            areasInscritas: []
+          };
+          students.push(newStudent);
+          saveStudents(students);
           
           resolve(newUser);
-        } 
+        }
+        // Si es administrador, guardar directamente
+        else if (userData.tipoUsuario === 'administrador') {
+          users.push(newUser);
+          saveUsers(users);
+          resolve(newUser);
+        }
         // Si es tutor, verificar que el colegio exista
         else if (userData.tipoUsuario === 'tutor') {
           const colleges = getColleges();
-          const collegeExists = colleges.some(college => college.id === userData.colegio || college.nombre === userData.colegio);
+          const college = colleges.find(college => college.id === userData.colegio);
           
-          if (!collegeExists) {
+          if (!college) {
             reject({ message: 'El colegio seleccionado no existe' });
             return;
           }
           
+          // Asociar el objeto colegio completo
+          newUser.colegio = college;
+          
           users.push(newUser);
           saveUsers(users);
           resolve(newUser);
-        } else {
-          reject({ message: 'Tipo de usuario no válido' });
         }
       } catch (error) {
         reject({ message: 'Error al crear el usuario', error });
@@ -369,11 +395,39 @@ const inscribirEstudianteEnAreas = (studentId, areas) => {
           return;
         }
         
+        // Obtener las áreas completas
+        const allAreas = getAreas();
+        const areasSeleccionadas = allAreas.filter(area => areas.includes(area.id));
+        
+        // Calcular el total a pagar
+        const total = areasSeleccionadas.length * config.precioPorArea;
+        
+        // Crear un número de boleta único
+        const boletaId = `BOL-${Date.now()}-${studentId.substr(0, 4)}`;
+        
+        // Simular envío de boleta por correo electrónico
+        console.log(`[API] Enviando boleta de pago ${boletaId} por correo:`);
+        console.log(`[API] - Estudiante: ${students[studentIndex].nombre} ${students[studentIndex].apellidos}`);
+        console.log(`[API] - Email: ${students[studentIndex].email}`);
+        console.log(`[API] - Áreas inscritas: ${areasSeleccionadas.map(a => a.nombre).join(', ')}`);
+        console.log(`[API] - Total a pagar: $${total}`);
+        
         // Actualizar áreas inscritas
         students[studentIndex].areasInscritas = areas;
+        // Guardar información de la boleta
+        students[studentIndex].boletaPago = {
+          id: boletaId,
+          fecha: new Date().toISOString(),
+          total,
+          pagado: false
+        };
+        
         saveStudents(students);
         
-        resolve(students[studentIndex]);
+        resolve({
+          ...students[studentIndex],
+          boletaEnviada: true
+        });
       } catch (error) {
         reject({ message: 'Error al inscribir en áreas', error });
       }
@@ -464,6 +518,43 @@ const fetchOlympiadConfig = () => {
   return getOlympiadSettings();
 };
 
+// Obtener datos del estudiante actual
+const getCurrentStudent = () => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      try {
+        // Obtener el usuario actual desde localStorage
+        const currentUserStr = localStorage.getItem('currentUser');
+        if (!currentUserStr) {
+          reject({ message: 'No hay ningún usuario autenticado' });
+          return;
+        }
+
+        const currentUser = JSON.parse(currentUserStr);
+        
+        // Verificar que sea un estudiante
+        if (currentUser.tipoUsuario !== 'estudiante') {
+          reject({ message: 'El usuario actual no es un estudiante' });
+          return;
+        }
+
+        // Buscar los datos completos del estudiante
+        const students = getStudents();
+        const student = students.find(student => student.id === currentUser.id);
+        
+        if (!student) {
+          reject({ message: 'No se encontraron datos del estudiante' });
+          return;
+        }
+        
+        resolve(student);
+      } catch (error) {
+        reject({ message: 'Error al obtener datos del estudiante actual', error });
+      }
+    }, 500);
+  });
+};
+
 // Exportar servicios
 export const apiService = {
   createUser,
@@ -479,5 +570,6 @@ export const apiService = {
   getAreas: getAllAreas,
   getOlympiadConfig: fetchOlympiadConfig,
   getOlympiadSettings,
-  updateOlympiadSettings
+  updateOlympiadSettings,
+  getCurrentStudent
 }; 

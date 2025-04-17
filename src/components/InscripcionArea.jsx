@@ -117,6 +117,13 @@ function InscripcionArea() {
       await apiService.updateStudentAreas(studentId, selectedAreaIds);
       
       setSuccess('Inscripción actualizada correctamente');
+      
+      // Si el usuario es un tutor, mostramos opciones adicionales
+      if (currentUser.tipoUsuario === 'tutor') {
+        setTimeout(() => {
+          navigate('/tutor/estudiantes');
+        }, 2000);
+      }
     } catch (err) {
       console.error('Error al actualizar inscripción:', err);
       setError(err.message || 'Error al realizar la inscripción. Intente nuevamente.');
@@ -126,7 +133,11 @@ function InscripcionArea() {
   };
 
   if (loading) {
-    return <p>Cargando información...</p>;
+    return (
+      <div className="loading-container">
+        <p>Cargando información...</p>
+      </div>
+    );
   }
 
   if (!student) {
@@ -195,9 +206,29 @@ function InscripcionArea() {
           <h3>Resumen de Inscripción</h3>
           <p><strong>Áreas seleccionadas:</strong> {selectedAreas.length}</p>
           <p><strong>Costo total:</strong> Bs. {totalCost}</p>
+          
+          {/* Añadimos información sobre áreas seleccionadas */}
+          {selectedAreas.length > 0 && (
+            <div className="selected-areas-list">
+              <p><strong>Áreas elegidas:</strong></p>
+              <ul>
+                {selectedAreas.map(area => (
+                  <li key={area.id}>{area.nombre}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
         
         <div className="form-actions">
+          <button 
+            type="button" 
+            className="cancel-button" 
+            onClick={() => navigate('/tutor/estudiantes')}
+            disabled={submitting}
+          >
+            Cancelar
+          </button>
           <button 
             type="submit" 
             className="submit-button" 

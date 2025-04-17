@@ -19,6 +19,9 @@ function Home() {
       // Intenta iniciar sesión con el servicio API a través del contexto de autenticación
       const user = await login(email, password);
       
+      console.log("Usuario autenticado:", user);
+      console.log("Tipo de usuario:", user.tipoUsuario);
+      
       // Redirige según el tipo de usuario
       if (user.tipoUsuario === 'administrador') {
         navigate('/admin');
@@ -27,6 +30,8 @@ function Home() {
       } else if (user.tipoUsuario === 'estudiante') {
         navigate('/estudiante');
       } else {
+        // Por defecto, si no se reconoce el tipo
+        console.error("Tipo de usuario no reconocido:", user.tipoUsuario);
         navigate('/dashboard');
       }
     } catch (error) {

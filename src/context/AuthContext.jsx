@@ -15,6 +15,16 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkUser = async () => {
       try {
+        // Verificar si estamos en la ruta de inicio o registro
+        const isPublicRoute = window.location.pathname === '/' || 
+                              window.location.pathname === '/registro';
+                              
+        // Si estamos en una ruta pública, no intentamos recuperar el usuario
+        if (isPublicRoute) {
+          setLoading(false);
+          return;
+        }
+        
         const storedUser = localStorage.getItem('currentUser');
         if (storedUser) {
           const userData = JSON.parse(storedUser);
@@ -45,8 +55,15 @@ export const AuthProvider = ({ children }) => {
 
   // Función para cerrar sesión
   const logout = () => {
+    console.log("Cerrando sesión...");
+    // Limpiar los datos del usuario en el estado
     setCurrentUser(null);
+    // Eliminar los datos del usuario del almacenamiento local
     localStorage.removeItem('currentUser');
+    // Forzar una recarga de la página para asegurar que todos los estados se reinicien
+    console.log("Sesión cerrada correctamente");
+    // Redirigir a la página de inicio
+    window.location.href = '/';
   };
 
   // Obtener estudiantes asociados (para tutores)

@@ -1,88 +1,138 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import './App.css';
 import { apiService } from './services/api';
+import { useAuth } from './context/AuthContext';
 
-function InscripcionIndividual() {
+function InscripcionIndividual({ navigate: customNavigate }) {
+  const { studentId } = useParams();
+  const { currentUser } = useAuth();
   const [estudiante, setEstudiante] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [areasSeleccionadas, setAreasSeleccionadas] = useState([]);
   const [availableAreas, setAvailableAreas] = useState([]);
+  const [allAreas, setAllAreas] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [total, setTotal] = useState(0);
 
   const PRECIO_POR_AREA = 16; // Precio en dólares por área
 
-  const navigate = useNavigate();
+  // Usar el navigate personalizado si se proporciona, o el hook useNavigate por defecto
+  const defaultNavigate = useNavigate();
+  const navigate = customNavigate || defaultNavigate;
 
   // Definición de áreas disponibles por curso
   const areasCursos = {
-    'Astronomía y Astrofísica': [
-      '3ro de Primaria', '4to de Primaria', '5to de Primaria', '6to de Primaria',
-      '1ro de Secundaria', '2do de Secundaria', '3ro de Secundaria', '4to de Secundaria', '5to de Secundaria', '6to de Secundaria'
+    'Astronomía': [
+      '3° Primaria', '4° Primaria', '5° Primaria', '6° Primaria',
+      '1° Secundaria', '2° Secundaria', '3° Secundaria', '4° Secundaria', '5° Secundaria', '6° Secundaria'
     ],
     'Biología': [
-      '2do de Secundaria', '3ro de Secundaria', '4to de Secundaria', '5to de Secundaria', '6to de Secundaria'
+      '2° Secundaria', '3° Secundaria', '4° Secundaria', '5° Secundaria', '6° Secundaria'
     ],
     'Física': [
-      '4to de Secundaria', '5to de Secundaria', '6to de Secundaria'
+      '4° Secundaria', '5° Secundaria', '6° Secundaria'
     ],
     'Informática': [
-      '5to de Primaria', '6to de Primaria',
-      '1ro de Secundaria', '2do de Secundaria', '3ro de Secundaria', '4to de Secundaria', '5to de Secundaria', '6to de Secundaria'
+      '5° Primaria', '6° Primaria',
+      '1° Secundaria', '2° Secundaria', '3° Secundaria', '4° Secundaria', '5° Secundaria', '6° Secundaria'
     ],
     'Matemática': [
-      '1ro de Secundaria', '2do de Secundaria', '3ro de Secundaria', '4to de Secundaria', '5to de Secundaria', '6to de Secundaria'
+      '1° Secundaria', '2° Secundaria', '3° Secundaria', '4° Secundaria', '5° Secundaria', '6° Secundaria'
     ],
     'Química': [
-      '2do de Secundaria', '3ro de Secundaria', '4to de Secundaria', '5to de Secundaria', '6to de Secundaria'
+      '2° Secundaria', '3° Secundaria', '4° Secundaria', '5° Secundaria', '6° Secundaria'
     ],
     'Robótica': [
-      '5to de Primaria', '6to de Primaria',
-      '1ro de Secundaria', '2do de Secundaria', '3ro de Secundaria', '4to de Secundaria', '5to de Secundaria', '6to de Secundaria'
+      '5° Primaria', '6° Primaria',
+      '1° Secundaria', '2° Secundaria', '3° Secundaria', '4° Secundaria', '5° Secundaria', '6° Secundaria'
     ]
   };
 
-  // Orden definido para mostrar las áreas
-  const areasInscripcion = [
-    'Astronomía y Astrofísica',
-    'Biología',
-    'Física',
-    'Informática',
-    'Matemática',
-    'Química',
-    'Robótica',
-  ];
+  // Función para convertir el valor numérico del curso a texto
+  const getCursoTexto = (cursoNumero) => {
+    // Validar que sea un número
+    const curso = Number(cursoNumero);
+    if (isNaN(curso)) return '';
+    
+    if (curso <= 6) {
+      return `${curso}° Primaria`;
+    } else {
+      return `${curso - 6}° Secundaria`;
+    }
+  };
 
-  // Cargar datos del estudiante
+  // Cargar datos del estudiante y áreas disponibles
   useEffect(() => {
-    const fetchEstudiante = async () => {
+    const fetchData = async () => {
       try {
-        const data = await apiService.getCurrentStudent();
+        // Cargar todas las áreas disponibles primero
+        const areasData = await apiService.getAreas();
+        setAllAreas(areasData);
+        
+        // Obtener datos del estudiante según el contexto
+        let data;
+        try {
+          if (currentUser.tipoUsuario === 'estudiante') {
+            // Si es un estudiante, obtener sus propios datos
+            data = await apiService.getCurrentStudent();
+            console.log("Datos del estudiante actual obtenidos:", data);
+          } else if (studentId) {
+            // Si es un tutor accediendo a un estudiante específico
+            data = await apiService.getStudentById(studentId);
+            console.log("Datos del estudiante por ID obtenidos:", data);
+          } else {
+            throw new Error('No se puede identificar al estudiante');
+          }
+        } catch (err) {
+          console.error("Error al cargar datos del estudiante:", err);
+          // Intentar cargar datos del usuario actual como respaldo
+          if (currentUser) {
+            console.log("Usando datos del usuario actual como respaldo");
+            data = {
+              ...currentUser,
+              areasInscritas: currentUser.areasInscritas || []
+            };
+          } else {
+            throw new Error('No se pudo obtener información del estudiante');
+          }
+        }
+        
         setEstudiante(data);
         
+        // Convertir el curso numérico a texto para comparar con las áreas disponibles
+        const cursoTexto = getCursoTexto(data.curso);
+        console.log("Curso del estudiante (texto):", cursoTexto);
+        
         // Determinar áreas disponibles según el curso
-        const areasDisponibles = areasInscripcion.filter(area => 
-          areasCursos[area].includes(data.curso)
+        const areasDisponiblesNombres = Object.keys(areasCursos).filter(areaNombre => 
+          areasCursos[areaNombre].includes(cursoTexto)
         );
+        console.log("Áreas disponibles para este curso:", areasDisponiblesNombres);
+        
+        const areasDisponibles = areasData.filter(area => 
+          areasDisponiblesNombres.includes(area.nombre)
+        );
+        console.log("Áreas disponibles (objetos completos):", areasDisponibles);
+        
         setAvailableAreas(areasDisponibles);
         
-        // Si el estudiante ya tiene áreas inscritas, mostrarlas
+        // Si el estudiante ya tiene áreas inscritas, seleccionarlas
         if (data.areasInscritas && data.areasInscritas.length > 0) {
           setAreasSeleccionadas(data.areasInscritas);
           setTotal(data.areasInscritas.length * PRECIO_POR_AREA);
         }
       } catch (err) {
-        console.error("Error al cargar datos del estudiante:", err);
-        setError('No se pudo cargar la información del estudiante. Por favor, intente nuevamente.');
+        console.error("Error al cargar datos:", err);
+        setError('Ocurrió un error al cargar la información. Por favor, intente nuevamente.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEstudiante();
-  }, []);
+    fetchData();
+  }, [studentId, currentUser]);
 
   // Actualizar el total cuando cambien las áreas seleccionadas
   useEffect(() => {
@@ -98,7 +148,7 @@ function InscripcionIndividual() {
         setAreasSeleccionadas(prev => [...prev, value]);
       }
     } else {
-      setAreasSeleccionadas(prev => prev.filter(area => area !== value));
+      setAreasSeleccionadas(prev => prev.filter(areaId => areaId !== value));
     }
   };
 
@@ -113,9 +163,25 @@ function InscripcionIndividual() {
     setIsSubmitting(true);
     
     try {
+      console.log('Enviando datos de inscripción:');
+      console.log('Student ID:', estudiante.id);
+      console.log('Áreas seleccionadas:', areasSeleccionadas);
+      
       await apiService.inscribirEstudianteEnAreas(estudiante.id, areasSeleccionadas);
-      alert(`Inscripción exitosa en ${areasSeleccionadas.length} áreas. Total a pagar: $${total}`);
-      navigate('/dashboard');
+      
+      // Mostrar mensaje de éxito incluyendo información sobre la boleta
+      const mensaje = `Inscripción realizada con éxito en ${areasSeleccionadas.length} área(s).
+      Total a pagar: $${total}
+      La boleta de pago ha sido enviada al correo ${estudiante.email}.`;
+      
+      alert(mensaje);
+      
+      // Redirección basada en el tipo de usuario
+      if (currentUser.tipoUsuario === 'estudiante') {
+        navigate('/estudiante/areas');
+      } else {
+        navigate('/tutor/estudiantes');
+      }
     } catch (err) {
       console.error("Error al realizar la inscripción:", err);
       alert('Ocurrió un error al procesar la inscripción. Por favor, intente nuevamente.');
@@ -125,7 +191,18 @@ function InscripcionIndividual() {
   };
 
   const handleBack = () => {
-    navigate('/dashboard');
+    // Redirección basada en el tipo de usuario
+    if (currentUser.tipoUsuario === 'estudiante') {
+      navigate('/estudiante/areas');
+    } else {
+      navigate('/tutor/estudiantes');
+    }
+  };
+
+  // Obtener el nombre del área por su ID
+  const getAreaName = (areaId) => {
+    const area = allAreas.find(a => a.id === areaId);
+    return area ? area.nombre : areaId;
   };
 
   if (loading) {
@@ -140,7 +217,7 @@ function InscripcionIndividual() {
     return (
       <div className="inscripcion-form error-container">
         <p className="error-message">{error}</p>
-        <button onClick={handleBack} className="back-button">Volver al Panel</button>
+        <button onClick={handleBack} className="back-button">Volver</button>
       </div>
     );
   }
@@ -154,7 +231,7 @@ function InscripcionIndividual() {
         <div className="info-grid">
           <div className="info-item">
             <span className="info-label">Nombre:</span>
-            <span className="info-value">{estudiante.nombre} {estudiante.apellidos}</span>
+            <span className="info-value">{estudiante.nombre} {estudiante.apellidos || estudiante.apellido}</span>
           </div>
           <div className="info-item">
             <span className="info-label">CI:</span>
@@ -166,7 +243,7 @@ function InscripcionIndividual() {
           </div>
           <div className="info-item">
             <span className="info-label">Colegio:</span>
-            <span className="info-value">{estudiante.colegio}</span>
+            <span className="info-value">{estudiante.colegio?.nombre || estudiante.colegio}</span>
           </div>
         </div>
       </div>
@@ -177,28 +254,27 @@ function InscripcionIndividual() {
           <p className="areas-price-info">Precio por área: ${PRECIO_POR_AREA}</p>
           
           <div className="checkbox-group areas-list">
-            {areasInscripcion.map(area => {
-              const isDisponible = availableAreas.includes(area);
+            {availableAreas.map(area => {
+              const isSelected = areasSeleccionadas.includes(area.id);
               return (
                 <div 
-                  key={area} 
-                  className={`area-option ${!isDisponible ? 'disabled' : ''}`}
+                  key={area.id} 
+                  className={`area-option`}
                 >
                   <input
                     type="checkbox"
-                    id={`area-${area}`}
+                    id={`area-${area.id}`}
                     name="area"
-                    value={area}
-                    checked={areasSeleccionadas.includes(area)}
+                    value={area.id}
+                    checked={isSelected}
                     onChange={handleAreaChange}
-                    disabled={!isDisponible || (areasSeleccionadas.length >= 2 && !areasSeleccionadas.includes(area))}
+                    disabled={areasSeleccionadas.length >= 2 && !isSelected}
                   />
                   <label 
-                    htmlFor={`area-${area}`}
-                    className={!isDisponible ? 'disabled-text' : ''}
+                    htmlFor={`area-${area.id}`}
                   >
-                    {area}
-                    {!isDisponible && <span className="no-disponible"> (No disponible para tu curso)</span>}
+                    {area.nombre}
+                    <p className="area-description">{area.descripcion}</p>
                   </label>
                 </div>
               );
@@ -210,9 +286,15 @@ function InscripcionIndividual() {
               <p>Áreas disponibles para {estudiante.curso}:</p>
               <ul>
                 {availableAreas.map(area => (
-                  <li key={area}>{area}</li>
+                  <li key={area.id}>{area.nombre}</li>
                 ))}
               </ul>
+            </div>
+          )}
+          
+          {availableAreas.length === 0 && (
+            <div className="areas-info">
+              <p>No hay áreas disponibles para tu curso actualmente.</p>
             </div>
           )}
           
