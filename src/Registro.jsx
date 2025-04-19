@@ -10,6 +10,7 @@ function Registro() {
     nombre: '',
     apellidos: '',
     ci: '',
+    departamento: 'LP', // Valor predeterminado
     fechaNacimiento: '',
     curso: '3', // Valor predeterminado: 3° primaria
     email: '',
@@ -26,6 +27,19 @@ function Registro() {
   const [isLoading, setIsLoading] = useState(false);
   const [colegios, setColegios] = useState([]);
   const [cargandoColegios, setCargandoColegios] = useState(true);
+
+  // Lista de departamentos de Bolivia
+  const departamentos = [
+    { codigo: 'LP', nombre: 'La Paz' },
+    { codigo: 'CB', nombre: 'Cochabamba' },
+    { codigo: 'SC', nombre: 'Santa Cruz' },
+    { codigo: 'PT', nombre: 'Potosí' },
+    { codigo: 'OR', nombre: 'Oruro' },
+    { codigo: 'CH', nombre: 'Chuquisaca' },
+    { codigo: 'TJ', nombre: 'Tarija' },
+    { codigo: 'BN', nombre: 'Beni' },
+    { codigo: 'PD', nombre: 'Pando' }
+  ];
 
   // Cargar la lista de colegios disponibles al iniciar
   useEffect(() => {
@@ -94,10 +108,36 @@ function Registro() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    
+    // Validación específica para el campo CI
+    if (name === 'ci') {
+      // Solo permitir números
+      const onlyNumbers = value.replace(/\D/g, '');
+      
+      // Limitar a 9 dígitos
+      const limitedValue = onlyNumbers.slice(0, 9);
+      
+      setFormData({
+        ...formData,
+        [name]: limitedValue
+      });
+    } else if (name === 'celular' || name === 'celularTutor') {
+      // Solo permitir números para celulares
+      const onlyNumbers = value.replace(/\D/g, '');
+      
+      // Limitar a 8 dígitos
+      const limitedValue = onlyNumbers.slice(0, 8);
+      
+      setFormData({
+        ...formData,
+        [name]: limitedValue
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
     
     // Limpiar el error del campo cuando el usuario comienza a escribir
     if (errores[name]) {
@@ -124,8 +164,11 @@ function Registro() {
       nuevosErrores.apellidos = 'Los apellidos son requeridos';
     }
     
+    // Validación de CI
     if (!formData.ci) {
       nuevosErrores.ci = 'El carnet de identidad es requerido';
+    } else if (formData.ci.length < 6 || formData.ci.length > 9) {
+      nuevosErrores.ci = 'El CI debe tener entre 6 y 9 dígitos';
     }
     
     if (!formData.email) {
@@ -158,22 +201,41 @@ function Registro() {
         nuevosErrores.colegio = 'Debe seleccionar un colegio';
       }
       
+      // Validación de nombre y correo del tutor (no pueden ser iguales al estudiante)
+      if (!formData.nombreTutor) {
+        nuevosErrores.nombreTutor = 'El nombre del tutor es requerido';
+      } else if (formData.nombreTutor === formData.nombre && formData.apellidosTutor === formData.apellidos) {
+        nuevosErrores.nombreTutor = 'El nombre del tutor no puede ser igual al del estudiante';
+      }
+      
       if (!formData.emailTutor) {
         nuevosErrores.emailTutor = 'El email del tutor es requerido';
       } else if (!/\S+@\S+\.\S+/.test(formData.emailTutor)) {
         nuevosErrores.emailTutor = 'El email del tutor no es válido';
+      } else if (formData.emailTutor === formData.email) {
+        nuevosErrores.emailTutor = 'El email del tutor no puede ser igual al del estudiante';
       }
       
+      // Validación de celular de estudiante
       if (!formData.celular) {
         nuevosErrores.celular = 'El número de celular es requerido';
+      } else if (formData.celular.length !== 8) {
+        nuevosErrores.celular = 'El número de celular debe tener 8 dígitos';
+      } else if (
+        !(/^6[01234578]\d{6}$/.test(formData.celular) || /^7\d{7}$/.test(formData.celular))
+      ) {
+        nuevosErrores.celular = 'El número debe comenzar con 60, 61, 62, 63, 64, 65, 67, 68 o 7';
       }
       
+      // Validación de celular de tutor
       if (!formData.celularTutor) {
         nuevosErrores.celularTutor = 'El número de celular del tutor es requerido';
-      }
-      
-      if (!formData.nombreTutor) {
-        nuevosErrores.nombreTutor = 'El nombre del tutor es requerido';
+      } else if (formData.celularTutor.length !== 8) {
+        nuevosErrores.celularTutor = 'El número de celular del tutor debe tener 8 dígitos';
+      } else if (
+        !(/^6[01234578]\d{6}$/.test(formData.celularTutor) || /^7\d{7}$/.test(formData.celularTutor))
+      ) {
+        nuevosErrores.celularTutor = 'El número debe comenzar con 60, 61, 62, 63, 64, 65, 67, 68 o 7';
       }
       
       if (!formData.apellidosTutor) {
@@ -182,8 +244,15 @@ function Registro() {
     }
     
     if (tipoUsuario === 'tutor') {
+      // Validación de celular de tutor
       if (!formData.celular) {
         nuevosErrores.celular = 'El número de celular es requerido';
+      } else if (formData.celular.length !== 8) {
+        nuevosErrores.celular = 'El número de celular debe tener 8 dígitos';
+      } else if (
+        !(/^6[01234578]\d{6}$/.test(formData.celular) || /^7\d{7}$/.test(formData.celular))
+      ) {
+        nuevosErrores.celular = 'El número debe comenzar con 60, 61, 62, 63, 64, 65, 67, 68 o 7';
       }
       
       if (!formData.colegio) {
@@ -206,7 +275,7 @@ function Registro() {
           tipoUsuario,
           nombre: formData.nombre,
           apellidos: formData.apellidos,
-          ci: formData.ci,
+          ci: `${formData.ci}-${formData.departamento}`, // Formato CI-DEPTO
           email: formData.email,
           password: formData.password
         };
@@ -313,17 +382,37 @@ function Registro() {
           {errores.apellidos && <span className="error-message">{errores.apellidos}</span>}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="ci">Carnet de Identidad</label>
-          <input
-            type="text"
-            id="ci"
-            name="ci"
-            value={formData.ci}
-            onChange={handleInputChange}
-            className={errores.ci ? 'error' : ''}
-          />
-          {errores.ci && <span className="error-message">{errores.ci}</span>}
+        <div className="form-group ci-container" style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ flex: '2' }}>
+            <label htmlFor="ci">Carnet de Identidad</label>
+            <input
+              type="text"
+              id="ci"
+              name="ci"
+              value={formData.ci}
+              onChange={handleInputChange}
+              className={errores.ci ? 'error' : ''}
+              pattern="[0-9]*"
+              inputMode="numeric"
+              placeholder="Ingrese solo números"
+            />
+            {errores.ci && <span className="error-message">{errores.ci}</span>}
+          </div>
+          <div style={{ flex: '1' }}>
+            <label htmlFor="departamento">Departamento</label>
+            <select
+              id="departamento"
+              name="departamento"
+              value={formData.departamento}
+              onChange={handleInputChange}
+            >
+              {departamentos.map(depto => (
+                <option key={depto.codigo} value={depto.codigo}>
+                  {depto.codigo} - {depto.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="form-group">
@@ -416,6 +505,9 @@ function Registro() {
                 value={formData.celular}
                 onChange={handleInputChange}
                 className={errores.celular ? 'error' : ''}
+                pattern="[0-9]*"
+                inputMode="numeric"
+                placeholder="Ej: 60123456, 71234567"
               />
               {errores.celular && <span className="error-message">{errores.celular}</span>}
             </div>
@@ -468,6 +560,9 @@ function Registro() {
                 value={formData.celularTutor}
                 onChange={handleInputChange}
                 className={errores.celularTutor ? 'error' : ''}
+                pattern="[0-9]*"
+                inputMode="numeric"
+                placeholder="Ej: 60123456, 71234567"
               />
               {errores.celularTutor && <span className="error-message">{errores.celularTutor}</span>}
             </div>
@@ -486,6 +581,9 @@ function Registro() {
                 value={formData.celular}
                 onChange={handleInputChange}
                 className={errores.celular ? 'error' : ''}
+                pattern="[0-9]*"
+                inputMode="numeric"
+                placeholder="Ej: 60123456, 71234567"
               />
               {errores.celular && <span className="error-message">{errores.celular}</span>}
             </div>
