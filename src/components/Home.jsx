@@ -2,21 +2,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-// Estilos básicos para el header (puedes moverlos a tu archivo CSS)
-const headerStyles = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  width: '100%',
-  padding: '10px 20px', // Ajusta el padding según necesites
-  boxSizing: 'border-box',
-};
-
-const navStyles = {
-  display: 'flex',
-  gap: '15px', // Espacio entre los enlaces/botones
-};
-
 function Home() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -24,7 +9,6 @@ function Home() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showLogin, setShowLogin] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -60,23 +44,13 @@ function Home() {
 
   return (
     <div className="app">
-      {/* Header modificado con flexbox */}
-      <header className="header" style={headerStyles}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <img src="/logo_umss.png" alt="Logo UMSS" className="logo" style={{ marginRight: '20px' }} />
-          <nav style={navStyles}>
-            <a href="#">Eventos</a>
-            <a href="#">Reglamento</a>
-            <a href="#">Contactanos</a>
-          </nav>
-        </div>
-        <div style={navStyles}>
-          {/* Botón para mostrar el formulario de login */}
-          <button onClick={() => setShowLogin(true)} className="btn btn-ingresar">Iniciar Sesión</button>
-          <Link to="/registro" style={{ textDecoration: 'none' }}>
-            <button className="btn btn-registrar">Crear Cuenta</button>
-          </Link>
-        </div>
+      <header className="header">
+        <img src="/logo_umss.png" alt="Logo UMSS" className="logo" />
+        <nav>
+          <a href="#">Eventos</a>
+          <a href="#">Reglamento</a>
+          <a href="#">Contactanos</a>
+        </nav>
       </header>
 
       <div className="container">
@@ -89,49 +63,46 @@ function Home() {
           </p>
         </div>
 
-        {/* Mostrar el formulario solo si showLogin es true */}
-        {showLogin && (
-          <div className="right-section">
-            <form className="form-login" onSubmit={handleLogin}>
-              <h2>Iniciar Sesión</h2>
-              {error && <div className="error-message login-error">{error}</div>}
-              
-              <div className="form-group">
-                <label htmlFor="email">Correo Electrónico</label>
-                <input 
-                  type="email" 
-                  id="email" 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="password">Contraseña</label>
-                <input 
-                  type="password" 
-                  id="password" 
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)} 
-                  required
-                />
-              </div>
-              <button type="submit" disabled={isLoading}>
-                {isLoading ? 'Iniciando sesión...' : 'Ingresar'}
-              </button>
-              <a href="#">¿Olvidaste tu contraseña?</a>
-              <div className="register-link">
-                <p>¿No tienes una cuenta? <Link to="/registro">Regístrate aquí</Link></p>
-              </div>
-            </form>
-          </div>
-        )}
+        <div className="right-section">
+          <form className="form-login" onSubmit={handleLogin}>
+            <h2>Iniciar Sesión</h2>
+            {error && <div className="error-message login-error">{error}</div>}
+            
+            <div className="form-group">
+              <label htmlFor="email">Correo Electrónico</label>
+              <input 
+                type="email" 
+                id="email" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="password">Contraseña</label>
+              <input 
+                type="password" 
+                id="password" 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                required
+              />
+            </div>
+            <button type="submit" disabled={isLoading}>
+              {isLoading ? 'Iniciando sesión...' : 'Ingresar'}
+            </button>
+            <a href="#">¿Olvidaste tu contraseña?</a>
+            <div className="register-link">
+              <p>¿No tienes una cuenta? <Link to="/registro">Regístrate aquí</Link></p>
+            </div>
+          </form>
+        </div>
       </div>
 
       <img src="/logo_umss.png" className="background-logo" alt="Logo de fondo" />
       <div className="convocatoria">
         <h2>Convocatoria</h2>
-        <button className="btn btn-ingresar">Descargar</button>
+        <button>Descargar</button>
       </div>
     </div>
   );
