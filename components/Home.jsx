@@ -72,9 +72,9 @@ function Home() {
         </div>
         <div style={navStyles}>
           {/* Botón para mostrar el formulario de login */}
-          <button onClick={() => setShowLogin(true)} className="btn btn-ingresar">Iniciar Sesión</button>
+          <button onClick={() => setShowLogin(true)} style={{ cursor: 'pointer' }}>Iniciar Sesión</button>
           <Link to="/registro" style={{ textDecoration: 'none' }}>
-            <button className="btn btn-registrar">Crear Cuenta</button>
+            <button style={{ cursor: 'pointer' }}>Crear Cuenta</button>
           </Link>
         </div>
       </header>
@@ -131,7 +131,7 @@ function Home() {
       <img src="/logo_umss.png" className="background-logo" alt="Logo de fondo" />
       <div className="convocatoria">
         <h2>Convocatoria</h2>
-        <button className="btn btn-ingresar">Descargar</button>
+        <button>Descargar</button>
       </div>
     </div>
   );
