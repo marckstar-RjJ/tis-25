@@ -189,8 +189,17 @@ function Registro() {
     
     // Validaciones específicas por tipo de usuario
     if (tipoUsuario === 'estudiante') {
+      // Validación de fecha de nacimiento
       if (!formData.fechaNacimiento) {
         nuevosErrores.fechaNacimiento = 'La fecha de nacimiento es requerida';
+      } else {
+        // Validar que la fecha sea anterior a julio de 2017
+        const fechaNacimiento = new Date(formData.fechaNacimiento);
+        const fechaLimite = new Date('2017-07-01');
+        
+        if (fechaNacimiento >= fechaLimite) {
+          nuevosErrores.fechaNacimiento = 'Solo se permiten registros de personas nacidas antes de julio de 2017';
+        }
       }
       
       if (!formData.curso) {
@@ -432,7 +441,12 @@ function Registro() {
         {tipoUsuario === 'estudiante' && (
           <>
             <div className="form-group">
-              <label htmlFor="fechaNacimiento">Fecha de Nacimiento</label>
+              <label htmlFor="fechaNacimiento">
+                Fecha de Nacimiento
+                <span style={{ fontSize: '0.8rem', color: '#666', marginLeft: '5px' }}>
+                  (Nacidos antes de julio de 2017)
+                </span>
+              </label>
               <input
                 type="date"
                 id="fechaNacimiento"
@@ -440,6 +454,7 @@ function Registro() {
                 value={formData.fechaNacimiento}
                 onChange={handleInputChange}
                 className={errores.fechaNacimiento ? 'error' : ''}
+                max="2017-06-30"
               />
               {errores.fechaNacimiento && <span className="error-message">{errores.fechaNacimiento}</span>}
             </div>
