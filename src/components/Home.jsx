@@ -4,11 +4,12 @@ import { useAuth } from '../context/AuthContext';
 
 function Home() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, currentUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showLoginForm, setShowLoginForm] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -42,15 +43,29 @@ function Home() {
     }
   };
 
+  const toggleLoginForm = () => {
+    setShowLoginForm(!showLoginForm);
+  };
+
   return (
     <div className="app">
       <header className="header">
-        <img src="/logo_umss.png" alt="Logo UMSS" className="logo" />
-        <nav>
-          <a href="#">Eventos</a>
-          <a href="#">Reglamento</a>
-          <a href="#">Contactanos</a>
-        </nav>
+        <div className="header-left">
+          <img src="/logo_umss.png" alt="Logo UMSS" className="logo" />
+          <nav className="main-nav">
+            <a href="#">Eventos</a>
+            <a href="#">Reglamento</a>
+            <a href="#">Contactanos</a>
+          </nav>
+        </div>
+        <div className="auth-buttons">
+          <button onClick={toggleLoginForm} className="btn btn-ingresar">
+            Iniciar Sesión
+          </button>
+          <Link to="/registro" className="btn btn-registrar">
+            Crear Cuenta
+          </Link>
+        </div>
       </header>
 
       <div className="container">
@@ -63,40 +78,42 @@ function Home() {
           </p>
         </div>
 
-        <div className="right-section">
-          <form className="form-login" onSubmit={handleLogin}>
-            <h2>Iniciar Sesión</h2>
-            {error && <div className="error-message login-error">{error}</div>}
-            
-            <div className="form-group">
-              <label htmlFor="email">Correo Electrónico</label>
-              <input 
-                type="email" 
-                id="email" 
-                value={email} 
-                onChange={e => setEmail(e.target.value)} 
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="password">Contraseña</label>
-              <input 
-                type="password" 
-                id="password" 
-                value={password} 
-                onChange={e => setPassword(e.target.value)} 
-                required
-              />
-            </div>
-            <button type="submit" disabled={isLoading}>
-              {isLoading ? 'Iniciando sesión...' : 'Ingresar'}
-            </button>
-            <a href="#">¿Olvidaste tu contraseña?</a>
-            <div className="register-link">
-              <p>¿No tienes una cuenta? <Link to="/registro">Regístrate aquí</Link></p>
-            </div>
-          </form>
-        </div>
+        {showLoginForm && (
+          <div className="right-section">
+            <form className="form-login" onSubmit={handleLogin}>
+              <h2>Iniciar Sesión</h2>
+              {error && <div className="error-message login-error">{error}</div>}
+              
+              <div className="form-group">
+                <label htmlFor="email">Correo Electrónico</label>
+                <input 
+                  type="email" 
+                  id="email" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="password">Contraseña</label>
+                <input 
+                  type="password" 
+                  id="password" 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  required
+                />
+              </div>
+              <button type="submit" disabled={isLoading}>
+                {isLoading ? 'Iniciando sesión...' : 'Ingresar'}
+              </button>
+              <a href="#">¿Olvidaste tu contraseña?</a>
+              <div className="register-link">
+                <p>¿No tienes una cuenta? <Link to="/registro">Regístrate aquí</Link></p>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
 
       <img src="/logo_umss.png" className="background-logo" alt="Logo de fondo" />
