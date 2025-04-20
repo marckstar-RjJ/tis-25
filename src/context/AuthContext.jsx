@@ -10,6 +10,7 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // Verificar si hay un usuario en localStorage al iniciar
   useEffect(() => {
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }) => {
         // Si estamos en una ruta pública, no intentamos recuperar el usuario
         if (isPublicRoute) {
           setLoading(false);
+          setAuthChecked(true);
           return;
         }
         
@@ -35,6 +37,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('currentUser');
       } finally {
         setLoading(false);
+        setAuthChecked(true);
       }
     };
 
@@ -82,6 +85,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     currentUser,
     loading,
+    authChecked,
     login,
     logout,
     getStudentsByTutor
@@ -94,4 +98,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+// Exportar el contexto por defecto para mantener compatibilidad
 export default AuthContext; 

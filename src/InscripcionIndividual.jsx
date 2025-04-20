@@ -15,6 +15,8 @@ function InscripcionIndividual({ navigate: customNavigate }) {
   const [allAreas, setAllAreas] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [total, setTotal] = useState(0);
+  const [mensaje, setMensaje] = useState('');
+  const [config, setConfig] = useState(null);
 
   const PRECIO_POR_AREA = 16; // Precio en dólares por área
 
@@ -63,11 +65,28 @@ function InscripcionIndividual({ navigate: customNavigate }) {
     }
   };
 
+  // Obtener configuración de olimpiadas para el límite de áreas
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const configData = await apiService.getOlympiadConfig();
+        setConfig(configData);
+      } catch (err) {
+        console.error('Error al cargar configuración:', err);
+      }
+    };
+    
+    fetchConfig();
+  }, []);
+
   // Cargar datos del estudiante y áreas disponibles
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Cargar todas las áreas disponibles primero
+        setLoading(true);
+        setError('');
+        
+        // Obtener todas las áreas
         const areasData = await apiService.getAreas();
         setAllAreas(areasData);
         
@@ -139,52 +158,65 @@ function InscripcionIndividual({ navigate: customNavigate }) {
     setTotal(areasSeleccionadas.length * PRECIO_POR_AREA);
   }, [areasSeleccionadas]);
 
-  const handleAreaChange = (e) => {
-    const { value, checked } = e.target;
-    
-    if (checked) {
-      // No permitir seleccionar más de 2 áreas
-      if (areasSeleccionadas.length < 2) {
-        setAreasSeleccionadas(prev => [...prev, value]);
+  const handleAreaChange = (areaId) => {
+    setAreasSeleccionadas(prev => {
+      // Si ya está seleccionada, quitarla
+      if (prev.includes(areaId)) {
+        return prev.filter(id => id !== areaId);
+      } 
+      // Si no está seleccionada, verificar si ya alcanzó el máximo
+      else {
+        if (config && prev.length >= config.maxAreasEstudiante) {
+          setMensaje(`No puede seleccionar más de ${config.maxAreasEstudiante} áreas.`);
+          setTimeout(() => setMensaje(''), 3000);
+          return prev;
+        }
+        return [...prev, areaId];
       }
-    } else {
-      setAreasSeleccionadas(prev => prev.filter(areaId => areaId !== value));
-    }
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (areasSeleccionadas.length === 0) {
-      alert('Debes seleccionar al menos un área para inscribirte.');
+      setError('Debe seleccionar al menos un área académica.');
       return;
     }
     
     setIsSubmitting(true);
+    setError('');
+    setMensaje('');
     
     try {
       console.log('Enviando datos de inscripción:');
       console.log('Student ID:', estudiante.id);
       console.log('Áreas seleccionadas:', areasSeleccionadas);
       
-      await apiService.inscribirEstudianteEnAreas(estudiante.id, areasSeleccionadas);
+      let result;
       
-      // Mostrar mensaje de éxito incluyendo información sobre la boleta
-      const mensaje = `Inscripción realizada con éxito en ${areasSeleccionadas.length} área(s).
-      Total a pagar: $${total}
-      La boleta de pago ha sido enviada al correo ${estudiante.email}.`;
-      
-      alert(mensaje);
-      
-      // Redirección basada en el tipo de usuario
       if (currentUser.tipoUsuario === 'estudiante') {
-        navigate('/estudiante/areas');
+        // Usar updateStudentAreas para estudiantes (no genera orden de pago inmediatamente)
+        result = await apiService.updateStudentAreas(currentUser.id, areasSeleccionadas);
+        console.log("Inscripción de estudiante actualizada:", result);
+        
+        setMensaje('Áreas seleccionadas correctamente. Ahora debes generar tu orden de pago.');
+        
+        // Esperar 2 segundos y redirigir
+        setTimeout(() => {
+          if (customNavigate) {
+            customNavigate('/estudiante/areas');
+          } else {
+            navigate('/estudiante/areas');
+          }
+        }, 2000);
       } else {
-        navigate('/tutor/estudiantes');
+        // Para tutores
+        setError('Esta funcionalidad está disponible solo para estudiantes.');
       }
     } catch (err) {
-      console.error("Error al realizar la inscripción:", err);
-      alert('Ocurrió un error al procesar la inscripción. Por favor, intente nuevamente.');
+      console.error('Error al inscribir áreas:', err);
+      setError(err.message || 'Ocurrió un error al procesar la inscripción. Intente nuevamente.');
     } finally {
       setIsSubmitting(false);
     }
@@ -225,6 +257,8 @@ function InscripcionIndividual({ navigate: customNavigate }) {
   return (
     <div className="inscripcion-form">
       <h2>Inscripción a Áreas Olímpicas</h2>
+      
+      {mensaje && <div className="success-message">{mensaje}</div>}
       
       <div className="student-info">
         <h3>Información del Estudiante</h3>
@@ -267,7 +301,7 @@ function InscripcionIndividual({ navigate: customNavigate }) {
                     name="area"
                     value={area.id}
                     checked={isSelected}
-                    onChange={handleAreaChange}
+                    onChange={() => handleAreaChange(area.id)}
                     disabled={areasSeleccionadas.length >= 2 && !isSelected}
                   />
                   <label 
@@ -313,7 +347,7 @@ function InscripcionIndividual({ navigate: customNavigate }) {
             className="submit-button" 
             disabled={isSubmitting || areasSeleccionadas.length === 0}
           >
-            {isSubmitting ? 'Procesando...' : 'Confirmar Inscripción'}
+            {isSubmitting ? 'Procesando...' : 'Confirmar Selección'}
           </button>
         </div>
       </form>

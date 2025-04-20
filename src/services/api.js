@@ -471,6 +471,9 @@ const updateStudentAreas = (studentId, areas) => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       try {
+        console.log("Actualizando áreas para estudiante:", studentId);
+        console.log("Nuevas áreas seleccionadas:", areas);
+        
         const students = getStudents();
         const studentIndex = students.findIndex(student => student.id === studentId);
         
@@ -488,10 +491,35 @@ const updateStudentAreas = (studentId, areas) => {
         
         // Actualizar áreas inscritas
         students[studentIndex].areasInscritas = areas;
+        
+        // Actualizar boletaPago si es necesario
+        if (!students[studentIndex].boletaPago && areas.length > 0) {
+          // Crear un número de boleta único para la siguiente vez que se genere una orden
+          const boletaId = `BOL-${Date.now()}-${studentId.substr(0, 4)}`;
+          students[studentIndex].boletaPendiente = {
+            id: boletaId,
+            areasPendientes: areas,
+            fecha: new Date().toISOString(),
+          };
+        }
+        
+        // Guardar los cambios
         saveStudents(students);
         
+        // Actualizar el usuario en localStorage si es el usuario actual
+        const currentUserStr = localStorage.getItem('currentUser');
+        if (currentUserStr) {
+          const currentUser = JSON.parse(currentUserStr);
+          if (currentUser.id === studentId) {
+            currentUser.areasInscritas = areas;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+          }
+        }
+        
+        console.log("Áreas actualizadas correctamente:", areas);
         resolve(students[studentIndex]);
       } catch (error) {
+        console.error("Error en updateStudentAreas:", error);
         reject({ message: 'Error al actualizar áreas del estudiante', error });
       }
     }, 800);
@@ -555,6 +583,86 @@ const getCurrentStudent = () => {
   });
 };
 
+/**
+ * Genera una nueva orden de pago
+ * @param {Object} data Información para la orden de pago
+ * @returns {Promise<Object>} Promesa con la información de la orden generada
+ */
+const generarOrdenPago = async (data) => {
+  try {
+    // En desarrollo, Vite redirigirá automáticamente a través del proxy configurado
+    const response = await fetch('/api/ordenes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al generar la orden de pago');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en generarOrdenPago:', error);
+    
+    // Solo para desarrollo - Simular respuesta exitosa si el backend no está disponible
+    if (import.meta.env.DEV && error.message.includes('Failed to fetch')) {
+      console.warn('Backend no disponible, devolviendo datos simulados');
+      return {
+        success: true,
+        mensaje: 'Orden de pago generada (SIMULADO)',
+        orden: {
+          id: 'ORD-' + Date.now(),
+          monto: data.areas.length * 16,
+          fecha_expiracion: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+        }
+      };
+    }
+    
+    throw error;
+  }
+};
+
+/**
+ * Descarga el PDF de una orden de pago
+ * @param {string} ordenId ID de la orden de pago
+ * @returns {Promise<Blob>} Promesa con el blob del PDF
+ */
+const descargarOrdenPDF = async (ordenId) => {
+  try {
+    // En desarrollo, Vite redirigirá automáticamente a través del proxy configurado
+    const response = await fetch(`/api/ordenes/${ordenId}/pdf`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al descargar el PDF');
+    }
+
+    return await response.blob();
+  } catch (error) {
+    console.error('Error en descargarOrdenPDF:', error);
+    
+    // Solo para desarrollo - Simular respuesta exitosa si el backend no está disponible
+    if (import.meta.env.DEV && error.message.includes('Failed to fetch')) {
+      console.warn('Backend no disponible, generando PDF simulado');
+      // Crear un blob simple para simular un PDF
+      const pdfText = `Orden de Pago simulada ${ordenId}\nEste es un PDF simulado para desarrollo.`;
+      return new Blob([pdfText], { type: 'application/pdf' });
+    }
+    
+    throw error;
+  }
+};
+
 // Exportar servicios
 export const apiService = {
   createUser,
@@ -571,5 +679,7 @@ export const apiService = {
   getOlympiadConfig: fetchOlympiadConfig,
   getOlympiadSettings,
   updateOlympiadSettings,
-  getCurrentStudent
+  getCurrentStudent,
+  generarOrdenPago,
+  descargarOrdenPDF,
 }; 

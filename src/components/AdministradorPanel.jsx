@@ -240,8 +240,8 @@ function AdministradorPanel() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    console.log("Iniciando cierre de sesión...");
     logout();
-    navigate('/');
   };
 
   return (

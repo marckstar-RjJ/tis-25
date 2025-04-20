@@ -288,8 +288,10 @@ function TutorPanel() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    console.log("Iniciando cierre de sesión...");
+    // Usar directamente la función logout del contexto de autenticación
+    // La redirección se maneja dentro de la función logout
     logout();
-    navigate('/');
   };
 
   return (
