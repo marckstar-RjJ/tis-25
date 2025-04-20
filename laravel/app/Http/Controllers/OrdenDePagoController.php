@@ -10,7 +10,7 @@ use App\Models\Persona;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use PDF;
+use Barryvdh\DomPDF\Facade\Pdf;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class OrdenDePagoController extends Controller
@@ -173,37 +173,74 @@ class OrdenDePagoController extends Controller
         }
     }
     
-    // Generar PDF de la orden de pago
+    /**
+     * Generar PDF de la orden de pago
+     * 
+     * @param int $idOrden ID de la orden de pago
+     * @return \Illuminate\Http\Response PDF para descarga o respuesta de error
+     */
     public function generarPDF($idOrden)
     {
-        $orden = OrdenDePago::findOrFail($idOrden);
-        $solicitud = SolicitudDeInscripcion::where('idOrdenPago', $idOrden)->first();
-        
-        if (!$solicitud) {
-            return response()->json(['error' => 'Solicitud no encontrada'], 404);
+        try {
+            // Recuperar la orden de pago
+            $orden = OrdenDePago::findOrFail($idOrden);
+            
+            // Recuperar la solicitud de inscripción relacionada
+            $solicitud = SolicitudDeInscripcion::where('idOrdenPago', $idOrden)->firstOrFail();
+            
+            // Obtener datos del estudiante
+            $estudiante = Persona::findOrFail($solicitud->idEstudiante ?? $solicitud->idParticipante);
+            
+            // Obtener las áreas inscritas
+            $areasInscritas = Area::join('mydb.AreasInscritas', 'mydb.Area.idArea', '=', 'mydb.AreasInscritas.idArea')
+                ->where('mydb.AreasInscritas.idSolicitud', $solicitud->idSolicitudDeInscripcion)
+                ->get(['mydb.Area.nombreArea', 'mydb.Area.costo']);
+            
+            // Formato para el ID de la orden
+            $ordenFormateada = 'ORD-' . str_pad($idOrden, 6, '0', STR_PAD_LEFT);
+            
+            // Generar código QR
+            $qrcode = base64_encode(QrCode::format('png')
+                ->size(200)
+                ->errorCorrection('H')
+                ->generate($ordenFormateada));
+            
+            // Preparar los datos para la vista
+            $data = [
+                'orden' => $orden,
+                'estudiante' => $estudiante,
+                'areas' => $areasInscritas,
+                'qrcode' => $qrcode,
+                'referencia' => $ordenFormateada,
+                'fechaEmision' => date('d/m/Y', strtotime($orden->fechaCreacion)),
+                'fechaLimite' => date('d/m/Y H:i', strtotime($orden->fechaExpiracion)),
+            ];
+            
+            // Generar el PDF
+            $pdf = PDF::loadView('pdfs.orden_pago', $data);
+            
+            // Configurar opciones del PDF
+            $pdf->setPaper('a4');
+            $pdf->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'isPhpEnabled' => true,
+                'defaultFont' => 'sans-serif',
+            ]);
+            
+            // Nombre del archivo
+            $filename = 'orden_pago_' . $ordenFormateada . '.pdf';
+            
+            // Descargar el PDF
+            return $pdf->download($filename);
+            
+        } catch (\Exception $e) {
+            // Manejar el error
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar el PDF: ' . $e->getMessage()
+            ], 500);
         }
-        
-        $estudiante = Persona::findOrFail($solicitud->idParticipante);
-        $areasInscritas = Area::join('mydb.AreasInscritas', 'mydb.Areas.idAreas', '=', 'mydb.AreasInscritas.idAreas')
-            ->where('mydb.AreasInscritas.idInscripcion', $solicitud->idInscripcion)
-            ->get(['mydb.Areas.nombreArea', 'mydb.Areas.costoArea']);
-            
-        // Generar código QR con el ID de la orden
-        $qrcode = base64_encode(QrCode::format('png')
-            ->size(200)
-            ->generate('ORD-' . $idOrden));
-            
-        $data = [
-            'orden' => $orden,
-            'estudiante' => $estudiante,
-            'areas' => $areasInscritas,
-            'qrcode' => $qrcode,
-            'referencia' => 'ORD-' . str_pad($idOrden, 6, '0', STR_PAD_LEFT)
-        ];
-        
-        $pdf = PDF::loadView('pdfs.orden_pago', $data);
-        
-        return $pdf->download('orden_pago_' . $idOrden . '.pdf');
     }
     
     // Listar órdenes para el administrador
