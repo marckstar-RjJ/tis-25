@@ -266,48 +266,98 @@ class OrdenDePagoController extends Controller
         return response()->json($ordenes);
     }
     
-    // Aprobar pago de una orden
-    public function aprobarPago(Request $request, $idOrden)
+    /**
+     * Aprueba el pago de una orden por parte de un administrador
+     * 
+     * @param Request $request Datos de la solicitud
+     * @param int $idOrden ID de la orden a aprobar
+     * @return \Illuminate\Http\JsonResponse Respuesta JSON con el resultado
+     */
+    public function aprobarPagoAdmin(Request $request, $idOrden)
     {
-        $request->validate([
-            'referenciaPago' => 'required|string|max:45|unique:mydb.OrdenDePago,referenciaPago,' . $idOrden . ',idOrdenDePago'
+        // Validar la solicitud
+        $validator = Validator::make($request->all(), [
+            'referencia_pago' => 'required|string|max:50|unique:mydb.OrdenDePago,referenciaPago,' . $idOrden . ',idOrdenDePago',
+            'observaciones' => 'nullable|string|max:255',
         ]);
-        
-        $orden = OrdenDePago::findOrFail($idOrden);
-        
-        if ($orden->estado !== 'Pendiente') {
+
+        if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Solo se pueden aprobar órdenes con estado Pendiente'
-            ], 400);
+                'message' => 'Error de validación',
+                'errors' => $validator->errors()
+            ], 422);
         }
-        
-        DB::beginTransaction();
-        
+
         try {
-            // Actualizar la orden
-            $orden->update([
-                'estado' => 'Pagada',
-                'fechaPago' => now(),
-                'referenciaPago' => $request->referenciaPago
-            ]);
+            // Obtener la orden
+            $orden = OrdenDePago::findOrFail($idOrden);
             
-            // Actualizar el estado de la solicitud
-            SolicitudDeInscripcion::where('idOrdenPago', $idOrden)
-                ->update(['estado' => 'Confirmada']);
-                
+            // Verificar si la orden está en estado pendiente
+            if ($orden->estado !== OrdenDePago::ESTADO_PENDIENTE) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo se pueden aprobar órdenes con estado Pendiente'
+                ], 400);
+            }
+            
+            // Iniciar transacción
+            DB::beginTransaction();
+            
+            // Actualizar la orden
+            $orden->estado = OrdenDePago::ESTADO_PAGADA;
+            $orden->fechaPago = now();
+            $orden->referenciaPago = $request->referencia_pago;
+            $orden->save();
+            
+            // Actualizar las solicitudes de inscripción relacionadas
+            $solicitudes = SolicitudDeInscripcion::where('idOrdenPago', $idOrden)->get();
+            
+            if ($solicitudes->isEmpty()) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontraron solicitudes de inscripción relacionadas con esta orden'
+                ], 404);
+            }
+            
+            foreach ($solicitudes as $solicitud) {
+                $solicitud->estado = 'Confirmada';
+                $solicitud->save();
+            }
+            
+            // Registrar actividad (log)
+            // Aquí se podría agregar código para registrar la actividad del administrador si se requiere
+            
+            // Confirmar transacción
             DB::commit();
             
             return response()->json([
                 'success' => true,
-                'message' => 'Pago aprobado correctamente'
+                'message' => 'Pago aprobado correctamente',
+                'data' => [
+                    'orden_id' => $orden->idOrdenDePago,
+                    'estado' => $orden->estado,
+                    'fecha_pago' => $orden->fechaPago->format('Y-m-d H:i:s'),
+                    'solicitudes_actualizadas' => $solicitudes->count()
+                ]
             ]);
             
-        } catch (\Exception $e) {
-            DB::rollBack();
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al aprobar el pago: ' . $e->getMessage()
+                'message' => 'Orden de pago no encontrada'
+            ], 404);
+        } catch (\Exception $e) {
+            // Si hubo un error, revertir los cambios
+            if (isset($orden) && DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al aprobar el pago',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
