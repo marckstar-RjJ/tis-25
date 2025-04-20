@@ -57,16 +57,33 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Función para cerrar sesión
-  const logout = () => {
+  const logout = async () => {
     console.log("Cerrando sesión...");
-    // Limpiar los datos del usuario en el estado
-    setCurrentUser(null);
-    // Eliminar los datos del usuario del almacenamiento local
-    localStorage.removeItem('currentUser');
-    // Forzar una recarga de la página para asegurar que todos los estados se reinicien
-    console.log("Sesión cerrada correctamente");
-    // Redirigir a la página de inicio
-    window.location.href = '/';
+    try {
+      // Intentar hacer logout en el backend primero
+      try {
+        await apiService.logout();
+        console.log("Logout en servidor exitoso");
+      } catch (backendError) {
+        // Si hay error al comunicarse con el backend, lo registramos pero continuamos
+        console.error("Error al cerrar sesión en el servidor:", backendError);
+        console.log("Continuando con logout local a pesar del error");
+      }
+      
+      // Limpiar los datos del usuario en el estado
+      setCurrentUser(null);
+      // Eliminar los datos del usuario del almacenamiento local
+      localStorage.removeItem('currentUser');
+      console.log("Sesión cerrada correctamente");
+      // Redirigir a la página de inicio
+      window.location.href = '/';
+    } catch (error) {
+      console.error("Error inesperado al cerrar sesión:", error);
+      // Incluso si hay un error, limpiamos el estado local
+      setCurrentUser(null);
+      localStorage.removeItem('currentUser');
+      window.location.href = '/';
+    }
   };
 
   // Obtener estudiantes asociados (para tutores)

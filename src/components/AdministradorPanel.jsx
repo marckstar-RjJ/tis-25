@@ -239,9 +239,9 @@ function AdministradorPanel() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     console.log("Iniciando cierre de sesión...");
-    logout();
+    await logout();
   };
 
   return (
