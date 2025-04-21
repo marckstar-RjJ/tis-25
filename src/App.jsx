@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { useAuth } from './context/AuthContext';
 import Home from './components/Home';
@@ -48,62 +48,60 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Rutas públicas */}
-        <Route path="/" element={<Home />} />
-        <Route path="/registro" element={<Registro />} />
-        
-        {/* Rutas para estudiantes */}
-        <Route path="/estudiante/*" element={
-          <ProtectedRoute>
-            <EstudiantePanel />
-          </ProtectedRoute>
-        } />
-        <Route path="/estudiante/orden-pago" element={
-          <ProtectedRoute>
-            <OrdenPagoEstudiante />
-          </ProtectedRoute>
-        } />
-        
-        {/* Rutas para tutores */}
-        <Route path="/tutor/*" element={
-          <ProtectedRoute>
-            <TutorPanel />
-          </ProtectedRoute>
-        } />
-        <Route path="/tutor/estudiantes/:studentId/inscripcion" element={
-          <ProtectedRoute>
-            <InscripcionArea />
-          </ProtectedRoute>
-        } />
-        <Route path="/tutor/estudiantes/:studentId/orden-pago" element={
-          <ProtectedRoute>
-            <OrdenPagoEstudiante />
-          </ProtectedRoute>
-        } />
-        <Route path="/tutor/inscripcion-individual" element={
-          <ProtectedRoute>
-            <InscripcionIndividual />
-          </ProtectedRoute>
-        } />
-        <Route path="/tutor/inscripcion-lista" element={
-          <ProtectedRoute>
-            <InscripcionPorLista />
-          </ProtectedRoute>
-        } />
-        
-        {/* Rutas para administradores */}
-        <Route path="/admin/*" element={
-          <ProtectedRoute>
-            <AdministradorPanel />
-          </ProtectedRoute>
-        } />
-        
-        {/* Ruta de fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+    <Routes>
+      {/* Rutas públicas */}
+      <Route path="/" element={<Home />} />
+      <Route path="/registro" element={<Registro />} />
+      
+      {/* Rutas para estudiantes */}
+      <Route path="/estudiante/*" element={
+        <ProtectedRoute>
+          <EstudiantePanel />
+        </ProtectedRoute>
+      } />
+      <Route path="/estudiante/orden-pago" element={
+        <ProtectedRoute>
+          <OrdenPagoEstudiante />
+        </ProtectedRoute>
+      } />
+      
+      {/* Rutas para tutores */}
+      <Route path="/tutor/*" element={
+        <ProtectedRoute>
+          <TutorPanel />
+        </ProtectedRoute>
+      } />
+      <Route path="/tutor/estudiantes/:studentId/inscripcion" element={
+        <ProtectedRoute>
+          <InscripcionArea />
+        </ProtectedRoute>
+      } />
+      <Route path="/tutor/estudiantes/:studentId/orden-pago" element={
+        <ProtectedRoute>
+          <OrdenPagoEstudiante />
+        </ProtectedRoute>
+      } />
+      <Route path="/tutor/inscripcion-individual" element={
+        <ProtectedRoute>
+          <InscripcionIndividual />
+        </ProtectedRoute>
+      } />
+      <Route path="/tutor/inscripcion-lista" element={
+        <ProtectedRoute>
+          <InscripcionPorLista />
+        </ProtectedRoute>
+      } />
+      
+      {/* Rutas para administradores */}
+      <Route path="/admin/*" element={
+        <ProtectedRoute>
+          <AdministradorPanel />
+        </ProtectedRoute>
+      } />
+      
+      {/* Ruta de fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
