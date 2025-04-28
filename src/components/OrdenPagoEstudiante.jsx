@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
+import jsPDF from 'jspdf'; // Importar jsPDF
 import '../App.css';
 
 function OrdenPagoEstudiante() {
@@ -108,8 +109,51 @@ function OrdenPagoEstudiante() {
   };
   
   const handleDescargarPDF = () => {
-    // Simulación de descarga de PDF
-    alert('La funcionalidad de descarga de PDF estará disponible próximamente.');
+    if (!ordenGenerada || !estudiante || !config) return; // Asegurarse que los datos están cargados
+
+    const doc = new jsPDF();
+
+    // Título
+    doc.setFontSize(18);
+    doc.text('Orden de Pago - Olimpiadas del Saber', 14, 22);
+
+    // Datos del Estudiante
+    doc.setFontSize(12);
+    doc.text(`ID Orden: ${ordenGenerada.id}`, 14, 40);
+    doc.text(`Fecha: ${new Date(ordenGenerada.fecha).toLocaleDateString()}`, 14, 48);
+    doc.text(`Estudiante: ${ordenGenerada.estudiante.nombre}`, 14, 56);
+    doc.text(`CI: ${estudiante.ci}`, 14, 64);
+    doc.text(`Colegio: ${estudiante.colegio?.nombre || estudiante.colegio || 'No asignado'}`, 14, 72);
+    
+    // Áreas Inscritas
+    doc.setFontSize(14);
+    doc.text('Áreas Inscritas:', 14, 90);
+    doc.setFontSize(12);
+    let yPosition = 98;
+    areasInscritas.forEach((area) => {
+      doc.text(`- ${area.nombre}`, 14, yPosition);
+      yPosition += 7;
+    });
+
+    // Total a Pagar
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold'); // Poner en negrita
+    doc.text(`Total a Pagar: $${ordenGenerada.total}`, 14, yPosition + 10);
+    doc.setFont(undefined, 'normal'); // Volver a normal
+
+    // Instrucciones
+    doc.setFontSize(10);
+    doc.text('Instrucciones:', 14, yPosition + 25);
+    // Usar splitTextToSize para manejar texto largo y ajustar el ancho
+    const instruccionesTexto = doc.splitTextToSize(ordenGenerada.instrucciones, 180); // 180 es el ancho máximo
+    doc.text(instruccionesTexto, 14, yPosition + 32);
+    
+    doc.setFontSize(10);
+    doc.text(`Fecha de Expiración: ${new Date(ordenGenerada.fechaExpiracion).toLocaleDateString()}`, 14, yPosition + 50);
+
+
+    // Guardar el PDF
+    doc.save(`orden_pago_${ordenGenerada.id}.pdf`);
   };
   
   if (loading) {
