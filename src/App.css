@@ -35,6 +35,21 @@ a {
   padding: 20px;
 }
 
+/* Estilos para el contenedor principal y el footer */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Clase para el footer */
+.footer {
+  margin-top: auto;
+  background-color: #f8f9fa;
+  padding: 1.5rem 0;
+  border-top: 1px solid #e0e0e0;
+}
+
 /* ======================== */
 /* ====== Header ========= */
 /* ======================== */
@@ -1306,8 +1321,8 @@ a {
   border: none;
   padding: 10px 20px;
   border-radius: 4px;
-  font-size: 16px;
   cursor: pointer;
+  font-weight: 600;
   transition: background-color 0.3s;
 }
 
@@ -1459,7 +1474,7 @@ a {
   cursor: pointer;
 }
 
-.tutor-panel .sidebar nav ul li a:hover, 
+.tutor-panel .sidebar nav ul li a:hover,
 .admin-panel .sidebar nav ul li a:hover, 
 .estudiante-panel .sidebar nav ul li a:hover,
 .tutor-panel .sidebar nav ul li button:hover, 
@@ -2092,8 +2107,8 @@ a {
 }
 
 .area-card-estudiante h3 {
-  color: #2c3e50;
   margin-top: 0;
+  color: #2c3e50;
   font-size: 1.2em;
 }
 
@@ -2308,4 +2323,223 @@ a {
   text-align: center;
   padding: 30px 0;
   color: #7f8c8d;
+}
+
+/* ======================== */
+/* === Módulo Etapas === */
+/* ======================== */
+
+.etapas-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.etapas-container h1 {
+  color: #333;
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 2rem;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 15px;
+}
+
+.etapa-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-left: 5px solid #3498db;
+}
+
+.etapa-card h2 {
+  margin-top: 0;
+  color: #2c3e50;
+  font-size: 1.5rem;
+}
+
+.etapa-fecha {
+  font-weight: bold;
+  color: #e74c3c;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+}
+
+.etapa-info p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+/* ======================== */
+/* === Módulo Reglamento === */
+/* ======================== */
+
+.reglamento-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.reglamento-container h1 {
+  color: #333;
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 2rem;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 15px;
+}
+
+.reglamento-section h2 {
+  color: #2c3e50;
+  font-size: 1.5rem;
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.tabla-container {
+  margin: 20px 0;
+  overflow-x: auto;
+}
+
+.tabla-reglamento {
+  width: 100%;
+  border-collapse: collapse;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tabla-reglamento th, .tabla-reglamento td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.tabla-reglamento th {
+  background-color: #f1f1f1;
+  font-weight: bold;
+  color: #333;
+}
+
+.tabla-reglamento tr:hover {
+  background-color: #f9f9f9;
+}
+
+.reglamento-info {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 30px;
+}
+
+.reglamento-info h3 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+.reglamento-info ul {
+  padding-left: 20px;
+}
+
+.reglamento-info li {
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+/* ======================== */
+/* === Módulo Contactanos === */
+/* ======================== */
+
+.contactanos-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.contactanos-container h1 {
+  color: #333;
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 2rem;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 15px;
+}
+
+.contacto-info p {
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.contacto-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 25px;
+  margin: 30px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 20px;
+}
+
+.contacto-item {
+  flex: 1;
+  min-width: 300px;
+  padding: 15px;
+}
+
+.contacto-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #3498db;
+  text-decoration: none;
+  margin-bottom: 10px;
+  transition: all 0.3s ease;
+}
+
+.contacto-link:hover {
+  transform: translateY(-2px);
+}
+
+.contacto-link.whatsapp {
+  color: #25d366;
+}
+
+.contacto-descripcion {
+  color: #666;
+  font-size: 0.95rem;
+  margin-top: 5px;
+}
+
+.contacto-horario, .contacto-ubicacion {
+  margin-top: 30px;
+}
+
+.contacto-horario h3, .contacto-ubicacion h3 {
+  color: #2c3e50;
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+}
+
+.contacto-horario p, .contacto-ubicacion p {
+  margin: 5px 0;
+  color: #333;
+}
+
+/* Estilo para el enlace activo en la navegación */
+.main-nav .active {
+  color: #3498db;
+  font-weight: bold;
+  border-bottom: 2px solid #3498db;
 }

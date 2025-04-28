@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import './App.css';
 import { apiService } from './services/api';
 
@@ -323,7 +323,9 @@ function Registro() {
   return (
     <div className="registro-container">
       <div className="registro-header">
-        <img src="/logo_umss.png" alt="Logo UMSS" className="logo" />
+        <Link to="/">
+          <img src="/logo_umss.png" alt="Logo UMSS" className="logo" style={{ cursor: 'pointer' }} />
+        </Link>
         <h1>Registro de Usuario</h1>
       </div>
 

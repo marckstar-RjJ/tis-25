@@ -51,11 +51,13 @@ function Home() {
     <div className="app">
       <header className="header">
         <div className="header-left">
-          <img src="/logo_umss.png" alt="Logo UMSS" className="logo" />
+          <Link to="/">
+            <img src="/logo_umss.png" alt="Logo UMSS" className="logo" />
+          </Link>
           <nav className="main-nav">
-            <a href="#">Eventos</a>
-            <a href="#">Reglamento</a>
-            <a href="#">Contactanos</a>
+            <Link to="/etapas">Etapas</Link>
+            <Link to="/reglamento">Reglamento</Link>
+            <Link to="/contactanos">Contactanos</Link>
           </nav>
         </div>
         <div className="auth-buttons">
@@ -107,7 +109,7 @@ function Home() {
               <button type="submit" disabled={isLoading}>
                 {isLoading ? 'Iniciando sesión...' : 'Ingresar'}
               </button>
-              <a href="#">¿Olvidaste tu contraseña?</a>
+              <Link to="#">¿Olvidaste tu contraseña?</Link>
               <div className="register-link">
                 <p>¿No tienes una cuenta? <Link to="/registro">Regístrate aquí</Link></p>
               </div>
@@ -116,7 +118,9 @@ function Home() {
         )}
       </div>
 
-      <img src="/logo_umss.png" className="background-logo" alt="Logo de fondo" />
+      <Link to="/">
+        <img src="/logo_umss.png" className="background-logo" alt="Logo de fondo" style={{ cursor: 'pointer' }} />
+      </Link>
       <div className="convocatoria">
         <h2>Convocatoria</h2>
         <button>Descargar</button>

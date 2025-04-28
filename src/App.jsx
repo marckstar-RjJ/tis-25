@@ -12,6 +12,10 @@ import InscripcionArea from './components/InscripcionArea';
 import OrdenPagoEstudiante from './components/OrdenPagoEstudiante';
 import InscripcionIndividual from './InscripcionIndividual';
 import InscripcionPorLista from './InscripcionPorLista';
+import Footer from './components/Footer';
+import Etapas from './components/Etapas';
+import Reglamento from './components/Reglamento';
+import Contactanos from './components/Contactanos';
 
 // Componente que redirige según el tipo de usuario
 const redirectByUserType = (user) => {
@@ -48,60 +52,66 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
-    <Routes>
-      {/* Rutas públicas */}
-      <Route path="/" element={<Home />} />
-      <Route path="/registro" element={<Registro />} />
-      
-      {/* Rutas para estudiantes */}
-      <Route path="/estudiante/*" element={
-        <ProtectedRoute>
-          <EstudiantePanel />
-        </ProtectedRoute>
-      } />
-      <Route path="/estudiante/orden-pago" element={
-        <ProtectedRoute>
-          <OrdenPagoEstudiante />
-        </ProtectedRoute>
-      } />
-      
-      {/* Rutas para tutores */}
-      <Route path="/tutor/*" element={
-        <ProtectedRoute>
-          <TutorPanel />
-        </ProtectedRoute>
-      } />
-      <Route path="/tutor/estudiantes/:studentId/inscripcion" element={
-        <ProtectedRoute>
-          <InscripcionArea />
-        </ProtectedRoute>
-      } />
-      <Route path="/tutor/estudiantes/:studentId/orden-pago" element={
-        <ProtectedRoute>
-          <OrdenPagoEstudiante />
-        </ProtectedRoute>
-      } />
-      <Route path="/tutor/inscripcion-individual" element={
-        <ProtectedRoute>
-          <InscripcionIndividual />
-        </ProtectedRoute>
-      } />
-      <Route path="/tutor/inscripcion-lista" element={
-        <ProtectedRoute>
-          <InscripcionPorLista />
-        </ProtectedRoute>
-      } />
-      
-      {/* Rutas para administradores */}
-      <Route path="/admin/*" element={
-        <ProtectedRoute>
-          <AdministradorPanel />
-        </ProtectedRoute>
-      } />
-      
-      {/* Ruta de fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <div className="app-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Routes>
+        {/* Rutas públicas */}
+        <Route path="/" element={<Home />} />
+        <Route path="/registro" element={<Registro />} />
+        <Route path="/etapas" element={<Etapas />} />
+        <Route path="/reglamento" element={<Reglamento />} />
+        <Route path="/contactanos" element={<Contactanos />} />
+        
+        {/* Rutas para estudiantes */}
+        <Route path="/estudiante/*" element={
+          <ProtectedRoute>
+            <EstudiantePanel />
+          </ProtectedRoute>
+        } />
+        <Route path="/estudiante/orden-pago" element={
+          <ProtectedRoute>
+            <OrdenPagoEstudiante />
+          </ProtectedRoute>
+        } />
+        
+        {/* Rutas para tutores */}
+        <Route path="/tutor/*" element={
+          <ProtectedRoute>
+            <TutorPanel />
+          </ProtectedRoute>
+        } />
+        <Route path="/tutor/estudiantes/:studentId/inscripcion" element={
+          <ProtectedRoute>
+            <InscripcionArea />
+          </ProtectedRoute>
+        } />
+        <Route path="/tutor/estudiantes/:studentId/orden-pago" element={
+          <ProtectedRoute>
+            <OrdenPagoEstudiante />
+          </ProtectedRoute>
+        } />
+        <Route path="/tutor/inscripcion-individual" element={
+          <ProtectedRoute>
+            <InscripcionIndividual />
+          </ProtectedRoute>
+        } />
+        <Route path="/tutor/inscripcion-lista" element={
+          <ProtectedRoute>
+            <InscripcionPorLista />
+          </ProtectedRoute>
+        } />
+        
+        {/* Rutas para administradores */}
+        <Route path="/admin/*" element={
+          <ProtectedRoute>
+            <AdministradorPanel />
+          </ProtectedRoute>
+        } />
+        
+        {/* Ruta de fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <Footer />
+    </div>
   );
 }
 
