@@ -16,10 +16,44 @@ const Footer = () => {
       zIndex: 100,
     }}>
       <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <a href="mailto:booleanssolutions@gmail.com" style={{ color: '#ea4335', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+        <a 
+          href="mailto:booleanssolutions@gmail.com" 
+          title="Enviar correo"
+          style={{ 
+            color: '#ea4335', 
+            textDecoration: 'none', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            fontSize: '1.1rem',
+            transition: 'transform 0.3s ease',
+            padding: '0.5rem',
+            borderRadius: '4px',
+          }}
+          onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+        >
           <FaEnvelope size={22} /> booleanssolutions@gmail.com
         </a>
-        <a href="https://wa.me/59160344144" target="_blank" rel="noopener noreferrer" style={{ color: '#25d366', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+        <a 
+          href="https://wa.me/59160344144" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          title="Abrir chat de WhatsApp"
+          style={{ 
+            color: '#25d366', 
+            textDecoration: 'none', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            fontSize: '1.1rem',
+            transition: 'transform 0.3s ease',
+            padding: '0.5rem',
+            borderRadius: '4px',
+          }}
+          onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+        >
           <FaWhatsapp size={22} /> 60344144
         </a>
       </div>
