@@ -118,15 +118,18 @@ function Home() {
         )}
       </div>
 
-      <Link to="/">
-        <img src="/logo_umss.png" className="background-logo" alt="Logo de fondo" style={{ cursor: 'pointer' }} />
+      {/* Se deshabilitan los eventos del logo de fondo para que no intercepte clics */}
+      <Link to="/" style={{ pointerEvents: 'none' }}>
+        <img src="/logo_umss.png" className="background-logo" alt="Logo de fondo" />
       </Link>
       <div className="convocatoria">
         <h2>Convocatoria</h2>
-        <button>Descargar</button>
+        <a href="/IMG_7383.jpg" download="Convocatoria_Olimpiadas_2025.jpg" className="btn-descargar">
+          Descargar
+        </a>
       </div>
     </div>
   );
 }
 
-export default Home; 
+export default Home;

@@ -171,6 +171,8 @@ a {
 .convocatoria {
   text-align: center;
   margin-top: 10px;
+  position: relative;
+  z-index: 2; /* Aseguramos que esté por encima del logo de fondo */
 }
 
 .convocatoria h2 {
@@ -183,6 +185,10 @@ a {
   background-color: #e11d48;
   color: white;
   border: none;
+  position: relative;
+  z-index: 2; /* Aseguramos que el botón esté por encima de todos los elementos */
+  cursor: pointer;
+  border-radius: 6px;
 }
 
 /* ======================== */
@@ -473,6 +479,31 @@ a {
     padding: 10px 16px;
   }
 }
+
+/* Estilos para el botón de descarga */
+.btn-descargar {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: #e11d48;
+  color: #fff;
+  font-weight: bold;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+  z-index: 3;
+}
+
+.btn-descargar:hover {
+  background-color: #be123c;
+}
+
+@media (max-width: 768px) {
+  .btn-descargar {
+    width: 100%;
+    padding: 12px 0;
+  }
+}
+
 /* App.css */
 .error-message {
   color: red;
