@@ -6,13 +6,14 @@ import InscripcionArea from './InscripcionArea';
 
 // Componente para registro de estudiantes
 const RegistroEstudiantes = () => {
+  const navigate = useNavigate();
   const { currentUser, refreshStudents } = useAuth();
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
     ci: '',
     fechaNacimiento: '',
-    curso: '1',
+    curso: '3', 
     colegio: ''
   });
   const [colegios, setColegios] = useState([]);
@@ -21,15 +22,17 @@ const RegistroEstudiantes = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Cargar la lista de colegios disponibles
+  const fechaLimite = '2017-06-30';
+
   useEffect(() => {
     const fetchColegios = async () => {
       try {
         const data = await apiService.getAllColleges();
         setColegios(data);
         
-        // Si hay colegios, establecer el primero como valor predeterminado
-        if (data.length > 0) {
+        if (currentUser && currentUser.colegio) {
+          setFormData(prev => ({ ...prev, colegio: currentUser.colegio }));
+        } else if (data.length > 0) {
           setFormData(prev => ({ ...prev, colegio: data[0].id }));
         }
       } catch (err) {
@@ -41,7 +44,7 @@ const RegistroEstudiantes = () => {
     };
     
     fetchColegios();
-  }, []);
+  }, [currentUser]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,36 +54,60 @@ const RegistroEstudiantes = () => {
     });
   };
 
+  const validarFormulario = () => {
+    if (formData.fechaNacimiento) {
+      const fechaSeleccionada = new Date(formData.fechaNacimiento);
+      const fechaMax = new Date(fechaLimite);
+      
+      if (fechaSeleccionada > fechaMax) {
+        setError('Solo se permiten fechas anteriores a Julio de 2017');
+        return false;
+      }
+    } else {
+      setError('La fecha de nacimiento es requerida');
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
     setSuccess('');
     
+    if (!validarFormulario()) {
+      setIsSubmitting(false);
+      return;
+    }
+    
     try {
-      // Crear un nuevo estudiante bajo el tutor actual
       await apiService.registerStudentByTutor(currentUser.id, {
         ...formData,
         curso: Number(formData.curso),
         tutorId: currentUser.id
       });
       
-      // Restablecer el formulario
       setFormData({
         nombre: '',
         apellido: '',
         ci: '',
         fechaNacimiento: '',
-        curso: '1',
-        colegio: colegios.length > 0 ? colegios[0].id : ''
+        curso: '3', 
+        colegio: currentUser && currentUser.colegio ? currentUser.colegio : (colegios.length > 0 ? colegios[0].id : '')
       });
       
       setSuccess('Estudiante registrado exitosamente');
       
-      // Refrescar la lista de estudiantes en el contexto de autenticación
       if (refreshStudents) {
         refreshStudents();
       }
+      
+      setTimeout(() => {
+        navigate('/tutor');
+      }, 1500);
+      
     } catch (err) {
       console.error('Error al registrar estudiante:', err);
       setError(err.message || 'Error al registrar estudiante. Intente nuevamente.');
@@ -144,9 +171,11 @@ const RegistroEstudiantes = () => {
             id="fechaNacimiento" 
             name="fechaNacimiento" 
             value={formData.fechaNacimiento} 
-            onChange={handleChange} 
+            onChange={handleChange}
+            max={fechaLimite}
             required 
           />
+          <small className="help-text">Debe ser anterior a Julio de 2017</small>
         </div>
         
         <div className="form-group">
@@ -158,8 +187,6 @@ const RegistroEstudiantes = () => {
             onChange={handleChange} 
             required
           >
-            <option value="1">1° Primaria</option>
-            <option value="2">2° Primaria</option>
             <option value="3">3° Primaria</option>
             <option value="4">4° Primaria</option>
             <option value="5">5° Primaria</option>
@@ -181,6 +208,7 @@ const RegistroEstudiantes = () => {
             value={formData.colegio} 
             onChange={handleChange} 
             required
+            disabled={currentUser && currentUser.colegio}
           >
             {colegios.length === 0 ? (
               <option value="">No hay colegios disponibles</option>
@@ -192,6 +220,9 @@ const RegistroEstudiantes = () => {
               ))
             )}
           </select>
+          {currentUser && currentUser.colegio && (
+            <p className="info-message">Los estudiantes serán registrados automáticamente a tu colegio.</p>
+          )}
         </div>
         
         <button 
@@ -231,7 +262,6 @@ const ListaEstudiantes = () => {
   }, [getStudentsByTutor, currentUser.id]);
 
   const handleInscripcion = (studentId) => {
-    // Navegar a la página de inscripción individual con el ID del estudiante
     navigate(`/tutor/inscripcion/${studentId}`);
   };
 

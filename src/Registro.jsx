@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import './App.css';
 import { apiService } from './services/api';
+import { useAuth } from './context/AuthContext';
 
 function Registro() {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [tipoUsuario, setTipoUsuario] = useState('estudiante');
   const [formData, setFormData] = useState({
     nombre: '',
@@ -27,6 +29,7 @@ function Registro() {
   const [isLoading, setIsLoading] = useState(false);
   const [colegios, setColegios] = useState([]);
   const [cargandoColegios, setCargandoColegios] = useState(true);
+  const [tutorColegio, setTutorColegio] = useState(null);
 
   // Lista de departamentos de Bolivia
   const departamentos = [
@@ -47,7 +50,13 @@ function Registro() {
       try {
         const data = await apiService.getAllColleges();
         setColegios(data);
-        if (data.length > 0) {
+        
+        // Si hay un tutor con sesión iniciada, obtener su colegio
+        if (currentUser && currentUser.tipoUsuario === 'tutor' && currentUser.colegio) {
+          setTutorColegio(currentUser.colegio);
+          // Asignar automáticamente el colegio del tutor al formulario
+          setFormData(prev => ({ ...prev, colegio: currentUser.colegio }));
+        } else if (data.length > 0) {
           setFormData(prev => ({ ...prev, colegio: data[0].id }));
         }
       } catch (error) {
@@ -58,7 +67,7 @@ function Registro() {
     };
     
     fetchColegios();
-  }, []);
+  }, [currentUser]);
 
   // Reiniciar campos no necesarios cuando cambia el tipo de usuario
   useEffect(() => {
@@ -97,14 +106,18 @@ function Registro() {
         newFormData.curso = '3'; // 3° primaria por defecto
       }
       
-      // Establecer colegio predeterminado si hay colegios disponibles
-      if (colegios.length > 0 && !newFormData.colegio) {
+      // Si hay un tutor con sesión iniciada, usar su colegio
+      if (tutorColegio) {
+        newFormData.colegio = tutorColegio;
+      }
+      // Si no hay tutor pero hay colegios disponibles
+      else if (colegios.length > 0 && !newFormData.colegio) {
         newFormData.colegio = colegios[0].id;
       }
     }
     
     setFormData(newFormData);
-  }, [tipoUsuario, colegios]);
+  }, [tipoUsuario, colegios, tutorColegio]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -204,10 +217,6 @@ function Registro() {
       
       if (!formData.curso) {
         nuevosErrores.curso = 'Debe seleccionar un curso';
-      }
-      
-      if (!formData.colegio) {
-        nuevosErrores.colegio = 'Debe seleccionar un colegio';
       }
       
       // Validación de nombre y correo del tutor (no pueden ser iguales al estudiante)
@@ -439,6 +448,40 @@ function Registro() {
           {errores.email && <span className="error-message">{errores.email}</span>}
         </div>
 
+        {/* Campo de selección de colegio para tutores */}
+        {(tipoUsuario === 'tutor') && (
+          <div className="form-group">
+            <label htmlFor="colegio">Colegio</label>
+            <select
+              id="colegio"
+              name="colegio"
+              value={formData.colegio}
+              onChange={handleInputChange}
+              className={errores.colegio ? 'error' : ''}
+              disabled={cargandoColegios}
+            >
+              {cargandoColegios ? (
+                <option value="">Cargando colegios...</option>
+              ) : (
+                colegios.map(colegio => (
+                  <option key={colegio.id} value={colegio.id}>
+                    {colegio.nombre}
+                  </option>
+                ))
+              )}
+            </select>
+            {errores.colegio && <span className="error-message">{errores.colegio}</span>}
+          </div>
+        )}
+
+        {tipoUsuario === 'estudiante' && tutorColegio !== null && (
+          <div className="form-group">
+            <div className="info-box">
+              <p>Tu colegio será asignado automáticamente según el tutor.</p>
+            </div>
+          </div>
+        )}
+
         {/* Campos específicos para estudiantes */}
         {tipoUsuario === 'estudiante' && (
           <>
@@ -483,34 +526,6 @@ function Registro() {
                 <option value="12">6° Secundaria</option>
               </select>
               {errores.curso && <span className="error-message">{errores.curso}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="colegio">Colegio</label>
-              <select
-                id="colegio"
-                name="colegio"
-                value={formData.colegio}
-                onChange={handleInputChange}
-                className={errores.colegio ? 'error' : ''}
-                disabled={cargandoColegios || colegios.length === 0}
-              >
-                {cargandoColegios ? (
-                  <option value="">Cargando colegios...</option>
-                ) : colegios.length === 0 ? (
-                  <option value="">No hay colegios disponibles</option>
-                ) : (
-                  <>
-                    <option value="">Seleccione un colegio</option>
-                    {colegios.map(colegio => (
-                      <option key={colegio.id} value={colegio.id}>
-                        {colegio.nombre}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
-              {errores.colegio && <span className="error-message">{errores.colegio}</span>}
             </div>
 
             <div className="form-group">
@@ -604,34 +619,6 @@ function Registro() {
               />
               {errores.celular && <span className="error-message">{errores.celular}</span>}
             </div>
-
-            <div className="form-group">
-              <label htmlFor="colegio">Colegio</label>
-              <select
-                id="colegio"
-                name="colegio"
-                value={formData.colegio}
-                onChange={handleInputChange}
-                className={errores.colegio ? 'error' : ''}
-                disabled={cargandoColegios || colegios.length === 0}
-              >
-                {cargandoColegios ? (
-                  <option value="">Cargando colegios...</option>
-                ) : colegios.length === 0 ? (
-                  <option value="">No hay colegios disponibles</option>
-                ) : (
-                  <>
-                    <option value="">Seleccione un colegio</option>
-                    {colegios.map(colegio => (
-                      <option key={colegio.id} value={colegio.id}>
-                        {colegio.nombre}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
-              {errores.colegio && <span className="error-message">{errores.colegio}</span>}
-            </div>
           </>
         )}
 
@@ -678,4 +665,4 @@ function Registro() {
   );
 }
 
-export default Registro; 
+export default Registro;
