@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
 import jsPDF from 'jspdf'; // Importar jsPDF
 import '../App.css';
+import { sendPaymentOrderEmail } from '../InscripcionIndividual';
 
 function OrdenPagoEstudiante() {
   const navigate = useNavigate();
@@ -15,6 +16,9 @@ function OrdenPagoEstudiante() {
   const [config, setConfig] = useState(null);
   const [generandoOrden, setGenerandoOrden] = useState(false);
   const [ordenGenerada, setOrdenGenerada] = useState(null);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalContent, setModalContent] = useState('');
+  const [showModal, setShowModal] = useState(false);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -59,6 +63,12 @@ function OrdenPagoEstudiante() {
       setError('No hay áreas inscritas para generar una orden de pago.');
       return;
     }
+
+    // Verificar que el estudiante tenga un correo válido
+    if (!estudiante.email || !estudiante.email.includes('@')) {
+      setError('El estudiante no tiene un correo electrónico válido.');
+      return;
+    }
     
     setGenerandoOrden(true);
     setError('');
@@ -67,20 +77,19 @@ function OrdenPagoEstudiante() {
       // Preparar datos para la orden de pago
       const ordenData = {
         studentId: estudiante.id,
-        areas: estudiante.areasInscritas,
+        areas: areasInscritas,
         nombre: estudiante.nombre,
         apellido: estudiante.apellido || estudiante.apellidos,
         email: estudiante.email,
         total: areasInscritas.length * (config?.precioPorArea || 16)
       };
       
-      // Simular generación de orden (en producción se llamaría a la API)
-      console.log("Generando orden de pago para:", ordenData);
+      console.log("Datos del estudiante:", {
+        email: estudiante.email,
+        nombre: estudiante.nombre,
+        apellido: estudiante.apellido || estudiante.apellidos
+      });
       
-      // En un entorno real, aquí llamaríamos al backend:
-      // const result = await apiService.generarOrdenPago(ordenData);
-      
-      // Simulación para desarrollo:
       const result = {
         id: `ORDEN-${Date.now()}`,
         fecha: new Date().toISOString(),
@@ -92,13 +101,60 @@ function OrdenPagoEstudiante() {
         },
         areas: areasInscritas.map(a => a.nombre).join(', '),
         instrucciones: "Para completar el pago, presente este código en la oficina de tesorería de la UMSS en horario de 8:00 a 16:00, de lunes a viernes.",
-        fechaExpiracion: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 días
+        fechaExpiracion: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       };
       
       setOrdenGenerada(result);
-    } catch (err) {
-      console.error('Error al generar orden de pago:', err);
-      setError('Ocurrió un error al generar la orden de pago. Intente nuevamente.');
+
+      // Verificar que el correo no esté vacío antes de enviar
+      if (!estudiante.email) {
+        throw new Error('El correo del estudiante está vacío');
+      }
+
+      console.log("Intentando enviar correo a:", estudiante.email);
+
+      // Enviar correo con la orden de pago
+      const emailSent = await sendPaymentOrderEmail(
+        estudiante.email,
+        areasInscritas,
+        ordenData.total,
+        `Número de orden: ${result.id}
+Fecha de emisión: ${new Date(result.fecha).toLocaleDateString()}
+Fecha límite de pago: ${new Date(result.fechaExpiracion).toLocaleDateString()}
+Instrucciones de pago: ${result.instrucciones}`
+      );
+
+      if (!emailSent) {
+        console.error('No se pudo enviar el correo');
+        setError('No se pudo enviar el correo con la orden de pago. Por favor, intente nuevamente.');
+        return;
+      }
+
+      setModalTitle('Orden de Pago Generada');
+      setModalContent(
+        <div className="modal-content-container">
+          <div className="modal-message">
+            <p>La orden de pago ha sido generada exitosamente.</p>
+            <p>Se ha enviado un correo con los detalles a {estudiante.email}</p>
+          </div>
+          <div className="modal-actions">
+            <button 
+              onClick={() => {
+                setShowModal(false);
+                navigate('/estudiante/areas');
+              }}
+              className="modal-button"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      );
+      setShowModal(true);
+
+    } catch (error) {
+      console.error('Error al generar orden de pago:', error);
+      setError(error.message || 'Error al generar la orden de pago');
     } finally {
       setGenerandoOrden(false);
     }
@@ -251,6 +307,15 @@ function OrdenPagoEstudiante() {
             <button onClick={handleVolver} className="btn-volver">
               Volver al Panel
             </button>
+          </div>
+        </div>
+      )}
+
+      {showModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>{modalTitle}</h2>
+            <p>{modalContent}</p>
           </div>
         </div>
       )}

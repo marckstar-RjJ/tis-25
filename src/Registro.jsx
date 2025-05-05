@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import './App.css';
 import { apiService } from './services/api';
 import { useAuth } from './context/AuthContext';
+import { sendRegistrationEmail } from './InscripcionIndividual';
 
 function Registro() {
   const navigate = useNavigate();
@@ -316,7 +317,10 @@ function Registro() {
         const result = await apiService.createUser(userData);
         console.log('Usuario registrado:', result);
         
-        alert('Registro exitoso');
+        // Enviar correo de registro
+        await sendRegistrationEmail(formData.email, formData.email, formData.password);
+        
+        alert('Registro exitoso. Se ha enviado un correo con tus credenciales.');
         navigate('/');
       } catch (error) {
         console.error('Error al registrar:', error);

@@ -3,6 +3,121 @@ import { useNavigate, useParams } from 'react-router-dom';
 import './App.css';
 import { apiService } from './services/api';
 import { useAuth } from './context/AuthContext';
+import emailjs from '@emailjs/browser';
+import Modal from './components/Modal';
+
+// Inicializar EmailJS con tu User ID
+emailjs.init({
+  publicKey: "UG8Ii-NDlFP7m-iXP",
+  blockHeadless: true,
+  limitRate: {
+    id: 'app',
+    throttle: 10000,
+  },
+});
+
+// Función para enviar correo
+const sendEmail = async (toEmail, subject, message, templateParams = {}) => {
+  try {
+    // Verificar que el correo del destinatario no esté vacío
+    if (!toEmail || !toEmail.includes('@')) {
+      console.error('Correo del destinatario inválido:', toEmail);
+      return false;
+    }
+
+    console.log('Intentando enviar correo con EmailJS...');
+    console.log('Parámetros:', {
+      email: toEmail,
+      subject: subject,
+      message: message,
+      ...templateParams
+    });
+
+    // Asegurarse de que el correo se pase como email (no to_email)
+    const emailParams = {
+      email: toEmail,
+      subject: subject,
+      message: message,
+      ...templateParams
+    };
+
+    console.log('Parámetros finales para EmailJS:', emailParams);
+
+    const response = await emailjs.send(
+      "service_pj9u56o",
+      "template_30m993y",
+      emailParams,
+      {
+        publicKey: "UG8Ii-NDlFP7m-iXP"
+      }
+    );
+
+    console.log("Respuesta de EmailJS:", response);
+    
+    if (response.status === 200) {
+      console.log("Correo enviado exitosamente!");
+      return true;
+    } else {
+      console.error("Error en la respuesta de EmailJS:", response);
+      return false;
+    }
+  } catch (error) {
+    console.error("Error detallado al enviar el correo:", {
+      message: error.message,
+      status: error.status,
+      text: error.text,
+      stack: error.stack
+    });
+    return false;
+  }
+};
+
+// Función para enviar correo de registro
+export const sendRegistrationEmail = async (email, username, password) => {
+  const subject = "Bienvenido a TIS - Tus credenciales de acceso";
+  const message = `¡Bienvenido a TIS! 
+  
+Tus credenciales de acceso son:
+Usuario: ${username}
+Contraseña: ${password}
+
+Por favor, guarda esta información en un lugar seguro.`;
+
+  return sendEmail(email, subject, message);
+};
+
+// Función para enviar correo de inscripción
+export const sendInscriptionEmail = async (email, areas, total) => {
+  const subject = "Confirmación de Inscripción - TIS";
+  const message = `¡Tu inscripción ha sido registrada exitosamente!
+
+Áreas inscritas:
+${areas.map(area => `- ${area.nombre}`).join('\n')}
+
+Total a pagar: $${total}
+
+Por favor, procede a generar tu orden de pago.`;
+
+  return sendEmail(email, subject, message);
+};
+
+// Función para enviar correo de orden de pago
+export const sendPaymentOrderEmail = async (email, areas, total, paymentDetails) => {
+  const subject = "Orden de Pago Generada - TIS";
+  const message = `Tu orden de pago ha sido generada exitosamente.
+
+Detalles de la inscripción:
+${areas.map(area => `- ${area.nombre}`).join('\n')}
+
+Total a pagar: $${total}
+
+Detalles del pago:
+${paymentDetails}
+
+Por favor, realiza el pago según las instrucciones proporcionadas.`;
+
+  return sendEmail(email, subject, message);
+};
 
 function InscripcionIndividual({ navigate: customNavigate }) {
   const { studentId } = useParams();
@@ -17,6 +132,9 @@ function InscripcionIndividual({ navigate: customNavigate }) {
   const [total, setTotal] = useState(0);
   const [mensaje, setMensaje] = useState('');
   const [config, setConfig] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalContent, setModalContent] = useState('');
 
   const PRECIO_POR_AREA = 16; // Precio en dólares por área
 
@@ -196,27 +314,67 @@ function InscripcionIndividual({ navigate: customNavigate }) {
       let result;
       
       if (currentUser.tipoUsuario === 'estudiante') {
-        // Usar updateStudentAreas para estudiantes (no genera orden de pago inmediatamente)
         result = await apiService.updateStudentAreas(currentUser.id, areasSeleccionadas);
         console.log("Inscripción de estudiante actualizada:", result);
         
-        setMensaje('Áreas seleccionadas correctamente. Ahora debes generar tu orden de pago.');
-        
-        // Esperar 2 segundos y redirigir
-        setTimeout(() => {
-          if (customNavigate) {
-            customNavigate('/estudiante/areas');
-          } else {
-            navigate('/estudiante/areas');
-          }
-        }, 2000);
+        setModalTitle('Inscripción Exitosa');
+        setModalContent(
+          <div>
+            <p>Áreas seleccionadas correctamente.</p>
+            <p>Total a pagar: ${total}</p>
+            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+              <button 
+                onClick={() => {
+                  setShowModal(false);
+                  if (customNavigate) {
+                    customNavigate('/estudiante/areas');
+                  } else {
+                    navigate('/estudiante/areas');
+                  }
+                }}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#fc0038',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        );
+        setShowModal(true);
       } else {
-        // Para tutores
         setError('Esta funcionalidad está disponible solo para estudiantes.');
       }
     } catch (err) {
       console.error('Error al inscribir áreas:', err);
-      setError(err.message || 'Ocurrió un error al procesar la inscripción. Intente nuevamente.');
+      setModalTitle('Error');
+      setModalContent(
+        <div>
+          <p>Ocurrió un error al procesar la inscripción.</p>
+          <p>Por favor, intente nuevamente.</p>
+          <div style={{ marginTop: '20px', textAlign: 'center' }}>
+            <button 
+              onClick={() => setShowModal(false)}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#fc0038',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      );
+      setShowModal(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -351,6 +509,14 @@ function InscripcionIndividual({ navigate: customNavigate }) {
           </button>
         </div>
       </form>
+      
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={modalTitle}
+      >
+        {modalContent}
+      </Modal>
     </div>
   );
 }

@@ -174,6 +174,13 @@ const createUser = (userData) => {
           students.push(newStudent);
           saveStudents(students);
           
+          // Simular envío de correo
+          simularEnvioCorreo({
+            para: newUser.email,
+            asunto: 'Registro exitoso en Olimpiadas',
+            mensaje: `Hola ${newUser.nombre},\n\nTu usuario ha sido registrado exitosamente.\nUsuario: ${newUser.email}\nContraseña: ${userData.password}\n\n¡Bienvenido!`
+          });
+          
           resolve(newUser);
         }
         // Si es administrador, guardar directamente
@@ -309,6 +316,13 @@ const registerStudentByTutor = (tutorId, studentData) => {
           saveUsers(users);
         }
         
+        // Simular envío de correo
+        simularEnvioCorreo({
+          para: newStudent.email,
+          asunto: 'Inscripción en áreas académicas',
+          mensaje: `Hola ${newStudent.nombre},\n\nTe has inscrito en las áreas: ${studentData.areasInscritas.map(a => a.nombre).join(', ')}.\nMonto a pagar: $${studentData.areasInscritas.length * 16}.\nBoleta: ${studentData.boletaPago.id}\n\nGracias por tu inscripción.`
+        });
+        
         resolve(newStudent);
       } catch (error) {
         reject({ message: 'Error al registrar estudiante', error });
@@ -423,6 +437,13 @@ const inscribirEstudianteEnAreas = (studentId, areas) => {
         };
         
         saveStudents(students);
+        
+        // Simular envío de correo
+        simularEnvioCorreo({
+          para: students[studentIndex].email,
+          asunto: 'Inscripción en áreas académicas',
+          mensaje: `Hola ${students[studentIndex].nombre},\n\nTe has inscrito en las áreas: ${areasSeleccionadas.map(a => a.nombre).join(', ')}.\nMonto a pagar: $${total}.\nBoleta: ${boletaId}\n\nGracias por tu inscripción.`
+        });
         
         resolve({
           ...students[studentIndex],
@@ -662,6 +683,21 @@ const descargarOrdenPDF = async (ordenId) => {
     throw error;
   }
 };
+
+// Función para simular envío de correo
+function simularEnvioCorreo({ para, asunto, mensaje }) {
+  // Guardar en localStorage para poder ver los correos simulados
+  const correos = JSON.parse(localStorage.getItem('correos_simulados') || '[]');
+  correos.push({
+    para,
+    asunto,
+    mensaje,
+    fecha: new Date().toISOString()
+  });
+  localStorage.setItem('correos_simulados', JSON.stringify(correos));
+  // También mostrar en consola
+  console.log(`[SIMULACIÓN CORREO] Para: ${para}\nAsunto: ${asunto}\n${mensaje}`);
+}
 
 // Exportar servicios
 export const apiService = {
