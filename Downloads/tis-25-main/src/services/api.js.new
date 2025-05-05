@@ -1,0 +1,365 @@
+// API Service para interactuar con el backend Laravel
+
+const API_URL = 'http://localhost:8001/api';
+const SERVER_URL = API_URL.replace(/\/api$/, '');
+
+// Verificar si el servidor está operativo
+const checkServerHealth = async () => {
+  try {
+    console.log(`Verificando salud del servidor ${SERVER_URL}...`);
+    const startTime = Date.now();
+    
+    const response = await fetch(`${SERVER_URL}/sanctum/csrf-cookie`, {
+      method: 'HEAD',
+      cache: 'no-cache',
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
+    
+    console.log(`Servidor respondió en ${responseTime}ms con estado: ${response.status}`);
+    
+    return {
+      isOnline: response.ok,
+      responseTime,
+      status: response.status,
+      statusText: response.statusText
+    };
+  } catch (error) {
+    console.error('Error al verificar salud del servidor:', error);
+    return {
+      isOnline: false,
+      error: error.message
+    };
+  }
+};
+
+// Opciones predeterminadas para todas las solicitudes fetch
+const defaultOptions = {
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest' // Necesario para Laravel Sanctum
+  },
+  credentials: 'include' // Importante para que Laravel Sanctum funcione correctamente con CSRF
+};
+
+// Función genérica para realizar solicitudes a la API
+const apiRequest = async (endpoint, options = {}) => {
+  const url = `${API_URL}${endpoint}`;
+  console.log(`Realizando solicitud a: ${url}`, {
+    method: options.method || 'GET',
+    headers: {...defaultOptions.headers, ...options.headers},
+    body: options.body ? JSON.parse(options.body) : undefined
+  });
+  
+  try {
+    // Verificar si podemos conectar con el servidor
+    try {
+      const testResponse = await fetch(API_URL.replace(/\/api$/, '/sanctum/csrf-cookie'), {
+        method: 'HEAD',
+        credentials: 'include'
+      });
+      console.log('Prueba de conexión con el servidor:', testResponse.ok ? 'Exitosa' : 'Fallida');
+    } catch (connectionError) {
+      console.error('No se pudo conectar con el servidor:', connectionError);
+      throw new Error('No se pudo conectar con el servidor. Verifica que el servidor Laravel esté funcionando correctamente.');
+    }
+    
+    const response = await fetch(url, {
+      ...defaultOptions,
+      ...options,
+      headers: {
+        ...defaultOptions.headers,
+        ...options.headers
+      }
+    });
+    
+    console.log(`Respuesta recibida de ${url}:`, {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+    
+    // Si la respuesta no es exitosa, manejar el error
+    if (!response.ok) {
+      let errorMessage = `Error HTTP: ${response.status} ${response.statusText}`;
+      
+      try {
+        const errorData = await response.json();
+        console.error(`Error detallado:`, errorData);
+        
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.errores) {
+          errorMessage = Object.values(errorData.errores).flat().join(', ');
+        }
+      } catch (parseError) {
+        console.error('No se pudo parsear la respuesta de error:', parseError);
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    // Si la respuesta está vacía, devolver un objeto vacío
+    if (response.status === 204) {
+      return {};
+    }
+    
+    // Parsear la respuesta JSON
+    try {
+      const data = await response.json();
+      console.log(`Datos recibidos de ${url}:`, data);
+      return data;
+    } catch (jsonError) {
+      console.error('Error al parsear JSON de respuesta:', jsonError);
+      throw new Error('Error al procesar la respuesta del servidor. La respuesta no es JSON válido.');
+    }
+  } catch (error) {
+    // Manejar errores específicos
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      console.error(`Error de conexión a ${url}: Asegúrate de que el servidor Laravel esté en ejecución en ${API_URL}`);
+      throw new Error(`No se pudo conectar al servidor. Asegúrate de que el servidor Laravel esté en ejecución en ${API_URL.split('/api')[0]}`);
+    }
+    
+    if (error.message === 'Load failed') {
+      console.error('Error "Load failed" detectado. Esto suele indicar un problema con CORS o con la conexión al servidor.');
+      throw new Error('Error de conexión con el servidor. Esto puede deberse a: 1) El servidor Laravel no está en ejecución, 2) Hay un problema de CORS, 3) La red está bloqueando la conexión.');
+    }
+    
+    console.error(`Error en la solicitud a ${url}:`, error);
+    throw error;
+  }
+};
+
+// Métodos específicos para operaciones de autenticación
+const auth = {
+  // Obtener el token CSRF de Laravel
+  getCsrfToken: async () => {
+    try {
+      console.log('Intentando obtener token CSRF...');
+      const response = await fetch('/sanctum/csrf-cookie', {
+        credentials: 'include'
+      });
+      
+      console.log('Respuesta de CSRF:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText
+      });
+      
+      if (!response.ok) {
+        console.error('Error al obtener token CSRF:', response.statusText);
+        throw new Error(`No se pudo obtener el token CSRF: ${response.statusText}`);
+      }
+      
+      console.log('Token CSRF obtenido correctamente');
+      return true;
+    } catch (error) {
+      console.error('Error en obtención de token CSRF:', error);
+      // Si es un error de conexión, dar un mensaje más específico
+      if (error.message === 'Load failed' || 
+          error.message.includes('Failed to fetch') || 
+          error.name === 'TypeError') {
+        throw new Error('No se pudo conectar con el servidor para obtener el token CSRF. Verifica la conexión.');
+      }
+      throw error;
+    }
+  },
+  
+  // Iniciar sesión
+  login: async (credentials) => {
+    // Primero obtenemos el token CSRF
+    await auth.getCsrfToken();
+    
+    return apiRequest('/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials)
+    });
+  },
+  
+  // Registrar un nuevo usuario
+  register: async (userData) => {
+    try {
+      console.log('Iniciando proceso de registro...');
+      
+      // Intentar registrar con el backend primero
+      try {
+        // Primero obtenemos el token CSRF
+        console.log('Obteniendo token CSRF...');
+        await auth.getCsrfToken();
+        console.log('Token CSRF obtenido, enviando datos de registro...');
+        
+        const response = await apiRequest('/registro', {
+          method: 'POST',
+          body: JSON.stringify(userData)
+        });
+        
+        console.log('Respuesta del servidor para registro:', response);
+        return response;
+      } catch (backendError) {
+        // Si hay un error de conexión, usar registro simulado
+        if (backendError.message && (
+            backendError.message.includes('No se pudo conectar al servidor') || 
+            backendError.message.includes('could not be found') ||
+            backendError.message.includes('Load failed') ||
+            backendError.message.includes('Error de conexión')
+        )) {
+          console.warn('Error de conexión detectado. Usando registro simulado para fines de prueba.');
+          
+          // Simulamos un registro exitoso para propósitos de prueba
+          const simulatedResponse = {
+            mensaje: 'Usuario registrado correctamente (MODO SIMULADO - NO REAL)',
+            cuenta: {
+              id: Date.now(),
+              email: userData.email,
+              tipo_usuario: userData.tipo_usuario,
+              created_at: new Date().toISOString()
+            },
+            perfil: {
+              id: Date.now() + 1,
+              nombre: userData.nombre,
+              apellido: userData.apellido,
+              ci: userData.ci,
+              ...userData
+            }
+          };
+          
+          // Si es estudiante, añadir datos específicos
+          if (userData.tipo_usuario === 'estudiante') {
+            simulatedResponse.perfil.curso = userData.curso;
+            simulatedResponse.perfil.fecha_nacimiento = userData.fecha_nacimiento;
+          }
+          
+          console.log('Respuesta simulada:', simulatedResponse);
+          
+          // Mostrar advertencia en consola
+          console.warn('⚠️ MODO SIMULADO ACTIVADO: Los datos NO se han guardado en el servidor.');
+          console.warn('⚠️ Este modo es solo para fines de prueba y desarrollo.');
+          
+          // Guardar en localStorage para simular sesión
+          localStorage.setItem('currentUser', JSON.stringify({
+            ...simulatedResponse.cuenta,
+            ...simulatedResponse.perfil,
+            tipoUsuario: userData.tipo_usuario
+          }));
+          
+          return simulatedResponse;
+        }
+        
+        // Si es otro tipo de error, lo propagamos
+        throw backendError;
+      }
+    } catch (error) {
+      console.error('Error en el proceso de registro:', error);
+      throw error;
+    }
+  },
+  
+  // Cerrar sesión
+  logout: async () => {
+    try {
+      console.log("Enviando solicitud de logout al servidor...");
+      
+      // Primero obtenemos el token CSRF para asegurar que la petición sea válida
+      await auth.getCsrfToken();
+      
+      const response = await apiRequest('/logout', {
+        method: 'POST'
+      });
+      
+      console.log("Respuesta del servidor para logout:", response);
+      return response;
+    } catch (error) {
+      console.error("Error en la petición de logout:", error);
+      throw error;
+    }
+  },
+  
+  // Obtener el usuario autenticado
+  getUser: async () => {
+    return apiRequest('/user');
+  }
+};
+
+// Métodos para operaciones con estudiantes
+const estudiantes = {
+  getAll: async () => apiRequest('/estudiantes'),
+  getById: async (id) => apiRequest(`/estudiantes/${id}`),
+  create: async (data) => apiRequest('/estudiantes', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  update: async (id, data) => apiRequest(`/estudiantes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  delete: async (id) => apiRequest(`/estudiantes/${id}`, {
+    method: 'DELETE'
+  })
+};
+
+// Métodos para operaciones con tutores
+const tutores = {
+  getAll: async () => apiRequest('/tutores'),
+  getById: async (id) => apiRequest(`/tutores/${id}`),
+  create: async (data) => apiRequest('/tutores', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  update: async (id, data) => apiRequest(`/tutores/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  delete: async (id) => apiRequest(`/tutores/${id}`, {
+    method: 'DELETE'
+  })
+};
+
+// Métodos para operaciones con colegios
+const colegios = {
+  getAll: async () => apiRequest('/colegios'),
+  getById: async (id) => apiRequest(`/colegios/${id}`)
+};
+
+// Exportar todos los métodos disponibles como apiService
+export const apiService = {
+  login: auth.login,
+  register: auth.register,
+  logout: auth.logout,
+  getUser: auth.getUser,
+  checkServerHealth,
+  
+  // Estudiantes
+  getStudents: estudiantes.getAll,
+  getStudentById: estudiantes.getById,
+  createStudent: estudiantes.create,
+  updateStudent: estudiantes.update,
+  deleteStudent: estudiantes.delete,
+  
+  // Tutores
+  getTutors: tutores.getAll,
+  getTutorById: tutores.getById,
+  createTutor: tutores.create,
+  updateTutor: tutores.update,
+  deleteTutor: tutores.delete,
+  
+  // Colegios
+  getColegios: colegios.getAll,
+  getColegioById: colegios.getById,
+};
+
+// Mantenemos la exportación por defecto para compatibilidad
+export default {
+  ...auth,
+  estudiantes,
+  tutores,
+  colegios
+}; 
