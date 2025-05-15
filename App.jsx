@@ -25,7 +25,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   }
 
   if (!currentUser) {
-    // Redirigir a inicio de sesión si no está autenticado
+    // rRedirigir a inicio de sesión si no está autenticado
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
