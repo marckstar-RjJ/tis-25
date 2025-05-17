@@ -3,6 +3,7 @@ import { useNavigate, Link, Routes, Route } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
 import MisAreas from './MisAreas';
+import MisConvocatorias from './MisConvocatorias';
 import InscripcionAreaEstudiante from './InscripcionAreaEstudiante';
 import InscripcionIndividual from '../InscripcionIndividual';
 import '../App.css';
@@ -134,7 +135,7 @@ function EstudiantePanel() {
               <Link to="/estudiante/informacion">Mi Información</Link>
             </li>
             <li>
-              <Link to="/estudiante/areas">Mis Áreas</Link>
+              <Link to="/estudiante/convocatorias">Mis Convocatorias</Link>
             </li>
             <li>
               <button onClick={handleLogout} className="logout-button">Cerrar Sesión</button>
@@ -159,15 +160,16 @@ function EstudiantePanel() {
                     <h3>Mi Información</h3>
                     <p>Ver tus datos personales registrados.</p>
                   </Link>
-                  <Link to="/estudiante/areas" className="quick-link-card">
-                    <h3>Mis Áreas</h3>
-                    <p>Gestionar tus áreas académicas inscritas.</p>
+                  <Link to="/estudiante/convocatorias" className="quick-link-card">
+                    <h3>Mis Convocatorias</h3>
+                    <p>Ver las olimpiadas disponibles e inscribirte en ellas.</p>
                   </Link>
                 </div>
               </div>
             } />
             <Route path="/informacion" element={<InformacionEstudiante />} />
-            <Route path="/areas" element={<MisAreas />} />
+            <Route path="/convocatorias" element={<MisConvocatorias />} />
+            <Route path="/mis-areas" element={<MisAreas />} />
             <Route path="/inscripcion" element={<InscripcionIndividual />} />
             <Route path="/inscripcion-areas" element={<InscripcionAreaEstudiante />} />
           </Routes>

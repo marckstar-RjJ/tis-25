@@ -39,7 +39,7 @@ function InscripcionAreaEstudiante() {
   const [areas, setAreas] = useState([]);
   const [selectedAreas, setSelectedAreas] = useState([]);
   const [selectedAreaIds, setSelectedAreaIds] = useState([]);
-  const [olympiadConfig, setOlympiadConfig] = useState(null);
+  const [convocatoria, setConvocatoria] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -47,33 +47,120 @@ function InscripcionAreaEstudiante() {
   const [totalCost, setTotalCost] = useState(0);
 
   useEffect(() => {
-    // Cargar datos del estudiante, áreas disponibles y configuración de olimpiada
+    // Cargar datos del estudiante, áreas disponibles y convocatoria seleccionada
     const fetchData = async () => {
       try {
-        // Obtener datos del estudiante (currentUser ya es el estudiante)
+        // Verificar si hay una convocatoria seleccionada
+        const convocatoriaId = sessionStorage.getItem('convocatoriaSeleccionadaId');
+        if (!convocatoriaId) {
+          // No hay convocatoria seleccionada, redirigir a la página de convocatorias
+          setError('No has seleccionado una convocatoria. Debes seleccionar una convocatoria primero.');
+          setTimeout(() => navigate('/estudiante/convocatorias'), 2000);
+          return;
+        }
+        
+        // Obtener la convocatoria seleccionada
+        const convocatoriasKey = 'olimpiadas_convocatorias';
+        const convocatorias = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
+        const convocatoriaSeleccionada = convocatorias.find(c => c.id === convocatoriaId);
+        
+        if (!convocatoriaSeleccionada) {
+          setError('La convocatoria seleccionada no existe o ha sido eliminada.');
+          setTimeout(() => navigate('/estudiante/convocatorias'), 2000);
+          return;
+        }
+        
+        // Verificar que la convocatoria tenga áreas asignadas correctamente
+        console.log('Convocatoria seleccionada:', convocatoriaSeleccionada.nombre);
+        console.log('Áreas de la convocatoria:', convocatoriaSeleccionada.areas?.map(a => a.nombre) || []);
+        
+        // HARD RESET: Definir de manera fija qué áreas tiene cada convocatoria
+        // Creamos arrays de áreas específicas para cada tipo de convocatoria
+        
+        // Áreas científicas clásicas para Oh Sansi!
+        const areasOhSansi = [
+          { id: "1", nombre: "Astronomía", descripcion: "Estudio del universo y los cuerpos celestes" },
+          { id: "2", nombre: "Biología", descripcion: "Estudio de los seres vivos" },
+          { id: "3", nombre: "Física", descripcion: "Estudio de la materia y la energía" },
+          { id: "4", nombre: "Matemáticas", descripcion: "Estudio de números, estructuras y patrones" },
+          { id: "5", nombre: "Informática", descripcion: "Estudio de la computación y programación" },
+          { id: "6", nombre: "Robótica", descripcion: "Diseño y construcción de robots" },
+          { id: "7", nombre: "Química", descripcion: "Estudio de la composición de la materia" }
+        ];
+        
+        // Áreas específicas para Skillparty
+        const areasSkillparty = [
+          { id: "8", nombre: "Farmeo I", descripcion: "Farmeo de minions y campeones" },
+          { id: "9", nombre: "Support II", descripcion: "Asistencia y control de vision" }
+        ];
+        
+        // Áreas específicas para Lolsito
+        const areasLolsito = [
+          { id: "10", nombre: "Top Lane", descripcion: "Linea superior" },
+          { id: "11", nombre: "Mid Lane", descripcion: "Linea central" },
+          { id: "12", nombre: "Jungling", descripcion: "Rol de jungla" }
+        ];
+        
+        // Asignar áreas según el nombre exacto de la convocatoria
+        if (convocatoriaSeleccionada.nombre === 'Olimpiadas Oh Sansi!') {
+          convocatoriaSeleccionada.areas = areasOhSansi;
+          console.log('RESET: Áreas para Oh Sansi!:', areasOhSansi.map(a => a.nombre));
+        }
+        // Olimpiadas Skillparty: SOLO Farmeo I y Support II
+        else if (convocatoriaSeleccionada.nombre === 'Olimpiadas Skillparty') {
+          convocatoriaSeleccionada.areas = areasSkillparty;
+          console.log('RESET: Áreas para Skillparty:', areasSkillparty.map(a => a.nombre));
+        }
+        // Torneo Lolsito: SOLO Top Lane, Mid Lane, Jungling
+        else if (convocatoriaSeleccionada.nombre === 'Torneo Lolsito') {
+          convocatoriaSeleccionada.areas = areasLolsito;
+          console.log('RESET: Áreas para Lolsito:', areasLolsito.map(a => a.nombre));
+        }
+        
+        // Actualizar en localStorage para futuras consultas
+        const convocatoriasActualizadas = convocatorias.map(c => 
+          c.id === convocatoriaId ? convocatoriaSeleccionada : c
+        );
+        localStorage.setItem(convocatoriasKey, JSON.stringify(convocatoriasActualizadas));
+        
+        setConvocatoria(convocatoriaSeleccionada);
+        
+        // Obtener datos del estudiante
         const studentData = await apiService.getCurrentStudent();
         setStudent(studentData);
         
-        // Obtener áreas ya inscritas
-        if (studentData.areasInscritas && studentData.areasInscritas.length > 0) {
+        // Verificar si el estudiante ya está inscrito en esta convocatoria
+        if (studentData.convocatoriaId === convocatoriaId && 
+            studentData.areasInscritas && 
+            studentData.areasInscritas.length > 0) {
           setSelectedAreaIds(studentData.areasInscritas);
         }
         
-        // Obtener todas las áreas disponibles
-        const areasData = await apiService.getAreas();
-        setAreas(areasData);
-        
-        if (studentData.areasInscritas && studentData.areasInscritas.length > 0) {
-          // Encontrar los objetos de área completos para las áreas inscritas
-          const areasSeleccionadas = areasData.filter(area => 
-            studentData.areasInscritas.includes(area.id)
-          );
-          setSelectedAreas(areasSeleccionadas);
+        // Obtener áreas disponibles para esta convocatoria
+        // Si la convocatoria tiene áreas específicas, usarlas
+        if (convocatoriaSeleccionada.areas && convocatoriaSeleccionada.areas.length > 0) {
+          setAreas(convocatoriaSeleccionada.areas);
+          
+          // Si el estudiante ya está inscrito, cargar las áreas seleccionadas
+          if (studentData.areasInscritas && studentData.areasInscritas.length > 0) {
+            const areasSeleccionadas = convocatoriaSeleccionada.areas.filter(area => 
+              studentData.areasInscritas.includes(area.id)
+            );
+            setSelectedAreas(areasSeleccionadas);
+          }
+        } else {
+          // Si no tiene áreas específicas, cargar todas las áreas disponibles
+          const allAreas = await apiService.getAreas();
+          setAreas(allAreas);
+          
+          // Si el estudiante ya está inscrito, cargar las áreas seleccionadas
+          if (studentData.areasInscritas && studentData.areasInscritas.length > 0) {
+            const areasSeleccionadas = allAreas.filter(area => 
+              studentData.areasInscritas.includes(area.id)
+            );
+            setSelectedAreas(areasSeleccionadas);
+          }
         }
-        
-        // Obtener configuración actual de la olimpiada
-        const olympiadData = await apiService.getOlympiadConfig();
-        setOlympiadConfig(olympiadData);
       } catch (err) {
         console.error('Error al cargar datos:', err);
         setError('No se pudieron cargar los datos necesarios. Intente nuevamente.');
@@ -83,81 +170,97 @@ function InscripcionAreaEstudiante() {
     };
     
     fetchData();
-  }, []);
+  }, [navigate]);
 
-  // Calcular costo total cuando cambian las áreas seleccionadas o se carga la configuración
+  // Calcular costo total cuando cambian las áreas seleccionadas o se carga la convocatoria
   useEffect(() => {
-    if (olympiadConfig && olympiadConfig.precioPorArea) {
-      setTotalCost(selectedAreas.length * olympiadConfig.precioPorArea);
+    if (convocatoria && convocatoria.costo_por_area) {
+      setTotalCost(selectedAreas.length * convocatoria.costo_por_area);
     }
-  }, [selectedAreas, olympiadConfig]);
+  }, [selectedAreas, convocatoria]);
 
   const handleToggleArea = (areaId) => {
     const area = areas.find(a => a.id === areaId);
     if (!area) return;
     
-    if (selectedAreaIds.includes(areaId)) {
-      // Eliminar área si ya está seleccionada
-      setSelectedAreaIds(selectedAreaIds.filter(id => id !== areaId));
-      setSelectedAreas(selectedAreas.filter(a => a.id !== areaId));
-    } else {
-      // Verificar que no exceda el máximo de áreas permitidas
-      if (olympiadConfig && olympiadConfig.maxAreasEstudiante && 
-          selectedAreas.length >= olympiadConfig.maxAreasEstudiante) {
-        setError(`No se pueden seleccionar más de ${olympiadConfig.maxAreasEstudiante} áreas por estudiante.`);
-        return;
+    setSelectedAreaIds(prevSelected => {
+      // Si ya está seleccionada, la quitamos
+      if (prevSelected.includes(areaId)) {
+        const updatedAreaIds = prevSelected.filter(id => id !== areaId);
+        
+        // Actualizar array de áreas seleccionadas completas
+        setSelectedAreas(areas.filter(area => updatedAreaIds.includes(area.id)));
+        
+        return updatedAreaIds;
+      } 
+      // Si no está seleccionada, verificamos si podemos añadirla
+      else {
+        // Verificar si el estudiante no excede el máximo de áreas permitidas
+        if (convocatoria && prevSelected.length >= convocatoria.maximo_areas) {
+          alert(`Solo puedes seleccionar un máximo de ${convocatoria.maximo_areas} áreas.`);
+          return prevSelected;
+        }
+        
+        const updatedAreaIds = [...prevSelected, areaId];
+        
+        // Actualizar array de áreas seleccionadas completas
+        setSelectedAreas(areas.filter(area => updatedAreaIds.includes(area.id)));
+        
+        return updatedAreaIds;
       }
-      
-      // Verificar si el estudiante cumple con los requisitos de curso para el área
-      if (!cumpleRequisitosArea(student.curso, area.nombre)) {
-        setError(`No cumples con los requisitos de curso para inscribirte en ${area.nombre}.`);
-        return;
-      }
-      
-      // Añadir nueva área
-      setSelectedAreaIds([...selectedAreaIds, areaId]);
-      setSelectedAreas([...selectedAreas, area]);
-      setError(''); // Limpiar errores anteriores
-    }
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     setError('');
     setSuccess('');
     
+    if (!convocatoria) {
+      setError('No hay una convocatoria seleccionada.');
+      return;
+    }
+    
+    if (selectedAreas.length === 0) {
+      setError('Debes seleccionar al menos un área para inscribirte.');
+      return;
+    }
+    
+    setSubmitting(true);
+    
     try {
-      // Verificar si es una inscripción válida
-      if (!olympiadConfig) {
-        throw new Error('No se pudo obtener la configuración de la olimpiada');
+      // Actualizar la información del estudiante en el localStorage
+      const studentsKey = 'olimpiadas_students';
+      const students = JSON.parse(localStorage.getItem(studentsKey) || '[]');
+      const studentIndex = students.findIndex(s => s.id === student.id);
+      
+      if (studentIndex === -1) {
+        throw new Error('No se encontró el registro del estudiante.');
       }
       
-      // Verificar si estamos dentro del período de inscripción
-      const currentDate = new Date();
-      const startDate = new Date(olympiadConfig.fechaInicio);
-      const endDate = new Date(olympiadConfig.fechaFin);
+      // Actualizar los datos del estudiante con las áreas seleccionadas y la convocatoria
+      students[studentIndex] = {
+        ...students[studentIndex],
+        areasInscritas: selectedAreaIds,
+        convocatoriaId: convocatoria.id
+      };
       
-      if (currentDate < startDate) {
-        throw new Error(`Las inscripciones comienzan el ${startDate.toLocaleDateString()}`);
-      }
+      // Guardar los cambios
+      localStorage.setItem(studentsKey, JSON.stringify(students));
       
-      if (currentDate > endDate) {
-        throw new Error(`El período de inscripción finalizó el ${endDate.toLocaleDateString()}`);
-      }
+      console.log('Inscripción exitosa en convocatoria:', convocatoria.nombre);
+      console.log('Áreas seleccionadas:', selectedAreas.map(a => a.nombre).join(', '));
       
-      // Enviar inscripción
-      await apiService.updateStudentAreas(currentUser.id, selectedAreaIds);
+      setSuccess('Inscripción realizada con éxito!');
       
-      setSuccess('Inscripción actualizada correctamente');
-      
-      // Redirigir después de un tiempo
+      // Redirigir al estudiante después de un breve tiempo
       setTimeout(() => {
-        navigate('/estudiante/areas');
+        navigate('/estudiante/mis-areas');
       }, 2000);
+      
     } catch (err) {
-      console.error('Error al actualizar inscripción:', err);
-      setError(err.message || 'Error al realizar la inscripción. Intente nuevamente.');
+      console.error('Error al realizar inscripción:', err);
+      setError(err.message || 'Error al realizar la inscripción. Inténtalo de nuevo.');
     } finally {
       setSubmitting(false);
     }
@@ -204,12 +307,13 @@ function InscripcionAreaEstudiante() {
         <p><strong>Colegio:</strong> {student.colegio?.nombre || 'No asignado'}</p>
       </div>
       
-      {olympiadConfig && (
+      {convocatoria && (
         <div className="olympiad-info">
-          <h3>Información de la Olimpiada</h3>
-          <p><strong>Período de Inscripción:</strong> {new Date(olympiadConfig.fechaInicio).toLocaleDateString()} - {new Date(olympiadConfig.fechaFin).toLocaleDateString()}</p>
-          <p><strong>Precio por área:</strong> Bs. {olympiadConfig.precioPorArea}</p>
-          <p><strong>Máximo de áreas:</strong> {olympiadConfig.maxAreasEstudiante} por estudiante</p>
+          <h3>Información de la Convocatoria</h3>
+          <p><strong>Nombre:</strong> {convocatoria.nombre}</p>
+          <p><strong>Período de Inscripción:</strong> {new Date(convocatoria.fecha_inicio_inscripciones).toLocaleDateString()} - {new Date(convocatoria.fecha_fin_inscripciones).toLocaleDateString()}</p>
+          <p><strong>Precio por área:</strong> Bs. {convocatoria.costo_por_area}</p>
+          <p><strong>Máximo de áreas:</strong> {convocatoria.maximo_areas} por estudiante</p>
         </div>
       )}
       

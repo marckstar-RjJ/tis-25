@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
+import { Card, Button, Alert, Badge, Spinner } from 'react-bootstrap';
 
 const MisAreas = () => {
   const { currentUser } = useAuth();
@@ -10,32 +11,43 @@ const MisAreas = () => {
   const [allAreas, setAllAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showInscripcion, setShowInscripcion] = useState(false);
   const [inscripcionExitosa, setInscripcionExitosa] = useState(false);
+  const [convocatorias, setConvocatorias] = useState([]);
+  const [convocatoriaActual, setConvocatoriaActual] = useState(null);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      console.log("Obteniendo datos de áreas...");
+      console.log("Obteniendo datos de áreas y convocatorias...");
+      
       // Obtener todas las áreas disponibles
       const areasData = await apiService.getAreas();
       setAllAreas(areasData);
       
+      // Obtener todas las convocatorias
+      const convocatoriasKey = 'olimpiadas_convocatorias';
+      const convocatoriasData = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
+      setConvocatorias(convocatoriasData);
+      
       // Obtener información actualizada del estudiante
       const estudianteData = await apiService.getCurrentStudent();
       
-      console.log("Datos del estudiante:", estudianteData);
-      console.log("Áreas inscritas:", estudianteData.areasInscritas);
-      console.log("Todas las áreas:", areasData);
-      
-      // Si el estudiante tiene áreas inscritas
+      // Obtener áreas inscritas del estudiante
       if (estudianteData.areasInscritas && estudianteData.areasInscritas.length > 0) {
         // Encontrar los objetos de área completos para las áreas inscritas
         const areasCompletas = areasData.filter(area => 
           estudianteData.areasInscritas.includes(area.id)
         );
-        console.log("Áreas completas encontradas:", areasCompletas);
         setAreasInscritas(areasCompletas);
+        
+        // Si el estudiante tiene áreas inscritas, debe estar en alguna convocatoria
+        // Buscar la convocatoria correspondiente
+        if (estudianteData.convocatoriaId) {
+          const convocatoria = convocatoriasData.find(c => c.id === estudianteData.convocatoriaId);
+          if (convocatoria) {
+            setConvocatoriaActual(convocatoria);
+          }
+        }
       } else {
         setAreasInscritas([]);
       }
@@ -52,8 +64,8 @@ const MisAreas = () => {
   }, [currentUser]);
 
   const handleInscripcion = () => {
-    console.log("Redirigiendo a la inscripción de áreas...");
-    navigate('/estudiante/inscripcion-areas');
+    console.log("Redirigiendo a la selección de convocatorias...");
+    navigate('/estudiante/convocatorias');
   };
 
 
@@ -70,44 +82,80 @@ const MisAreas = () => {
 
 
 
+  // Formatear fechas
+  const formatearFecha = (isoString) => {
+    if (!isoString) return '';
+    const fecha = new Date(isoString);
+    return fecha.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
   return (
     <div className="mis-areas">
       <h2>Mis Áreas Académicas</h2>
       
-      {error && <p className="error-message">{error}</p>}
-      {inscripcionExitosa && <p className="success-message">¡Inscripción realizada correctamente!</p>}
+      {error && <Alert variant="danger">{error}</Alert>}
+      {inscripcionExitosa && <Alert variant="success">¡Inscripción realizada correctamente!</Alert>}
+      
+      {convocatoriaActual && (
+        <Card className="mb-4">
+          <Card.Header>
+            <h5>Convocatoria: {convocatoriaActual.nombre}</h5>
+          </Card.Header>
+          <Card.Body>
+            <div className="row">
+              <div className="col-md-6">
+                <p><strong>Período de inscripción:</strong> {formatearFecha(convocatoriaActual.fecha_inicio_inscripciones)} al {formatearFecha(convocatoriaActual.fecha_fin_inscripciones)}</p>
+              </div>
+              <div className="col-md-6">
+                <p><strong>Costo por área:</strong> {convocatoriaActual.costo_por_area} Bs</p>
+              </div>
+            </div>
+          </Card.Body>
+        </Card>
+      )}
       
       {areasInscritas.length === 0 ? (
-        <div className="no-areas">
-          <p>No estás inscrito en ninguna área académica todavía.</p>
-          <button onClick={handleInscripcion} className="inscripcion-button">
-            Inscribirme en Áreas
-          </button>
+        <div className="text-center p-5 bg-light rounded">
+          <h4>No estás inscrito en ninguna área académica todavía</h4>
+          <p className="mb-4">Selecciona una convocatoria activa para inscribirte en las áreas de tu interés.</p>
+          <Button variant="primary" onClick={handleInscripcion} size="lg">
+            Ver convocatorias disponibles
+          </Button>
         </div>
       ) : (
         <div className="areas-container">
-          <div className="areas-list">
+          <h3 className="mb-3">Áreas inscritas</h3>
+          <div className="row">
             {areasInscritas.map(area => (
-              <div key={area.id} className="area-card-estudiante">
-                <h3>{area.nombre}</h3>
-                <p>{area.descripcion}</p>
+              <div key={area.id} className="col-md-4 mb-4">
+                <Card className="h-100">
+                  <Card.Header>
+                    <h5 className="mb-0">{area.nombre}</h5>
+                  </Card.Header>
+                  <Card.Body>
+                    <p>{area.descripcion}</p>
+                  </Card.Body>
+                </Card>
               </div>
             ))}
           </div>
           
-          <div className="areas-actions">
-            <button onClick={handleInscripcion} className="inscripcion-button">
-              Modificar Inscripción
-            </button>
+          <div className="d-flex justify-content-between mt-4">
+            <Button variant="outline-primary" onClick={handleInscripcion}>
+              Modificar inscripción
+            </Button>
             
-            {/* Botón para generar orden de pago */}
-            <button 
+            <Button 
+              variant="success" 
               onClick={handleGenerarOrdenPago} 
-              className="orden-pago-button"
               disabled={areasInscritas.length === 0}
             >
-              Generar Orden de Pago
-            </button>
+              Generar orden de pago
+            </Button>
           </div>
         </div>
       )}
