@@ -48,30 +48,25 @@ function Registro() {
     { codigo: 'PD', nombre: 'Pando' }
   ];
 
-  // Cargar la lista de colegios disponibles al iniciar
+  // Cargar colegios al montar el componente
   useEffect(() => {
-    const fetchColegios = async () => {
+    const cargarColegios = async () => {
       try {
-        const data = await apiService.getAllColleges();
-        setColegios(data);
-        
-        // Si hay un tutor con sesión iniciada, obtener su colegio
-        if (currentUser && currentUser.tipoUsuario === 'tutor' && currentUser.colegio) {
-          setTutorColegio(currentUser.colegio);
-          // Asignar automáticamente el colegio del tutor al formulario
-          setFormData(prev => ({ ...prev, colegio: currentUser.colegio }));
-        } else if (data.length > 0) {
-          setFormData(prev => ({ ...prev, colegio: data[0].id }));
-        }
+        console.log('Intentando cargar colegios...');
+        const colegiosData = await apiService.getColleges();
+        console.log('Colegios cargados:', colegiosData);
+        setColegios(colegiosData);
       } catch (error) {
         console.error('Error al cargar colegios:', error);
+        setNotificationMessage('Error al cargar la lista de colegios. Por favor, intente nuevamente.');
+        setShowNotification(true);
       } finally {
         setCargandoColegios(false);
       }
     };
-    
-    fetchColegios();
-  }, [currentUser]);
+
+    cargarColegios();
+  }, []);
 
   // Reiniciar campos no necesarios cuando cambia el tipo de usuario
   useEffect(() => {
@@ -477,31 +472,30 @@ function Registro() {
           {errores.email && <span className="error-message">{errores.email}</span>}
         </div>
 
-        {/* Campo de selección de colegio para estudiantes y tutores */}
-        {(tipoUsuario === 'tutor' || tipoUsuario === 'estudiante') && (
-          <div className="form-group">
-            <label htmlFor="colegio">Colegio</label>
-            <select
-              id="colegio"
-              name="colegio"
-              value={formData.colegio}
-              onChange={handleInputChange}
-              className={errores.colegio ? 'error' : ''}
-              disabled={cargandoColegios}
-            >
-              {cargandoColegios ? (
-                <option value="">Cargando colegios...</option>
-              ) : (
-                colegios.map(colegio => (
-                  <option key={colegio.id} value={colegio.id}>
-                    {colegio.nombre}
-                  </option>
-                ))
-              )}
-            </select>
-            {errores.colegio && <span className="error-message">{errores.colegio}</span>}
-          </div>
-        )}
+        {/* Campo de selección de colegio */}
+        <div className="form-group">
+          <label htmlFor="colegio">Colegio</label>
+          <select
+            id="colegio"
+            name="colegio"
+            value={formData.colegio}
+            onChange={handleInputChange}
+            className={errores.colegio ? 'error' : ''}
+            required
+          >
+            <option value="">Seleccione un colegio</option>
+            {cargandoColegios ? (
+              <option value="" disabled>Cargando colegios...</option>
+            ) : (
+              colegios.map((colegio) => (
+                <option key={colegio.id} value={colegio.id}>
+                  {colegio.nombre}
+                </option>
+              ))
+            )}
+          </select>
+          {errores.colegio && <span className="error-message">{errores.colegio}</span>}
+        </div>
 
         {tipoUsuario === 'estudiante' && tutorColegio !== null && (
           <div className="form-group">
