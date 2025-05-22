@@ -1,0 +1,70 @@
+.inscripcion-form {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 30px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  }
+  
+  .inscripcion-form h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #4f46e5;
+    font-size: 28px;
+  }
+  
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .form-group label {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #444;
+  }
+  
+  .form-group input,
+  .form-group select {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+  }
+  
+  button[type='submit'] {
+    margin-top: 30px;
+    width: 100%;
+    padding: 12px;
+    background-color: #4f46e5;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s ease;
+  }
+  
+  button[type='submit']:hover {
+    background-color: #4338ca;
+  }
+  
+  /* Responsive ajustes si es muy pequeño el ancho */
+  @media (max-width: 480px) {
+    .inscripcion-form {
+      padding: 20px;
+    }
+  
+    .inscripcion-form h2 {
+      font-size: 22px;
+    }
+  }
+  
