@@ -1644,17 +1644,20 @@ a {
   background-color: #f5f5f5;
 }
 
-.tutor-panel .sidebar, .admin-panel .sidebar, .estudiante-panel .sidebar {
+.tutor-panel .sidebar, 
+.admin-panel .sidebar, 
+.estudiante-panel .sidebar {
   width: 250px;
-  background: linear-gradient(135deg, #4f46e5, #3730a3);
+  background-color: #654ea3; /* Color morado para sidebar */
   color: white;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-  position: fixed;
   height: 100vh;
-  overflow-y: auto;
+  padding: 20px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  overflow-y: hidden; /* Ocultar scrollbar */
+  z-index: 1000;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .tutor-panel .sidebar .logo, 
@@ -1723,12 +1726,23 @@ a {
   list-style: none;
   padding: 0;
   margin: 0;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Ocultar scrollbar en Chrome, Safari y Edge */
+.tutor-panel .sidebar nav ul::-webkit-scrollbar,
+.admin-panel .sidebar nav ul::-webkit-scrollbar,
+.estudiante-panel .sidebar nav ul::-webkit-scrollbar {
+  width: 0;
+  display: none;
 }
 
 .tutor-panel .sidebar nav ul li, 
 .admin-panel .sidebar nav ul li, 
 .estudiante-panel .sidebar nav ul li {
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   border-radius: 8px;
   transition: background-color 0.3s ease;
 }
@@ -1753,14 +1767,20 @@ a {
 .estudiante-panel .sidebar nav ul li a,
 .admin-panel .sidebar nav ul li button, 
 .estudiante-panel .sidebar nav ul li button {
-  display: block;
-  padding: 12px 15px;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
   color: white;
   text-decoration: none;
   border-radius: 5px;
   transition: all 0.3s ease;
   font-weight: 500;
-  margin-bottom: 5px;
+  margin-bottom: 2px;
+  font-size: 0.95rem;
+  height: 40px; /* Altura fija para todos los botones */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Estilo especial para los elementos del panel tutor */
@@ -1806,6 +1826,31 @@ a {
   background-color: rgba(139, 90, 43, 0.2); /* Efecto hover con color café */
   border-left: 2px solid #8B5A2B;
   color: white;
+  transform: translateX(3px);
+}
+
+/* Estilos para el botón de logout en el sidebar */
+.logout-button {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  color: white;
+  border-radius: 5px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 0.95rem;
+  height: 40px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tutor-panel .sidebar nav ul li .logout-button:hover {
+  background-color: rgba(220, 53, 69, 0.3); /* Color rojo suave al hacer hover */
+  border-left: 2px solid #dc3545;
+  color: white;
+  transform: translateX(3px);
 }
 
 .admin-panel .sidebar nav ul li a:hover, 

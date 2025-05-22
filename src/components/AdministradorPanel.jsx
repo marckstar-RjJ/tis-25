@@ -3,7 +3,7 @@ import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
 import AdminConvocatorias from './convocatorias/AdminConvocatorias';
-import { FaCog, FaSchool, FaCalendarAlt, FaGraduationCap, FaMedal } from 'react-icons/fa';
+import { FaCog, FaSchool, FaCalendarAlt, FaGraduationCap, FaMedal, FaSignOutAlt } from 'react-icons/fa';
 
 // Componente para la configuración de olimpiadas
 const ConfiguracionOlimpiadas = () => {
@@ -390,8 +390,10 @@ function AdministradorPanel() {
             <li>
               <Link to="/admin/convocatorias">Gestión de Convocatorias</Link>
             </li>
-            <li>
-              <button onClick={handleLogout} className="logout-button">Cerrar Sesión</button>
+            <li className="mt-auto" style={{ marginTop: '30px' }}>
+              <button onClick={handleLogout} className="logout-button" style={{ width: '100%', textAlign: 'left', background: 'rgba(255, 255, 255, 0.1)', border: 'none', borderLeft: '2px solid rgba(255, 255, 255, 0.2)' }}>
+                <FaSignOutAlt style={{ marginRight: '8px' }} /> Cerrar Sesión
+              </button>
             </li>
           </ul>
         </nav>

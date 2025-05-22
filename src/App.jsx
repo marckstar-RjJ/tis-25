@@ -52,6 +52,25 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
+  // Obtener la ruta actual para determinar si mostrar el footer
+  const { currentUser } = useAuth();
+  const [pathname, setPathname] = useState(window.location.pathname);
+
+  // Actualizar la ruta cuando cambia la ubicación
+  React.useEffect(() => {
+    const updatePathname = () => setPathname(window.location.pathname);
+    window.addEventListener('popstate', updatePathname);
+    return () => window.removeEventListener('popstate', updatePathname);
+  }, []);
+
+  // Función para determinar si se debe mostrar el footer basado en la ruta
+  const shouldShowFooter = () => {
+    // No mostrar el footer en paneles de tutor, estudiante y administrador
+    return !pathname.startsWith('/tutor') && 
+           !pathname.startsWith('/estudiante') && 
+           !pathname.startsWith('/admin');
+  };
+
   return (
     <div className="app-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Routes>
@@ -112,7 +131,7 @@ function App() {
         {/* Ruta de fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <Footer />
+      {shouldShowFooter() && <Footer />}
     </div>
   );
 }

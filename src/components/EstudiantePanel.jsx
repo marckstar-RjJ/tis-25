@@ -3,7 +3,7 @@ import { useNavigate, Link, Routes, Route } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
 import { Card, Row, Col, Container, Badge, Spinner, Alert, Button } from 'react-bootstrap';
-import { FaUser, FaIdCard, FaEnvelope, FaSchool, FaGraduationCap, FaUserTie, FaClipboardList } from 'react-icons/fa';
+import { FaUser, FaIdCard, FaEnvelope, FaSchool, FaGraduationCap, FaUserTie, FaClipboardList, FaSignOutAlt } from 'react-icons/fa';
 import MisAreas from './MisAreas';
 import MisConvocatorias from './MisConvocatorias';
 import InscripcionAreaEstudiante from './InscripcionAreaEstudiante';
@@ -264,8 +264,10 @@ function EstudiantePanel() {
             <li>
               <Link to="/estudiante/inscripciones">Mis Inscripciones</Link>
             </li>
-            <li>
-              <button onClick={handleLogout} className="logout-button">Cerrar Sesión</button>
+            <li className="mt-auto" style={{ marginTop: '30px' }}>
+              <button onClick={handleLogout} className="logout-button" style={{ width: '100%', textAlign: 'left', background: 'rgba(255, 255, 255, 0.1)', border: 'none', borderLeft: '2px solid rgba(255, 255, 255, 0.2)' }}>
+                <FaSignOutAlt style={{ marginRight: '8px' }} /> Cerrar Sesión
+              </button>
             </li>
           </ul>
         </nav>

@@ -585,7 +585,11 @@ function TutorPanel() {
             <li>
               <Link to="/tutor/ocr">Verificar Comprobante de Pago</Link>
             </li>
-
+            <li className="mt-auto" style={{ marginTop: '30px' }}>
+              <button onClick={handleLogout} className="logout-button" style={{ width: '100%', textAlign: 'left', background: 'rgba(255, 255, 255, 0.1)', border: 'none', borderLeft: '2px solid rgba(255, 255, 255, 0.2)' }}>
+                <FaSignOutAlt style={{ marginRight: '8px' }} /> Cerrar Sesión
+              </button>
+            </li>
           </ul>
         </nav>
       </aside>
@@ -594,21 +598,6 @@ function TutorPanel() {
         <header className="tutor-header">
           <div className="d-flex justify-content-between align-items-center">
             <h1>Bienvenido, {currentUser?.nombre || 'Tutor'}</h1>
-            <button 
-              onClick={handleLogout} 
-              className="btn btn-outline-danger"
-              style={{
-                padding: '8px 16px',
-                fontSize: '16px',
-                borderRadius: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <FaSignOutAlt />
-              Cerrar Sesión
-            </button>
           </div>
         </header>
 
