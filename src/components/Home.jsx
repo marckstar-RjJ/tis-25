@@ -23,18 +23,18 @@ function Home() {
       const user = await login(email, password);
       
       console.log("Usuario autenticado:", user);
-      console.log("Tipo de usuario:", user.tipoUsuario);
+      console.log("Tipo de usuario:", user.tipo_usuario);
       
       // Redirige según el tipo de usuario
-      if (user.tipoUsuario === 'administrador') {
+      if (user.tipo_usuario === 'administrador') {
         navigate('/admin');
-      } else if (user.tipoUsuario === 'tutor') {
+      } else if (user.tipo_usuario === 'tutor') {
         navigate('/tutor');
-      } else if (user.tipoUsuario === 'estudiante') {
+      } else if (user.tipo_usuario === 'estudiante') {
         navigate('/estudiante');
       } else {
         // Por defecto, si no se reconoce el tipo
-        console.error("Tipo de usuario no reconocido:", user.tipoUsuario);
+        console.error("Tipo de usuario no reconocido:", user.tipo_usuario);
         navigate('/dashboard');
       }
     } catch (error) {

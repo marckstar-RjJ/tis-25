@@ -23,7 +23,7 @@ const InformacionEstudiante = () => {
     const fetchEstudiante = async () => {
       try {
         // Si currentUser ya tiene toda la información necesaria, usamos esa
-        if (currentUser?.tipoUsuario === 'estudiante') {
+        if (currentUser?.tipo_usuario === 'estudiante') {
           setEstudiante(currentUser);
           setLoading(false);
           return;

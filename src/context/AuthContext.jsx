@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }) => {
 
   // Obtener estudiantes asociados (para tutores)
   const getStudentsByTutor = async (tutorId) => {
-    if (!currentUser || currentUser.tipoUsuario !== 'tutor') {
+    if (!currentUser || currentUser.tipo_usuario !== 'tutor') {
       throw new Error('Solo los tutores pueden acceder a esta función');
     }
     

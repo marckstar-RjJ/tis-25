@@ -20,7 +20,8 @@ function Registro() {
     apellidosTutor: '',
     colegio: '',
     password: '',
-    confirmarPassword: ''
+    confirmarPassword: '',
+    departamento: ''
   });
   const [errores, setErrores] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +61,8 @@ function Registro() {
         celularTutor: '',
         nombreTutor: '',
         apellidosTutor: '',
-        colegio: ''
+        colegio: '',
+        departamento: ''
       };
     } else if (tipoUsuario === 'tutor') {
       newFormData = {
@@ -70,7 +72,8 @@ function Registro() {
         emailTutor: '',
         celularTutor: '',
         nombreTutor: '',
-        apellidosTutor: ''
+        apellidosTutor: '',
+        departamento: ''
       };
       
       // Establecer colegio predeterminado si hay colegios disponibles
@@ -94,6 +97,7 @@ function Registro() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    console.log(`Input changed: name=${name}, value=${value}`);
     setFormData({
       ...formData,
       [name]: value
@@ -114,6 +118,8 @@ function Registro() {
 
   const validarFormulario = () => {
     const nuevosErrores = {};
+
+    console.log('Validando formulario. Valor de departamento:', formData.departamento);
 
     // Validaciones comunes para todos los tipos de usuario
     if (!formData.nombre) {
@@ -186,9 +192,10 @@ function Registro() {
         nuevosErrores.celular = 'El número de celular es requerido';
       }
       
-      if (!formData.colegio) {
-        nuevosErrores.colegio = 'Debe seleccionar un colegio';
-      }
+      // La validación de departamento ahora es opcional
+      // if (!formData.departamento) {
+      //   nuevosErrores.departamento = 'El departamento es requerido';
+      // }
     }
     
     setErrores(nuevosErrores);
@@ -203,7 +210,7 @@ function Registro() {
       try {
         // Preparar los datos según el tipo de usuario
         const userData = {
-          tipoUsuario,
+          tipoUsuario: tipoUsuario,
           nombre: formData.nombre,
           apellidos: formData.apellidos,
           ci: formData.ci,
@@ -222,9 +229,15 @@ function Registro() {
           userData.apellidosTutor = formData.apellidosTutor;
         } else if (tipoUsuario === 'tutor') {
           userData.celular = formData.celular;
-          userData.colegio = formData.colegio;
+          // Solo enviar colegio si se ha seleccionado uno
+          if (formData.colegio) {
+            userData.colegio = formData.colegio;
+          }
+          userData.departamento = formData.departamento;
         }
         
+        console.log('Objeto userData a enviar:', userData);
+
         // Enviar los datos al servidor
         const result = await apiService.createUser(userData);
         console.log('Usuario registrado:', result);
@@ -233,12 +246,28 @@ function Registro() {
         navigate('/');
       } catch (error) {
         console.error('Error al registrar:', error);
-        alert(error.message || 'Error al registrar usuario');
+        if (error.response && error.response.data && error.response.data.errors) {
+          // Si hay errores de validación del backend
+          const backendErrors = error.response.data.errors;
+          const newErrors = {};
+          Object.keys(backendErrors).forEach(key => {
+            newErrors[key] = backendErrors[key][0];
+          });
+          setErrores(newErrors);
+        } else {
+          setErrores(prev => ({
+            ...prev,
+            general: error.message || 'Error al registrar usuario'
+          }));
+        }
       } finally {
         setIsLoading(false);
       }
     } else {
-      alert('Por favor, corrija los errores en el formulario');
+      setErrores(prev => ({
+        ...prev,
+        general: 'Por favor, corrija los errores en el formulario'
+      }));
     }
   };
 
@@ -516,6 +545,23 @@ function Registro() {
                 )}
               </select>
               {errores.colegio && <span className="error-message">{errores.colegio}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="departamento">Departamento</label>
+              <select
+                id="departamento"
+                name="departamento"
+                value={formData.departamento}
+                onChange={handleInputChange}
+                className={errores.departamento ? 'error' : ''}
+              >
+                <option value="">Seleccione un departamento</option>
+                <option value="Cochabamba">Cochabamba</option>
+                <option value="La Paz">La Paz</option>
+                <option value="Santa Cruz">Santa Cruz</option>
+              </select>
+              {errores.departamento && <span className="error-message">{errores.departamento}</span>}
             </div>
           </>
         )}

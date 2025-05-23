@@ -76,22 +76,43 @@ const getAreas = async () => {
 // Crear un nuevo usuario
 const createUser = async (userData) => {
   try {
-    const response = await fetch(`${API_URL}/users`, {
+    console.log('Enviando datos de registro:', userData);
+    
+    const response = await fetch(`${API_URL}/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify(userData),
     });
 
+    const data = await response.json();
+    console.log('Respuesta del servidor:', data);
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Error al crear usuario');
+      console.error('Error en la respuesta del servidor:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: data // Log the full response body
+      });
+      // Throw a more informative error including specific backend errors if available
+      const errorMessage = data.message || 'Error al crear usuario';
+      if (data.errors) {
+          // If backend returns validation errors, include them in the error message
+          const validationErrors = Object.values(data.errors).flat().join(' ');
+          throw new Error(`${errorMessage}: ${validationErrors}`);
+      } else {
+          throw new Error(errorMessage);
+      }
     }
 
-    return await response.json();
+    return data;
   } catch (error) {
-    throw new Error(error.message);
+    console.error('Error en createUser catch:', error);
+    // Re-throw the error to be caught by the handleSubmit function
+    throw error;
   }
 };
 

@@ -115,6 +115,29 @@ const logout = async () => {
   }
 };
 
+// Crear un nuevo usuario (usando fetch a la API)
+const createUser = async (userData) => {
+  try {
+    const response = await fetch(`${API_URL}/register`, { // Usar la ruta /register
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Error al crear usuario');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en createUser:', error);
+    throw new Error(`Error al crear usuario: ${error.message}`);
+  }
+};
+
 // Exportar servicios
 export const apiService = {
   getUsers,
@@ -122,5 +145,6 @@ export const apiService = {
   getColleges,
   getAllColleges,
   login,
-  logout
+  logout,
+  createUser
 }; 
