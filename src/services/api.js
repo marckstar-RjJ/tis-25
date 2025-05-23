@@ -45,14 +45,31 @@ const getStudents = async () => {
 // Obtener todos los colegios (usando fetch a la API)
 const getColleges = async () => {
   try {
-    const response = await fetch(`${API_URL}/colegios`);
+    console.log('Llamando a API para obtener colegios...');
+    const response = await fetch(`${API_URL}/colegios`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
 
+    console.log('Respuesta recibida:', response.status);
+    
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Error desconocido al obtener colegios');
+      console.error('Error en respuesta de colegios:', response.status, response.statusText);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Error al obtener colegios: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('Datos de colegios recibidos:', data);
+    
+    if (!Array.isArray(data)) {
+      console.error('Los datos recibidos no son un array:', data);
+      return [];
+    }
+    
     return data.map(colegio => ({
       id: colegio.id,
       nombre: colegio.nombre,
