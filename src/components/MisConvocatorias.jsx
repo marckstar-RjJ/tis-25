@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Card, Row, Col, Button, Alert, Spinner } from 'react-bootstrap';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Badge, Card, Button, Spinner, Alert } from 'react-bootstrap';
 import { apiService } from '../services/api';
+import { getConvocatoriasActivas, loadConvocatorias } from '../services/dataSync';
 
 const MisConvocatorias = () => {
   const { currentUser } = useAuth();
@@ -18,191 +19,214 @@ const MisConvocatorias = () => {
       try {
         setLoading(true);
         
-        // Obtener convocatorias desde la API
-        console.log('Obteniendo convocatorias desde la API...');
-        let convocatoriasData;
+        // Usar el servicio dataSync para obtener convocatorias activas
+        // Esto garantiza consistencia entre sesiones de diferentes usuarios
+        console.log('Obteniendo convocatorias activas usando dataSync...');
         
+        // Primero intentamos obtener convocatorias de la API
+        let convocatoriasData = [];
         try {
-          // Intentar obtener desde la API
-          convocatoriasData = await apiService.getConvocatorias();
-          console.log('Convocatorias obtenidas de la API:', convocatoriasData);
+          // Intentar obtener desde la API primero
+          const apiConvocatorias = await apiService.getConvocatorias();
+          console.log('Convocatorias obtenidas de la API:', apiConvocatorias);
+          
+          if (Array.isArray(apiConvocatorias) && apiConvocatorias.length > 0) {
+            convocatoriasData = apiConvocatorias;
+          }
         } catch (apiError) {
           console.error('Error al obtener convocatorias de la API:', apiError);
-          
-          // Si falla, usar datos de respaldo / localStorage
-          console.log('Usando datos de respaldo...');
-          convocatoriasData = JSON.parse(localStorage.getItem('olimpiadas_convocatorias') || '[]');
-          
-          // Si no hay datos de respaldo, crear convocatorias de muestra
-          if (convocatoriasData.length === 0) {
-            console.log('Creando convocatorias de muestra...');
-            convocatoriasData = [
-              {
-                id: '1',
-                nombre: 'Olimpiada Científica 2025',
-                descripcion: 'Olimpiada anual de ciencias para estudiantes de primaria y secundaria',
-                fecha_inicio_inscripciones: '2025-05-01T00:00:00',
-                fecha_fin_inscripciones: '2025-06-30T23:59:59',
-                costo_por_area: 30,
-                maximo_areas: 3,
-                estado: 'abierta'
-              },
-              {
-                id: '2',
-                nombre: 'Olimpiadas Oh Sansi!',
-                descripcion: 'Competencia de conocimientos científicos para todos los niveles',
-                fecha_inicio_inscripciones: '2025-07-15T00:00:00',
-                fecha_fin_inscripciones: '2025-08-15T23:59:59',
-                costo_por_area: 25,
-                maximo_areas: 2,
-                estado: 'programada'
-              }
-            ];
-          }
         }
         
-        // Definir áreas para cada convocatoria
-        // Áreas científicas estándar
-        const areasCientificas = [
-          { id: "1", nombre: "Astronomía", descripcion: "Estudio del universo y los cuerpos celestes" },
-          { id: "2", nombre: "Biología", descripcion: "Estudio de los seres vivos" },
-          { id: "3", nombre: "Física", descripcion: "Estudio de la materia y la energía" },
-          { id: "4", nombre: "Matemáticas", descripcion: "Estudio de números, estructuras y patrones" },
-          { id: "5", nombre: "Informática", descripcion: "Estudio de la computación y programación" },
-          { id: "6", nombre: "Robótica", descripcion: "Diseño y construcción de robots" },
-          { id: "7", nombre: "Química", descripcion: "Estudio de la composición de la materia" }
-        ];
+        // Cargar convocatorias desde localStorage usando dataSync como fuente definitiva
+        // Esto asegura que los cambios hechos por el administrador sean visibles
+        const storedConvocatorias = loadConvocatorias();
+        console.log('Convocatorias cargadas desde localStorage (fuente principal):', storedConvocatorias);
         
-        // Asignar áreas a convocatorias que no las tengan
-        const convocatoriasActualizadas = convocatoriasData.map(convocatoria => {
-          // Si la convocatoria ya tiene áreas definidas, mantenerlas
-          if (convocatoria.areas && convocatoria.areas.length > 0) {
-            return convocatoria;
+        // Si tenemos datos en localStorage, usarlos como fuente principal
+        if (storedConvocatorias.length > 0) {
+          convocatoriasData = storedConvocatorias;
+        }
+        
+        // Filtrar solo las convocatorias activas para estudiantes
+        const convocatoriasActivas = getConvocatoriasActivas();
+        console.log('Convocatorias activas filtradas:', convocatoriasActivas);
+        
+        // Si hay convocatorias activas, usarlas preferentemente
+        if (convocatoriasActivas.length > 0) {
+          convocatoriasData = convocatoriasActivas;
+        }
+        
+        // Si no hay convocatorias, crear unas de muestra (solo para desarrollo)
+        if (convocatoriasData.length === 0) {
+          console.log('Creando convocatorias de muestra...');
+          convocatoriasData = [
+            {
+              id: '1',
+              nombre: 'Olimpiada Científica 2025',
+              descripcion: 'Olimpiada anual de ciencias para estudiantes de primaria y secundaria',
+              fecha_inicio_inscripciones: '2025-05-01T00:00:00',
+              fecha_fin_inscripciones: '2025-06-30T23:59:59',
+              costo_por_area: 30,
+              maximo_areas: 3,
+              activa: true
+            },
+            {
+              id: '2',
+              nombre: 'Olimpiadas Oh Sansi!',
+              descripcion: 'Competencia científica interdisciplinaria',
+              fecha_inicio_inscripciones: new Date().toISOString().split('T')[0] + 'T00:00:00', // Hoy
+              fecha_fin_inscripciones: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0] + 'T23:59:59', // Un mes después
+              costo_por_area: 16,
+              maximo_areas: 2,
+              activa: true
+            },
+            {
+              id: '3',
+              nombre: 'Olimpiadas Skillparty',
+              descripcion: 'Torneo de habilidades científicas',
+              fecha_inicio_inscripciones: '2025-07-15T00:00:00',
+              fecha_fin_inscripciones: '2025-08-15T23:59:59',
+              costo_por_area: 25,
+              maximo_areas: 3,
+              activa: false
+            }
+          ];
+          
+          // Guardar las convocatorias de muestra en localStorage
+          localStorage.setItem('olimpiadas_convocatorias', JSON.stringify(convocatoriasData));
+        }
+        
+        // Filtrar y clasificar convocatorias según su estado actual
+        const convocatoriasActualizadas = [];
+        
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0); // Normalizar a inicio del día
+        
+        convocatoriasData.forEach(convocatoria => {
+          // Normalizar el formato de datos
+          if (!convocatoria.areas) {
+            convocatoria.areas = [];
           }
           
-          // Asignar áreas basadas en el tipo de convocatoria
-          return { ...convocatoria, areas: areasCientificas };
+          // Determinar el estado real basado en las fechas y el campo 'activa'
+          const fechaInicio = new Date(convocatoria.fecha_inicio_inscripciones);
+          const fechaFin = new Date(convocatoria.fecha_fin_inscripciones);
+          
+          // Determinar si está abierta para inscripciones
+          const inscripcionesAbiertas = 
+            convocatoria.activa && 
+            fechaInicio <= hoy && 
+            fechaFin >= hoy;
+          
+          // Crear copia de la convocatoria con información adicional para UI
+          const convocatoriaUI = {
+            ...convocatoria,
+            inscripcionesAbiertas,
+            estado: inscripcionesAbiertas ? 'abierta' : 'cerrada'
+          };
+          
+          convocatoriasActualizadas.push(convocatoriaUI);
         });
         
-        // Guardar en localStorage como respaldo
-        localStorage.setItem('olimpiadas_convocatorias', JSON.stringify(convocatoriasActualizadas));
-        
-        // Obtener inscripciones del estudiante
-        let inscripcionesEstudiante = [];
-        try {
-          const student = await apiService.getCurrentStudent();
-          
-          if (student) {
-            // Buscar inscripciones en el estudiante
-            if (student.areasInscritas && student.areasInscritas.length > 0) {
-              inscripcionesEstudiante.push({
-                id: student.id + '-inscripcion',
-                areas: student.areasInscritas,
-                convocatoriaId: student.convocatoriaId || '1', // ID por defecto
-                fechaInscripcion: student.boletaPago?.fecha || new Date().toISOString(),
-                ordenPago: student.boletaPago
-              });
-            }
-            
-            // Si hay una estructura específica para inscripciones, usarla
-            if (student.inscripciones && Array.isArray(student.inscripciones)) {
-              student.inscripciones.forEach(insc => inscripcionesEstudiante.push(insc));
-            }
-          }
-        } catch (profileError) {
-          console.error('Error al obtener perfil del estudiante:', profileError);
-          // Usar datos vacíos si no se puede obtener el perfil
-          inscripcionesEstudiante = [];
-        }
-        
-        console.log('Inscripciones del estudiante:', inscripcionesEstudiante);
-        setInscripciones(inscripcionesEstudiante);
         setConvocatorias(convocatoriasActualizadas);
         console.log('Convocatorias disponibles:', convocatoriasActualizadas);
+        
+        // Obtener inscripciones del estudiante actual
+        if (currentUser) {
+          try {
+            const inscripcionesKey = 'olimpiadas_inscripciones';
+            const todasLasInscripciones = JSON.parse(localStorage.getItem(inscripcionesKey) || '[]');
+            
+            // Filtrar inscripciones del estudiante actual
+            const inscripcionesEstudiante = todasLasInscripciones.filter(
+              inscripcion => inscripcion.estudiante_id === currentUser.id
+            );
+            
+            console.log('Inscripciones del estudiante:', inscripcionesEstudiante);
+            setInscripciones(inscripcionesEstudiante);
+          } catch (inscripcionesError) {
+            console.error('Error al cargar inscripciones:', inscripcionesError);
+          }
+        }
       } catch (err) {
         console.error('Error al cargar datos:', err);
-        setError('No se pudieron cargar los datos necesarios.');
+        setError('No se pudieron cargar los datos. Intente nuevamente más tarde.');
       } finally {
         setLoading(false);
       }
     };
     
-    cargarDatos();
-  }, []);
+    if (currentUser) {
+      cargarDatos();
+    } else {
+      setLoading(false);
+    }
+  }, [currentUser, navigate]);
   
-  // Verificar si el estudiante ya está inscrito en una convocatoria específica
-  const estaInscritoEnConvocatoria = (convocatoriaId) => {
-    return inscripciones.some(inscripcion => 
-      inscripcion.convocatoriaId === convocatoriaId || 
-      (inscripcion.convocatoria && inscripcion.convocatoria.id === convocatoriaId)
-    );
-  };
-  
-  // Función para determinar el estado de una convocatoria
-  const getEstadoConvocatoria = (convocatoria) => {
-    const inscrito = estaInscritoEnConvocatoria(convocatoria.id);
-    const hoy = new Date();
-    const fechaInicio = new Date(convocatoria.fecha_inicio_inscripciones);
-    const fechaFin = new Date(convocatoria.fecha_fin_inscripciones);
+  // Manejar la selección de una convocatoria para inscripción
+  const handleSeleccionarConvocatoria = (convocatoriaId) => {
+    // Verificar si la convocatoria está abierta
+    const convocatoriaSeleccionada = convocatorias.find(c => c.id === convocatoriaId);
     
-    if (inscrito) {
-      return { estado: 'Inscrito', variant: 'secondary', mensaje: 'Ya estás inscrito en esta convocatoria', inscribible: false };
+    if (!convocatoriaSeleccionada || !convocatoriaSeleccionada.inscripcionesAbiertas) {
+      setError('Esta convocatoria no está disponible para inscripciones en este momento.');
+      return;
     }
     
-    if (hoy < fechaInicio) {
-      return { 
-        estado: 'Programada', 
-        variant: 'info', 
-        mensaje: `Las inscripciones se abren el ${formatearFecha(convocatoria.fecha_inicio_inscripciones)}`,
-        inscribible: false 
-      };
-    }
-    
-    if (hoy > fechaFin) {
-      return { 
-        estado: 'Cerrada', 
-        variant: 'danger', 
-        mensaje: `Las inscripciones cerraron el ${formatearFecha(convocatoria.fecha_fin_inscripciones)}`,
-        inscribible: false 
-      };
-    }
-    
-    // Convocatoria con inscripciones abiertas actualmente
-    return { 
-      estado: 'Abierta', 
-      variant: 'success', 
-      mensaje: 'Inscripciones abiertas',
-      inscribible: true 
-    };
-  };
-  
-  // Función para formatear fechas
-  const formatearFecha = (isoString) => {
-    if (!isoString) return '';
-    
-    // Parsear la fecha ISO string manualmente para evitar el ajuste de zona horaria
-    const [year, month, day] = isoString.split('T')[0].split('-').map(Number);
-    
-    // Crear un objeto Date local (usando el constructor con año, mes-1, día)
-    const fecha = new Date(year, month-1, day);
-    
-    return fecha.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    });
-  };
-  
-  // Función para seleccionar una convocatoria e ir a inscripción de áreas
-  const seleccionarConvocatoria = (convocatoriaId) => {
-    // Guardar el ID de la convocatoria seleccionada en sessionStorage
+    // Guardar ID de la convocatoria seleccionada en sessionStorage
     sessionStorage.setItem('convocatoriaSeleccionadaId', convocatoriaId);
-    navigate('/estudiante/inscripcion-areas');
+    
+    // Navegar a la página de inscripción
+    navigate('/estudiante/inscripcion-area');
   };
   
-  // Función para ver las áreas en las que ya estás inscrito
-  const verMisAreas = () => {
-    navigate('/estudiante/mis-areas');
+  // Renderizar tarjeta de convocatoria
+  const renderConvocatoriaCard = (convocatoria) => {
+    // Verificar si el estudiante ya está inscrito en esta convocatoria
+    const yaInscrito = inscripciones.some(i => i.convocatoria_id === convocatoria.id);
+    
+    return (
+      <Card className="mb-3" key={convocatoria.id}>
+        <Card.Header className="d-flex justify-content-between align-items-center">
+          <div>
+            <span className="fw-bold">{convocatoria.nombre}</span>
+            <span className={`ms-2 badge ${convocatoria.inscripcionesAbiertas ? 'bg-success' : 'bg-secondary'}`}>
+              {convocatoria.inscripcionesAbiertas ? 'Abierta' : 'Cerrada'}
+            </span>
+          </div>
+        </Card.Header>
+        <Card.Body>
+          <p>{convocatoria.descripcion}</p>
+          <Row className="mb-3">
+            <Col md={6}>
+              <p><strong>Período de inscripción:</strong><br />
+                {new Date(convocatoria.fecha_inicio_inscripciones).toLocaleDateString()} - {new Date(convocatoria.fecha_fin_inscripciones).toLocaleDateString()}
+              </p>
+            </Col>
+            <Col md={6}>
+              <p><strong>Costo por área:</strong> Bs. {convocatoria.costo_por_area}</p>
+              <p><strong>Máx. áreas por estudiante:</strong> {convocatoria.maximo_areas}</p>
+            </Col>
+          </Row>
+          
+          {yaInscrito ? (
+            <Alert variant="info">
+              Ya estás inscrito en esta convocatoria. Puedes ver tus inscripciones en la sección "Mis Inscripciones".
+            </Alert>
+          ) : (
+            <div className="d-flex justify-content-end">
+              <Button 
+                variant="primary" 
+                disabled={!convocatoria.inscripcionesAbiertas}
+                onClick={() => handleSeleccionarConvocatoria(convocatoria.id)}
+              >
+                {convocatoria.inscripcionesAbiertas ? 'Inscribirme' : 'Inscripciones cerradas'}
+              </Button>
+            </div>
+          )}
+        </Card.Body>
+      </Card>
+    );
   };
   
   if (loading) {
@@ -215,90 +239,18 @@ const MisConvocatorias = () => {
   }
   
   return (
-    <div className="mis-convocatorias">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Mis Convocatorias</h2>
-        <Button variant="outline-primary" onClick={verMisAreas}>
-          Ver mis áreas inscritas
-        </Button>
-      </div>
+    <div className="container py-4">
+      <h2>Mis Convocatorias</h2>
       
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && <Alert variant="danger">{error}</Alert>}
       
       {convocatorias.length === 0 ? (
-        <div className="alert alert-info">
-          <h4>No hay convocatorias disponibles</h4>
-          <p>Actualmente no hay convocatorias activas para inscripción. Por favor, vuelve más tarde.</p>
-        </div>
+        <Alert variant="info">
+          No hay convocatorias disponibles en este momento. Por favor, verifica más tarde.
+        </Alert>
       ) : (
-        <div className="row">
-          {convocatorias.map(convocatoria => {
-            const estadoInfo = getEstadoConvocatoria(convocatoria);
-            
-            return (
-              <div key={convocatoria.id} className="col-md-6 mb-4">
-                <Card>
-                  <Card.Header className="d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">{convocatoria.nombre}</h5>
-                    <Badge bg={estadoInfo.variant}>{estadoInfo.estado}</Badge>
-                  </Card.Header>
-                  
-                  <Card.Body>
-                    <div className="mb-3">
-                      <strong>Período de inscripción:</strong>
-                      <p>{formatearFecha(convocatoria.fecha_inicio_inscripciones)} al {formatearFecha(convocatoria.fecha_fin_inscripciones)}</p>
-                    </div>
-                    
-                    <div className="mb-3">
-                      <strong>Costo por área:</strong>
-                      <p>{convocatoria.costo_por_area} Bs</p>
-                    </div>
-                    
-                    <div className="mb-3">
-                      <strong>Áreas disponibles:</strong>
-                      <p>{convocatoria.areas?.length || 0} áreas</p>
-                    </div>
-                    
-                    <div className="mb-3">
-                      <strong>Máximo de áreas por estudiante:</strong>
-                      <p>{convocatoria.maximo_areas}</p>
-                    </div>
-                    
-                    <div className="text-center mt-3">
-                      {estaInscritoEnConvocatoria(convocatoria.id) ? (
-                        <>
-                          <Button 
-                            variant="secondary" 
-                            disabled
-                          >
-                            Inscrito
-                          </Button>
-                          <div className="mt-2">
-                            <small className="text-muted">Ya estás inscrito en esta convocatoria</small>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <Button 
-                            variant={estadoInfo.inscribible ? "primary" : "outline-" + estadoInfo.variant} 
-                            onClick={() => seleccionarConvocatoria(convocatoria.id)}
-                            disabled={!estadoInfo.inscribible}
-                          >
-                            {estadoInfo.inscribible ? "Inscribirme en áreas" : estadoInfo.estado}
-                          </Button>
-                          <div className="mt-2">
-                            <small className={estadoInfo.inscribible ? "text-success" : "text-muted"}>
-                              {estadoInfo.mensaje}
-                            </small>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </Card.Body>
-                </Card>
-              </div>
-            );
-          })}
+        <div className="mt-4">
+          {convocatorias.map(renderConvocatoriaCard)}
         </div>
       )}
     </div>

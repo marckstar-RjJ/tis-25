@@ -315,26 +315,55 @@ function Registro() {
       try {
         // Preparar los datos según el tipo de usuario
         const userData = {
-          tipoUsuario,
+          tipoUsuario: tipoUsuario,  // Usar camelCase como espera el backend
           nombre: formData.nombre,
-          apellidos: formData.apellidos,
+          apellidos: formData.apellidos,  // Usar plural como espera el backend
           ci: `${formData.ci}-${formData.departamento}`,
           email: formData.email,
           password: formData.password
         };
         
         if (tipoUsuario === 'estudiante') {
+          // Enviamos en formato camelCase (para validación) y también snake_case (para creación)
           userData.fechaNacimiento = formData.fechaNacimiento;
           userData.curso = Number(formData.curso);
-          userData.colegio = formData.colegio;
+          userData.colegio = Number(formData.colegio);
           userData.emailTutor = formData.emailTutor;
           userData.celular = formData.celular;
           userData.celularTutor = formData.celularTutor;
           userData.nombreTutor = formData.nombreTutor;
           userData.apellidosTutor = formData.apellidosTutor;
+          
+          // También enviamos en snake_case para la creación del modelo
+          userData.fecha_nacimiento = formData.fechaNacimiento;
+          userData.colegio_id = Number(formData.colegio);
+          userData.email_tutor = formData.emailTutor;
+          userData.celular_tutor = formData.celularTutor;
+          userData.nombre_tutor = formData.nombreTutor;
+          userData.apellido_tutor = formData.apellidosTutor;
+          
+          // Imprimir en consola para verificar
+          console.log('Datos de estudiante para enviar:', {
+            curso: userData.curso,
+            colegio: userData.colegio,
+            colegio_id: userData.colegio_id
+          });
         } else if (tipoUsuario === 'tutor') {
+          // Enviamos en formato camelCase y snake_case
           userData.celular = formData.celular;
-          userData.colegio = formData.colegio;
+          userData.colegio = Number(formData.colegio);
+          
+          // También enviamos en snake_case
+          userData.telefono = formData.celular;
+          userData.colegio_id = Number(formData.colegio);
+          
+          // Imprimir en consola para verificar
+          console.log('Datos de tutor para enviar:', {
+            celular: userData.celular,
+            colegio: userData.colegio,
+            telefono: userData.telefono,
+            colegio_id: userData.colegio_id
+          });
         }
         
         // Enviar los datos al servidor

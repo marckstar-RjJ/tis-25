@@ -8,8 +8,16 @@ const cumpleRequisitosArea = (curso, nombreArea) => {
   // Convertir curso a formato numérico
   const cursoNum = parseInt(curso);
   
+  // Si el curso no es un número válido, no puede inscribirse
+  if (isNaN(cursoNum)) {
+    console.warn(`El curso '${curso}' no es válido para la verificación`);
+    return false;
+  }
+  
   // Normalizar el nombre del área (quitar acentos, convertir a minúsculas, etc.)
   const areaNormalizada = nombreArea.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  
+  console.log(`Verificando requisitos para curso ${cursoNum} y área ${nombreArea} (normalizada: ${areaNormalizada})`);
   
   // Validaciones según el reglamento
   if (areaNormalizada.includes('astronom')) {
@@ -27,7 +35,8 @@ const cumpleRequisitosArea = (curso, nombreArea) => {
   } else if (areaNormalizada.includes('quimic')) {
     return cursoNum >= 7 && cursoNum <= 12; // 1° Secundaria - 6° Secundaria
   } else {
-    return false;
+    // Por defecto, para otras áreas no listadas, permitimos la inscripción
+    return true;
   }
 };
 
@@ -46,10 +55,22 @@ function InscripcionAreaEstudiante() {
   const [success, setSuccess] = useState('');
   const [totalCost, setTotalCost] = useState(0);
 
+  // Cargar datos iniciales
   useEffect(() => {
-    // Cargar datos del estudiante, áreas disponibles y convocatoria seleccionada
     const fetchData = async () => {
       try {
+        setLoading(true);
+        
+        // Log para depuración: verificar si el currentUser tiene información de curso/colegio
+        console.log('Current user en InscripcionAreaEstudiante:', currentUser);
+        if (currentUser) {
+          console.log('Información relevante del estudiante:', {
+            curso: currentUser.curso,
+            colegio_id: currentUser.colegio_id,
+            colegio: currentUser.colegio
+          });
+        }
+        
         // Verificar si hay una convocatoria seleccionada
         const convocatoriaId = sessionStorage.getItem('convocatoriaSeleccionadaId');
         if (!convocatoriaId) {
@@ -126,7 +147,61 @@ function InscripcionAreaEstudiante() {
         setConvocatoria(convocatoriaSeleccionada);
         
         // Obtener datos del estudiante
-        const studentData = await apiService.getCurrentStudent();
+        let studentData;
+        try {
+          // Intentar obtener datos del estudiante desde la API
+          console.log('Intentando obtener datos del estudiante desde API...');
+          studentData = await apiService.getCurrentStudent();
+          console.log('Datos obtenidos desde API:', studentData);
+        } catch (studentError) {
+          console.error('Error al obtener datos del estudiante desde API:', studentError);
+          
+          // Si falla la API, usar los datos del contexto de autenticación (currentUser)
+          if (currentUser) {
+            console.log('Usando datos del estudiante desde el contexto de autenticación:', currentUser);
+            studentData = {
+              ...currentUser,
+              // Agregar cualquier campo adicional necesario
+              areasInscritas: currentUser.areasInscritas || [],
+              convocatoriaId: currentUser.convocatoriaId || null
+            };
+            
+            // Verificar explícitamente que los datos necesarios estén presentes
+            if (studentData.curso === undefined || studentData.curso === null) {
+              console.warn('Advertencia: El estudiante no tiene un curso asignado');
+              // Intentar obtener del localStorage como último recurso
+              const storedUser = localStorage.getItem('currentUser');
+              if (storedUser) {
+                try {
+                  const parsedUser = JSON.parse(storedUser);
+                  if (parsedUser.curso !== undefined) {
+                    studentData.curso = parsedUser.curso;
+                    console.log('Curso obtenido de localStorage:', studentData.curso);
+                  }
+                } catch (e) {
+                  console.error('Error al parsear currentUser de localStorage:', e);
+                }
+              }
+            }
+          } else {
+            // Si no hay datos de usuario autenticado, lanzar error
+            throw new Error('No se pudo obtener la información del estudiante');
+          }
+        }
+        
+        // Verificar que se tienen los datos mínimos necesarios
+        if (!studentData || !studentData.id) {
+          throw new Error('Datos de estudiante incompletos o inválidos');
+        }
+        
+        // Asegurarse de que el curso sea un número
+        if (studentData.curso !== undefined && studentData.curso !== null) {
+          studentData.curso = parseInt(studentData.curso);
+          console.log('Curso del estudiante (convertido a número):', studentData.curso);
+        } else {
+          console.warn('El estudiante no tiene un curso asignado o es inválido');
+        }
+        
         setStudent(studentData);
         
         // Verificar si el estudiante ya está inscrito en esta convocatoria
@@ -148,18 +223,6 @@ function InscripcionAreaEstudiante() {
             );
             setSelectedAreas(areasSeleccionadas);
           }
-        } else {
-          // Si no tiene áreas específicas, cargar todas las áreas disponibles
-          const allAreas = await apiService.getAreas();
-          setAreas(allAreas);
-          
-          // Si el estudiante ya está inscrito, cargar las áreas seleccionadas
-          if (studentData.areasInscritas && studentData.areasInscritas.length > 0) {
-            const areasSeleccionadas = allAreas.filter(area => 
-              studentData.areasInscritas.includes(area.id)
-            );
-            setSelectedAreas(areasSeleccionadas);
-          }
         }
       } catch (err) {
         console.error('Error al cargar datos:', err);
@@ -170,7 +233,7 @@ function InscripcionAreaEstudiante() {
     };
     
     fetchData();
-  }, [navigate]);
+  }, [navigate, currentUser]);
 
   // Calcular costo total cuando cambian las áreas seleccionadas o se carga la convocatoria
   useEffect(() => {
@@ -233,136 +296,71 @@ function InscripcionAreaEstudiante() {
       const students = JSON.parse(localStorage.getItem(studentsKey) || '[]');
       
       // Buscar al estudiante actual
-      const studentIndex = students.findIndex(s => s.id === student.id);
+      let currentStudentIndex = students.findIndex(s => s.id === student.id);
+      console.log('Índice del estudiante en localStorage:', currentStudentIndex);
+      console.log('ID del estudiante actual:', student.id);
+      console.log('Estudiantes en localStorage:', students);
       
-      if (studentIndex === -1) {
-        throw new Error('No se encontró información del estudiante.');
+      // Si no encontramos al estudiante, lo agregamos a la lista
+      if (currentStudentIndex === -1) {
+        console.log('No se encontró el registro del estudiante. Creando uno nuevo...');
+        // Crear un nuevo registro para este estudiante
+        students.push({
+          id: student.id,
+          nombre: student.nombre,
+          apellido: student.apellido,
+          curso: student.curso,
+          colegio_id: student.colegio_id,
+          ci: student.ci,
+          areasInscritas: [],
+          convocatoriaId: null
+        });
+        // Actualizar el índice
+        currentStudentIndex = students.length - 1;
+        console.log('Nuevo estudiante agregado con índice:', currentStudentIndex);
       }
       
-      // Verificar si el estudiante ya tiene órdenes de pago pendientes
-      const tienePagoPendiente = students[studentIndex].inscripciones?.some(
-        insc => insc.ordenPago && insc.ordenPago.estado === 'pendiente'
-      );
-
-      if (tienePagoPendiente) {
-        throw new Error('Ya tienes una inscripción pendiente de pago. Por favor, completa ese pago antes de inscribirte en nuevas áreas.');
-      }
-
-      // Verificar si ya está inscrito exactamente en las mismas áreas
-      const inscripcionExistente = students[studentIndex].inscripciones?.find(
-        insc => insc.convocatoriaId === convocatoria.id
-      );
-
-      if (inscripcionExistente) {
-        const areasIguales = 
-          inscripcionExistente.areas.length === selectedAreas.length &&
-          inscripcionExistente.areas.every(area => 
-            selectedAreas.some(selectedArea => selectedArea.id === area.id)
-          );
-
-        if (areasIguales) {
-          throw new Error('Ya estás inscrito exactamente en estas mismas áreas para esta convocatoria.');
-        }
-      }
-
-      // Crear un objeto de inscripción con ID único
-      const timestamp = Date.now();
-      const nuevaInscripcion = {
-        id: `inscripcion-${convocatoria.id}-${timestamp}`,
-        convocatoriaId: convocatoria.id,
-        convocatoria: { ...convocatoria },  // Clonar para evitar referencias circulares
-        areas: selectedAreas.map(area => ({ ...area })),  // Clonar áreas seleccionadas
-        fechaInscripcion: new Date().toISOString(),
-        ordenPago: {
-          id: `ORDEN-${timestamp}`,
-          fecha: new Date().toISOString(),
-          estado: 'pendiente',
-          total: (convocatoria.costo_por_area || 16) * selectedAreas.length
-        }
-      };
+      // Actualizar áreas inscritas
+      students[currentStudentIndex].areasInscritas = selectedAreaIds;
+      students[currentStudentIndex].convocatoriaId = convocatoria.id;
       
-      // Asegurarse de que existe el array de inscripciones
-      if (!students[studentIndex].inscripciones) {
-        students[studentIndex].inscripciones = [];
-      }
-      
-      // Verificar si ya existe una inscripción para esta convocatoria y remplazarla
-      const inscripcionExistenteIndex = students[studentIndex].inscripciones.findIndex(
-        insc => insc.convocatoriaId === convocatoria.id
-      );
-      
-      if (inscripcionExistenteIndex !== -1) {
-        // Reemplazar la inscripción existente
-        students[studentIndex].inscripciones[inscripcionExistenteIndex] = nuevaInscripcion;
-        console.log('Reemplazando inscripción existente para la convocatoria:', convocatoria.id);
-      } else {
-        // Agregar nueva inscripción
-        students[studentIndex].inscripciones.push(nuevaInscripcion);
-        console.log('Agregando nueva inscripción para la convocatoria:', convocatoria.id);
-      }
-      
-      // Limpiar cualquier inscripción duplicada
-      const inscripcionesUnicas = [];
-      const idsVistos = new Set();
-      
-      students[studentIndex].inscripciones.forEach(insc => {
-        // Generar una clave única para cada inscripción basada en convocatoria y áreas
-        const areasIds = (insc.areas || []).map(a => a.id || a).sort().join(',');
-        const clave = `${insc.convocatoriaId}-${areasIds}`;
-        
-        if (!idsVistos.has(clave)) {
-          inscripcionesUnicas.push(insc);
-          idsVistos.add(clave);
-        }
-      });
-      
-      // Reemplazar con la lista limpia
-      students[studentIndex].inscripciones = inscripcionesUnicas;
-      
-      // También mantener compatibilidad con el formato antiguo, pero solo para la convocatoria actual
-      students[studentIndex].areasInscritas = selectedAreaIds;
-      students[studentIndex].convocatoriaId = convocatoria.id;
-      students[studentIndex].boletaPago = nuevaInscripcion.ordenPago;
-      
-      // Guardar los cambios
+      // Guardar cambios
       localStorage.setItem(studentsKey, JSON.stringify(students));
       
-      console.log('Inscripción exitosa en convocatoria:', convocatoria.nombre);
-      console.log('Áreas seleccionadas:', selectedAreas.map(a => a.nombre).join(', '));
-      console.log('Objeto de inscripción completo:', nuevaInscripcion);
+      // Actualizar user en localStorage
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      currentUser.areasInscritas = selectedAreaIds;
+      currentUser.convocatoriaId = convocatoria.id;
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
       
-      setSuccess('Inscripción realizada con éxito!');
+      setSuccess('¡Te has inscrito exitosamente! Redirigiendo al dashboard...');
       
-      // Redirigir al estudiante a la vista de convocatorias después de un breve tiempo
-      // para que pueda ver inmediatamente el botón actualizado a "Inscrito"
-      setTimeout(() => {
-        navigate('/estudiante/convocatorias');
-      }, 1500);
+      // Redirigir después de un breve momento
+      setTimeout(() => navigate('/estudiante'), 2000);
       
     } catch (err) {
-      console.error('Error al realizar inscripción:', err);
-      setError(err.message || 'Error al realizar la inscripción. Inténtalo de nuevo.');
+      console.error('Error al inscribirse:', err);
+      setError(`Error al procesar la inscripción: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Si está cargando, mostrar spinner
   if (loading) {
     return (
       <div className="loading-container">
-        <p>Cargando información...</p>
+        <div className="spinner"></div>
+        <p>Cargando datos...</p>
       </div>
     );
   }
 
-  if (!student) {
+  // Si hay error y no hay datos, mostrar mensaje
+  if (error && (!student || !convocatoria)) {
     return (
       <div className="error-container">
-        <h2>Error</h2>
-        <p>No se pudo cargar la información del estudiante.</p>
-        <button onClick={() => navigate('/estudiante/areas')} className="button">
-          Volver a Mis Áreas
-        </button>
+        <p className="error-message">{error}</p>
       </div>
     );
   }
@@ -370,8 +368,8 @@ function InscripcionAreaEstudiante() {
   return (
     <div className="inscripcion-container">
       <div className="inscripcion-header">
-        <button onClick={() => navigate('/estudiante/areas')} className="back-button">
-          ← Volver a Mis Áreas
+        <button onClick={() => navigate('/estudiante')} className="back-button">
+          ← Volver al Dashboard
         </button>
         <h2>Inscripción en Áreas Académicas</h2>
       </div>
@@ -385,7 +383,9 @@ function InscripcionAreaEstudiante() {
             ? `${student.curso}° Primaria` 
             : `${student.curso - 6}° Secundaria`
         }</p>
-        <p><strong>Colegio:</strong> {student.colegio?.nombre || 'No asignado'}</p>
+        <p><strong>Colegio:</strong> {student.colegio ? 
+          (typeof student.colegio === 'string' ? student.colegio : student.colegio.nombre) : 
+          (student.colegio_id ? `ID: ${student.colegio_id}` : 'No asignado')}</p>
       </div>
       
       {convocatoria && (
@@ -406,7 +406,15 @@ function InscripcionAreaEstudiante() {
         
         <div className="areas-grid">
           {areas.map(area => {
-            const cumpleRequisitos = cumpleRequisitosArea(student.curso, area.nombre);
+            // Verificar si el estudiante cumple con los requisitos para esta área
+            const cumpleRequisitos = student && student.curso !== undefined && cumpleRequisitosArea(student.curso, area.nombre);
+            
+            // Log para depuración
+            console.log(`Verificando elegibilidad para área ${area.nombre}:`, {
+              'student.curso': student?.curso,
+              'cumple requisitos': cumpleRequisitos
+            });
+            
             return (
               <div 
                 key={area.id} 
@@ -421,7 +429,11 @@ function InscripcionAreaEstudiante() {
                   </div>
                 )}
                 <div className="selection-indicator">
-                  {selectedAreaIds.includes(area.id) ? '✓ Seleccionada' : cumpleRequisitos ? 'Click para seleccionar' : 'No disponible'}
+                  {selectedAreaIds.includes(area.id) 
+                    ? '✓ Seleccionada' 
+                    : cumpleRequisitos 
+                      ? 'Click para seleccionar' 
+                      : 'No disponible'}
                 </div>
               </div>
             );
@@ -445,19 +457,19 @@ function InscripcionAreaEstudiante() {
           )}
         </div>
         
-        <div className="form-actions">
+        <div className="inscripcion-actions">
           <button 
             type="button" 
-            className="cancel-button" 
-            onClick={() => navigate('/estudiante/areas')}
+            onClick={() => navigate('/estudiante')} 
+            className="cancel-button"
             disabled={submitting}
           >
             Cancelar
           </button>
           <button 
             type="submit" 
-            className="submit-button" 
-            disabled={submitting || selectedAreas.length === 0}
+            className="inscribir-button"
+            disabled={selectedAreas.length === 0 || submitting}
           >
             {submitting ? 'Procesando...' : 'Confirmar Inscripción'}
           </button>

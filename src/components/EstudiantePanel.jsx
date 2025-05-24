@@ -164,7 +164,7 @@ const InformacionEstudiante = () => {
                         <h6 className="text-muted mb-1">Curso</h6>
                         <div>
                           <Badge bg={getNivelEducativo(estudiante.curso)} className="p-2">
-                            {formatearCurso(estudiante.curso)}
+                            {formatearCurso(estudiante.curso || estudiante.curso_id)}
                           </Badge>
                         </div>
                       </div>
@@ -181,7 +181,11 @@ const InformacionEstudiante = () => {
                       </div>
                       <div>
                         <h6 className="text-muted mb-1">Colegio</h6>
-                        <h5 className="mb-0">{estudiante.colegio?.nombre || estudiante.colegio || 'No asignado'}</h5>
+                        <h5 className="mb-0">
+                          {estudiante.colegio?.nombre || 
+                           (typeof estudiante.colegio === 'string' ? estudiante.colegio : 
+                           (estudiante.colegio_id ? `Colegio ID: ${estudiante.colegio_id}` : 'No asignado'))}
+                        </h5>
                       </div>
                     </Card.Body>
                   </Card>

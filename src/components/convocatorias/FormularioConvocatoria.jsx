@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Row, Col, Card, Spinner, Alert } from 'react-bootstrap';
 import { apiService } from '../../services/api';
+import { updateConvocatoria, syncConvocatorias } from '../../services/dataSync';
 
 const FormularioConvocatoria = ({ convocatoriaId, onGuardado, onCancelar }) => {
   const [formData, setFormData] = useState({
@@ -100,104 +101,66 @@ const FormularioConvocatoria = ({ convocatoriaId, onGuardado, onCancelar }) => {
     setNuevaArea(e.target.value);
   };
   
-  // Manejar cambios en la descripción de la nueva área
+  // Manejar cambios en el campo de descripción de nueva área
   const handleChangeNuevaAreaDescripcion = (e) => {
     setNuevaAreaDescripcion(e.target.value);
   };
   
-  // Manejar cambios en áreas seleccionadas
-  const handleAreaChange = (e) => {
-    const { value, checked } = e.target;
-    const areaId = parseInt(value, 10);
-    
-    setFormData(prevState => {
-      if (checked) {
-        return {
-          ...prevState,
-          areas: [...prevState.areas, areaId]
-        };
-      } else {
-        return {
-          ...prevState,
-          areas: prevState.areas.filter(id => id !== areaId)
-        };
-      }
-    });
-  };
-  
-  // Agregar nueva área a la lista de áreas disponibles
-  const handleAgregarArea = async (e) => {
-    e.preventDefault();
-    
+  // Agregar una nueva área
+  const handleAgregarArea = async () => {
     if (!nuevaArea.trim()) {
-      alert('Por favor, ingrese un nombre de área válido');
       return;
     }
     
     setAgregandoArea(true);
-    setError(null); // Limpiar errores previos
+    setError(null);
     
     try {
-      const nuevaAreaDatos = {
-        nombre: nuevaArea,
-        descripcion: nuevaAreaDescripcion || `Olimpiada de ${nuevaArea}`
-      };
+      // Obtener todas las áreas existentes
+      const areas = JSON.parse(localStorage.getItem('olimpiadas_areas') || '[]');
       
-      console.log('Creando nueva área:', nuevaAreaDatos);
+      // Verificar si el área ya existe
+      const areaExistente = areas.find(a => 
+        a.nombre.toLowerCase() === nuevaArea.trim().toLowerCase()
+      );
       
-      // Crear el área directamente en localStorage para evitar problemas con la API
-      let areas = JSON.parse(localStorage.getItem('olimpiadas_areas') || '[]');
-      
-      // Generar un ID único
-      let nuevoId = 1;
-      if (areas.length > 0) {
-        const ids = areas.map(a => parseInt(a.id, 10)).filter(id => !isNaN(id));
-        if (ids.length > 0) {
-          nuevoId = Math.max(...ids) + 1;
-        }
+      if (areaExistente) {
+        throw new Error(`El área "${nuevaArea}" ya existe.`);
       }
       
+      // Generar ID único para la nueva área
+      const nuevoId = (Math.max(...areas.map(a => parseInt(a.id, 10)), 0) + 1).toString();
+      
       // Crear nueva área
-      const areaAgregada = {
-        id: nuevoId.toString(),
-        nombre: nuevaAreaDatos.nombre.trim(),
-        descripcion: nuevaAreaDatos.descripcion
+      const nuevaAreaObj = {
+        id: nuevoId,
+        nombre: nuevaArea.trim(),
+        descripcion: nuevaAreaDescripcion.trim() || `Olimpiada de ${nuevaArea.trim()}`
       };
       
+      // Agregar a la lista de áreas disponibles
+      const areasActualizadas = [...areas, nuevaAreaObj];
+      
       // Guardar en localStorage
-      const areasActualizadas = [...areas, areaAgregada];
       localStorage.setItem('olimpiadas_areas', JSON.stringify(areasActualizadas));
       
-      // Añadir a la lista de áreas disponibles
-      setAreasDisponibles([...areasDisponibles, areaAgregada]);
+      // Actualizar estado local
+      setAreasDisponibles(areasActualizadas);
       
-      // Seleccionar automáticamente el área recién creada
-      setFormData(prevState => ({
-        ...prevState,
-        areas: [...prevState.areas, areaAgregada.id]
-      }));
-      
-      // Limpiar el formulario
+      // Limpiar campos del formulario
       setNuevaArea('');
       setNuevaAreaDescripcion('');
       
-      // Cerrar el collapse
-      document.getElementById('collapseAreaForm').classList.remove('show');
+      // Seleccionar automáticamente la nueva área
+      setFormData(prevState => ({
+        ...prevState,
+        areas: [...prevState.areas, nuevoId]
+      }));
       
-      // Mostrar mensaje de éxito temporal
-      const tempAlert = document.createElement('div');
-      tempAlert.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
-      tempAlert.innerHTML = `Área <strong>${areaAgregada.nombre}</strong> creada y seleccionada con éxito!`;
-      document.body.appendChild(tempAlert);
-      
-      // Eliminar la alerta después de 3 segundos
-      setTimeout(() => {
-        document.body.removeChild(tempAlert);
-      }, 3000);
-      
+      console.log('Área agregada:', nuevaAreaObj);
     } catch (err) {
       console.error('Error al agregar área:', err);
-      setError(err.message || 'No se pudo agregar el área. Intente nuevamente.');
+      setError(`Error al agregar área: ${err.message}`);
       
       // Mantener los datos ingresados para que el usuario pueda corregirlos
       // en lugar de tener que volver a escribir todo
@@ -206,297 +169,351 @@ const FormularioConvocatoria = ({ convocatoriaId, onGuardado, onCancelar }) => {
     }
   };
   
-  // Guardar formulario
+  // Guardar la convocatoria
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
     setGuardando(true);
+    setError(null);
     
     try {
-      // Validaciones básicas
-      if (formData.areas.length === 0) {
-        throw new Error('Debes seleccionar al menos un área para la convocatoria');
+      // Validar datos antes de guardar
+      if (!formData.nombre || !formData.fecha_inicio_inscripciones || !formData.fecha_fin_inscripciones) {
+        setError('Por favor, completa todos los campos obligatorios');
+        setGuardando(false);
+        return;
       }
       
-      if (new Date(formData.fecha_fin_inscripciones) < new Date(formData.fecha_inicio_inscripciones)) {
-        throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
+      // Verificar que las fechas sean válidas
+      const fechaInicio = new Date(formData.fecha_inicio_inscripciones);
+      const fechaFin = new Date(formData.fecha_fin_inscripciones);
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0); // Normalizar a inicio del día para comparación correcta
+      
+      if (fechaFin < fechaInicio) {
+        setError('La fecha de fin no puede ser anterior a la fecha de inicio');
+        setGuardando(false);
+        return;
       }
       
-      if (!formData.nombre || formData.nombre.trim() === '') {
-        throw new Error('El nombre de la convocatoria es requerido');
-      }
-      
-      // Simular tiempo de proceso para dar retroalimentación visual al usuario
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Obtener convocatorias actuales de localStorage
-      const convocatoriasKey = 'olimpiadas_convocatorias';
-      let convocatorias = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
-      
-      let resultado;
-      
-      // Si estamos creando una nueva convocatoria
-      if (esNuevaConvocatoria) {
-        // Generar ID único para la nueva convocatoria
-        const nuevoId = convocatorias.length > 0 ?
-          (Math.max(...convocatorias.map(c => parseInt(c.id, 10))) + 1).toString() :
-          '1';
+      // Advertir si la convocatoria no va a ser visible para estudiantes debido a las fechas
+      if (formData.activa && (fechaInicio > hoy || fechaFin < hoy)) {
+        const confirmacion = window.confirm(
+          `ADVERTENCIA: Esta convocatoria está marcada como activa, pero las fechas de inscripción no incluyen la fecha actual (${hoy.toLocaleDateString()}).
+
+Fecha inicio: ${fechaInicio.toLocaleDateString()}
+Fecha fin: ${fechaFin.toLocaleDateString()}
+
+Los estudiantes NO VERÁN esta convocatoria hasta que las fechas incluyan la fecha actual.
+
+¿Desea continuar de todos modos?`
+        );
         
-        // Obtener áreas completas para la nueva convocatoria
-        const areasCompletas = areasDisponibles.filter(area => 
-          formData.areas.includes(area.id));
-        
-        // Crear objeto de nueva convocatoria
-        const nuevaConvocatoria = {
-          id: nuevoId,
-          nombre: formData.nombre.trim(),
-          fecha_inicio_inscripciones: new Date(formData.fecha_inicio_inscripciones).toISOString(),
-          fecha_fin_inscripciones: new Date(formData.fecha_fin_inscripciones).toISOString(),
-          costo_por_area: parseFloat(formData.costo_por_area) || 16.00,
-          maximo_areas: parseInt(formData.maximo_areas, 10) || 2,
-          activa: formData.activa,
-          areas: areasCompletas
-        };
-        
-        // Agregar a la lista y guardar
-        convocatorias.push(nuevaConvocatoria);
-        localStorage.setItem(convocatoriasKey, JSON.stringify(convocatorias));
-        
-        resultado = nuevaConvocatoria;
-        console.log('Convocatoria creada:', nuevaConvocatoria);
-      } 
-      // Si estamos actualizando una convocatoria existente
-      else {
-        // Encontrar la convocatoria a actualizar
-        const index = convocatorias.findIndex(c => c.id === convocatoriaId);
-        
-        if (index === -1) {
-          throw new Error(`No se encontró la convocatoria con ID ${convocatoriaId}`);
+        if (!confirmacion) {
+          setGuardando(false);
+          return;
         }
-        
-        // Obtener áreas completas para la convocatoria actualizada
-        const areasCompletas = areasDisponibles.filter(area => 
-          formData.areas.includes(area.id));
-        
-        // Actualizar convocatoria
-        const convocatoriaActualizada = {
-          ...convocatorias[index],
-          nombre: formData.nombre.trim(),
-          fecha_inicio_inscripciones: new Date(formData.fecha_inicio_inscripciones).toISOString(),
-          fecha_fin_inscripciones: new Date(formData.fecha_fin_inscripciones).toISOString(),
-          costo_por_area: parseFloat(formData.costo_por_area) || convocatorias[index].costo_por_area,
-          maximo_areas: parseInt(formData.maximo_areas, 10) || convocatorias[index].maximo_areas,
-          activa: formData.activa,
-          areas: areasCompletas
-        };
-        
-        // Actualizar lista y guardar
-        convocatorias[index] = convocatoriaActualizada;
-        localStorage.setItem(convocatoriasKey, JSON.stringify(convocatorias));
-        
-        resultado = convocatoriaActualizada;
-        console.log('Convocatoria actualizada:', convocatoriaActualizada);
       }
       
-      // Llamar al callback para informar de la operación exitosa
-      onGuardado(resultado);
+      // Convertir valores numéricos
+      const formDataFormatted = {
+        ...formData,
+        costo_por_area: parseInt(formData.costo_por_area, 10),
+        maximo_areas: parseInt(formData.maximo_areas, 10),
+      };
+      
+      // Determinar si es creación o actualización
+      let convocatoria;
+      
+      console.log('Guardando convocatoria con estos datos:', formDataFormatted);
+      
+      // Intentar guardar en el backend primero
+      try {
+        if (esNuevaConvocatoria) {
+          // Crear nueva convocatoria en el backend
+          const response = await fetch(`http://localhost:8080/api/convocatorias`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+            body: JSON.stringify(formDataFormatted)
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Error al crear convocatoria: ${response.status} ${response.statusText}`);
+          }
+          
+          convocatoria = await response.json();
+          console.log('Convocatoria creada exitosamente en el backend:', convocatoria);
+        } else {
+          // Actualizar convocatoria existente en el backend
+          const response = await fetch(`http://localhost:8080/api/convocatorias/${convocatoriaId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+            body: JSON.stringify(formDataFormatted)
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Error al actualizar convocatoria: ${response.status} ${response.statusText}`);
+          }
+          
+          convocatoria = await response.json();
+          console.log('Convocatoria actualizada exitosamente en el backend:', convocatoria);
+        }
+      } catch (apiError) {
+        console.error('Error al comunicarse con el backend:', apiError);
+        console.log('Fallback: Guardando en localStorage solamente');
+        
+        // Si falla la API, guardar en localStorage como respaldo
+        if (esNuevaConvocatoria) {
+          // Guardar nueva convocatoria en localStorage
+          const convocatoriasKey = 'olimpiadas_convocatorias';
+          const convocatorias = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
+          
+          // Generar ID único simple
+          const newId = `conv_${Date.now()}`;
+          
+          // Crear nueva convocatoria con ID único
+          convocatoria = {
+            ...formDataFormatted,
+            id: newId,
+            fecha_creacion: new Date().toISOString(),
+            areas: [] // Inicialmente sin áreas asignadas
+          };
+          
+          // Agregar a lista y guardar en localStorage
+          convocatorias.push(convocatoria);
+          localStorage.setItem(convocatoriasKey, JSON.stringify(convocatorias));
+        } else {
+          // Actualizar convocatoria existente
+          const convocatoriasKey = 'olimpiadas_convocatorias';
+          const convocatorias = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
+          
+          const index = convocatorias.findIndex(c => c.id === convocatoriaId);
+          
+          if (index >= 0) {
+            // Mantener el ID y fecha de creación originales
+            convocatoria = {
+              ...convocatorias[index],
+              ...formDataFormatted,
+              fecha_actualizacion: new Date().toISOString()
+            };
+            
+            // Actualizar en el array
+            convocatorias[index] = convocatoria;
+            localStorage.setItem(convocatoriasKey, JSON.stringify(convocatorias));
+          } else {
+            throw new Error('No se encontró la convocatoria para actualizar');
+          }
+        }
+      }
+      
+      // Usar el servicio dataSync para sincronizar los cambios entre sesiones
+      if (convocatoria) {
+        // Actualizar la convocatoria usando nuestro nuevo servicio
+        updateConvocatoria(convocatoria.id || convocatoriaId, convocatoria);
+        console.log('Convocatoria sincronizada correctamente usando dataSync');
+      } else {
+        // Si no tenemos el objeto convocatoria completo (por ejemplo, si hubo un error con la API),
+        // sincronizar usando los datos del formulario
+        updateConvocatoria(convocatoriaId, {
+          ...formDataFormatted,
+          id: convocatoriaId || `conv_${Date.now()}`,
+          fecha_actualizacion: new Date().toISOString()
+        });
+        console.log('Convocatoria sincronizada con datos del formulario usando dataSync');
+      }
+      
+      // Informar al componente padre que se guardó correctamente
+      onGuardado(convocatoria);
+      
     } catch (err) {
       console.error('Error al guardar convocatoria:', err);
-      setError(err.message || 'Error al guardar la convocatoria. Verifica los datos e inténtalo de nuevo.');
+      setError(`Error al guardar: ${err.message}`);
     } finally {
       setGuardando(false);
     }
   };
-  
-  if (loading) {
-    return (
-      <div className="text-center my-5">
-        <Spinner animation="border" variant="primary" />
-        <p className="mt-2">Cargando datos...</p>
-      </div>
-    );
-  }
-  
+
   return (
-    <Card className="shadow-sm">
-      <Card.Header as="h5">
-        {esNuevaConvocatoria ? 'Nueva Convocatoria' : 'Editar Convocatoria'}
-      </Card.Header>
+    <Card className="mb-4">
+      <Card.Header as="h5">{esNuevaConvocatoria ? 'Crear Nueva Convocatoria' : 'Editar Convocatoria'}</Card.Header>
       <Card.Body>
-        {error && <Alert variant="danger">{error}</Alert>}
-        
-        <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-3">
-            <Form.Label>Nombre de la Convocatoria</Form.Label>
-            <Form.Control
-              type="text"
-              name="nombre"
-              value={formData.nombre}
-              onChange={handleChange}
-              placeholder="Ej: Olimpiadas Académicas 2025"
-              required
-            />
-          </Form.Group>
-          
-          <Row className="mb-3">
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>Fecha de inicio de inscripciones</Form.Label>
-                <Form.Control
-                  type="date"
-                  name="fecha_inicio_inscripciones"
-                  value={formData.fecha_inicio_inscripciones}
-                  onChange={handleChange}
-                  required
-                />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>Fecha de fin de inscripciones</Form.Label>
-                <Form.Control
-                  type="date"
-                  name="fecha_fin_inscripciones"
-                  value={formData.fecha_fin_inscripciones}
-                  onChange={handleChange}
-                  required
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-          
-          <Row className="mb-3">
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>Costo por área (Bs)</Form.Label>
-                <Form.Control
-                  type="number"
-                  name="costo_por_area"
-                  value={formData.costo_por_area}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>Máximo de áreas por estudiante</Form.Label>
-                <Form.Control
-                  type="number"
-                  name="maximo_areas"
-                  value={formData.maximo_areas}
-                  onChange={handleChange}
-                  min="1"
-                  required
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-          
-          <Form.Group className="mb-3">
-            <Form.Check
-              type="checkbox"
-              name="activa"
-              checked={formData.activa}
-              onChange={handleChange}
-              label="Convocatoria activa"
-            />
-          </Form.Group>
-          
-          <Form.Group className="mb-4">
-            <div className="d-flex justify-content-between align-items-center">
-              <Form.Label>Áreas habilitadas</Form.Label>
-              <div>
-                <Button 
-                  variant="link" 
-                  size="sm" 
-                  onClick={() => document.getElementById('collapseAreaForm').classList.toggle('show')}>
-                  <i className="bi bi-plus-circle"></i> Agregar nueva área
-                </Button>
+        {loading ? (
+          <div className="text-center p-4">
+            <Spinner animation="border" />
+            <p className="mt-2">Cargando datos...</p>
+          </div>
+        ) : (
+          <Form onSubmit={handleSubmit}>
+            {error && <Alert variant="danger">{error}</Alert>}
+            
+            <Form.Group className="mb-3">
+              <Form.Label>Nombre de la Convocatoria *</Form.Label>
+              <Form.Control
+                type="text"
+                name="nombre"
+                value={formData.nombre}
+                onChange={handleChange}
+                required
+                placeholder="Ej: Olimpiadas Científicas 2023"
+              />
+            </Form.Group>
+            
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Fecha Inicio Inscripciones *</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="fecha_inicio_inscripciones"
+                    value={formData.fecha_inicio_inscripciones}
+                    onChange={handleChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Fecha Fin Inscripciones *</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="fecha_fin_inscripciones"
+                    value={formData.fecha_fin_inscripciones}
+                    onChange={handleChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Costo por Área (Bs.) *</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="costo_por_area"
+                    value={formData.costo_por_area}
+                    onChange={handleChange}
+                    required
+                    min="0"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Máximo de Áreas por Estudiante *</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="maximo_areas"
+                    value={formData.maximo_areas}
+                    onChange={handleChange}
+                    required
+                    min="1"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            
+            <Form.Group className="mb-3">
+              <Form.Check
+                type="checkbox"
+                label="Convocatoria Activa"
+                name="activa"
+                checked={formData.activa}
+                onChange={handleChange}
+              />
+              <Form.Text className="text-muted">
+                Si está activa <strong>Y</strong> la fecha actual está dentro del período de inscripciones,
+                los estudiantes podrán ver e inscribirse en esta convocatoria.
+              </Form.Text>
+              <Alert variant="info" className="mt-2 mb-0">
+                <strong>Importante:</strong> Para que una convocatoria aparezca como disponible para los estudiantes, debe cumplir TODAS estas condiciones:
+                <ol className="mb-0 mt-1">
+                  <li>Estar marcada como "Activa"</li>
+                  <li>La fecha actual debe ser mayor o igual que la fecha de inicio de inscripciones</li>
+                  <li>La fecha actual debe ser menor o igual que la fecha de fin de inscripciones</li>
+                </ol>
+              </Alert>
+            </Form.Group>
+            
+            {/* Selección de áreas existentes */}
+            <div className="mt-4 mb-3">
+              <h5>Seleccionar Áreas Existentes</h5>
+              <div className="mb-3">
+                <Row xs={1} md={2} lg={3} className="g-3">
+                  {areasDisponibles.map(area => (
+                    <Col key={area.id}>
+                      <Card className={formData.areas.includes(area.id) ? 'bg-light border-primary' : ''}>
+                        <Card.Body>
+                          <Form.Check
+                            type="checkbox"
+                            id={`area-${area.id}`}
+                            label={<><strong>{area.nombre}</strong><br /><small>{area.descripcion}</small></>}
+                            checked={formData.areas.includes(area.id)}
+                            onChange={() => {
+                              const isSelected = formData.areas.includes(area.id);
+                              setFormData(prev => ({
+                                ...prev,
+                                areas: isSelected
+                                  ? prev.areas.filter(id => id !== area.id)
+                                  : [...prev.areas, area.id]
+                              }));
+                            }}
+                          />
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
               </div>
             </div>
             
-            <div className="collapse mb-3" id="collapseAreaForm">
-              <Card className="card-body border-primary border-2">
-                <Form.Group className="mb-3">
-                  <Form.Label>Nombre del área</Form.Label>
+            <div className="mt-4 mb-3">
+              <h5>Agregar Nueva Área</h5>
+              <div className="d-flex align-items-end">
+                <Form.Group className="flex-grow-1 me-2 mb-0">
+                  <Form.Label>Nombre del Área</Form.Label>
                   <Form.Control
                     type="text"
                     value={nuevaArea}
                     onChange={handleChangeNuevaArea}
-                    placeholder="Ej: Astronomía"
+                    placeholder="Ej: Informática"
                   />
                 </Form.Group>
-                
-                <Form.Group className="mb-3">
+                <Form.Group className="flex-grow-1 me-2 mb-0">
                   <Form.Label>Descripción</Form.Label>
                   <Form.Control
                     type="text"
                     value={nuevaAreaDescripcion}
                     onChange={handleChangeNuevaAreaDescripcion}
-                    placeholder="Ej: Olimpiada de Astronomía"
+                    placeholder="Descripción breve"
                   />
                 </Form.Group>
-                
-                <div className="d-flex justify-content-end">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handleAgregarArea}
-                    disabled={agregandoArea || !nuevaArea.trim()}
-                  >
-                    {agregandoArea ? (
-                      <>
-                        <Spinner animation="border" size="sm" className="me-1" />
-                        Agregando...
-                      </>
-                    ) : (
-                      'Agregar Área'
-                    )}
-                  </Button>
-                </div>
-              </Card>
+                <Button 
+                  variant="outline-primary" 
+                  onClick={handleAgregarArea}
+                  disabled={!nuevaArea || agregandoArea}
+                >
+                  {agregandoArea ? <Spinner size="sm" animation="border" /> : '+'} Agregar
+                </Button>
+              </div>
             </div>
             
-            {areasDisponibles.length === 0 ? (
-              <div className="alert alert-info">
-                No hay áreas disponibles. Utilice el botón "Agregar nueva área" para crear la primera.
-              </div>
-            ) : (
-              <Row className="mt-2">
-                {areasDisponibles.map(area => (
-                  <Col md={4} key={area.id}>
-                    <Form.Check
-                      type="checkbox"
-                      id={`area-${area.id}`}
-                      label={area.nombre}
-                      value={area.id}
-                      checked={formData.areas.includes(area.id)}
-                      onChange={handleAreaChange}
-                      className="mb-2"
-                    />
-                  </Col>
-                ))}
-              </Row>
-            )}
-          </Form.Group>
-          
-          <div className="d-flex justify-content-end gap-2">
-            <Button variant="secondary" onClick={onCancelar} disabled={guardando}>
-              Cancelar
-            </Button>
-            <Button 
-              variant="primary" 
-              type="submit" 
-              disabled={guardando}
-            >
-              {guardando && <Spinner animation="border" size="sm" className="me-2" />}
-              {esNuevaConvocatoria ? 'Crear Convocatoria' : 'Guardar Cambios'}
-            </Button>
-          </div>
-        </Form>
+            <div className="d-flex justify-content-end mt-4">
+              <Button variant="secondary" onClick={onCancelar} className="me-2" disabled={guardando}>
+                Cancelar
+              </Button>
+              <Button variant="primary" type="submit" disabled={guardando}>
+                {guardando ? <><Spinner size="sm" animation="border" /> Guardando...</> : 'Guardar Convocatoria'}
+              </Button>
+            </div>
+          </Form>
+        )}
       </Card.Body>
     </Card>
   );
