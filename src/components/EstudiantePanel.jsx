@@ -210,11 +210,7 @@ const InformacionEstudiante = () => {
               </Row>
             </Card.Body>
             
-            <Card.Footer className="bg-white text-center p-3">
-              <small className="text-muted">
-                Para actualizar tu información, contacta con administración al correo: <strong>booleanssolutions@gmail.com</strong>
-              </small>
-            </Card.Footer>
+
           </Card>
         </Col>
       </Row>
@@ -263,6 +259,9 @@ function EstudiantePanel() {
             </li>
             <li>
               <Link to="/estudiante/inscripciones">Mis Inscripciones</Link>
+            </li>
+            <li>
+              <Link to="/estudiante/ocr">Verificar Comprobante</Link>
             </li>
             <li className="mt-auto" style={{ marginTop: '30px' }}>
               <button onClick={handleLogout} className="logout-button" style={{ width: '100%', textAlign: 'left', background: 'rgba(255, 255, 255, 0.1)', border: 'none', borderLeft: '2px solid rgba(255, 255, 255, 0.2)' }}>

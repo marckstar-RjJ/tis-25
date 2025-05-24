@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'http://localhost:8080/api';
 
 // Obtener todos los usuarios (usando fetch a la API)
 const getUsers = async () => {
@@ -155,6 +155,68 @@ const createUser = async (userData) => {
   }
 };
 
+// Obtener convocatorias disponibles
+const getConvocatorias = async () => {
+  try {
+    console.log('Llamando a API para obtener convocatorias...');
+    const response = await fetch(`${API_URL}/convocatorias`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      }
+    });
+
+    console.log('Respuesta de convocatorias recibida:', response.status);
+    
+    if (!response.ok) {
+      console.error('Error en respuesta de convocatorias:', response.status, response.statusText);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Error al obtener convocatorias: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Datos de convocatorias recibidos:', data);
+    
+    if (!Array.isArray(data)) {
+      console.error('Los datos recibidos no son un array:', data);
+      return [];
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error en getConvocatorias:', error);
+    throw new Error(`Error al obtener convocatorias: ${error.message}`);
+  }
+};
+
+// Obtener información del estudiante actual
+const getCurrentStudent = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No hay sesión activa');
+    }
+
+    const response = await fetch(`${API_URL}/student/profile`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al obtener perfil del estudiante');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en getCurrentStudent:', error);
+    throw new Error(`Error al obtener perfil del estudiante: ${error.message}`);
+  }
+};
+
 // Exportar servicios
 export const apiService = {
   getUsers,
@@ -163,5 +225,7 @@ export const apiService = {
   getAllColleges,
   login,
   logout,
-  createUser
+  createUser,
+  getConvocatorias,
+  getCurrentStudent
 }; 

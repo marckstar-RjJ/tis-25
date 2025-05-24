@@ -54,23 +54,8 @@ function Registro() {
       try {
         console.log('Intentando cargar colegios...');
         
-        // Llamada directa a la API sin usar el servicio para depurar mejor
-        const response = await fetch('http://localhost:8000/api/colegios', {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include'
-        });
-        
-        console.log('Respuesta recibida:', response.status);
-        
-        if (!response.ok) {
-          throw new Error(`Error de servidor: ${response.status}`);
-        }
-        
-        const data = await response.json();
+        // Usar el servicio API centralizado que ya tiene la URL correcta
+        const data = await apiService.getColleges();
         console.log('Colegios cargados:', data);
         
         if (!Array.isArray(data)) {

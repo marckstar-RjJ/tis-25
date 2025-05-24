@@ -18,21 +18,52 @@ const MisConvocatorias = () => {
       try {
         setLoading(true);
         
-        // Obtener convocatorias desde localStorage
-        const convocatoriasKey = 'olimpiadas_convocatorias';
-        const data = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
+        // Obtener convocatorias desde la API
+        console.log('Obteniendo convocatorias desde la API...');
+        let convocatoriasData;
         
-        // Mostrar todas las convocatorias y garantizar áreas correctas por convocatoria
-        console.log('Convocatorias encontradas:', data);
+        try {
+          // Intentar obtener desde la API
+          convocatoriasData = await apiService.getConvocatorias();
+          console.log('Convocatorias obtenidas de la API:', convocatoriasData);
+        } catch (apiError) {
+          console.error('Error al obtener convocatorias de la API:', apiError);
+          
+          // Si falla, usar datos de respaldo / localStorage
+          console.log('Usando datos de respaldo...');
+          convocatoriasData = JSON.parse(localStorage.getItem('olimpiadas_convocatorias') || '[]');
+          
+          // Si no hay datos de respaldo, crear convocatorias de muestra
+          if (convocatoriasData.length === 0) {
+            console.log('Creando convocatorias de muestra...');
+            convocatoriasData = [
+              {
+                id: '1',
+                nombre: 'Olimpiada Científica 2025',
+                descripcion: 'Olimpiada anual de ciencias para estudiantes de primaria y secundaria',
+                fecha_inicio_inscripciones: '2025-05-01T00:00:00',
+                fecha_fin_inscripciones: '2025-06-30T23:59:59',
+                costo_por_area: 30,
+                maximo_areas: 3,
+                estado: 'abierta'
+              },
+              {
+                id: '2',
+                nombre: 'Olimpiadas Oh Sansi!',
+                descripcion: 'Competencia de conocimientos científicos para todos los niveles',
+                fecha_inicio_inscripciones: '2025-07-15T00:00:00',
+                fecha_fin_inscripciones: '2025-08-15T23:59:59',
+                costo_por_area: 25,
+                maximo_areas: 2,
+                estado: 'programada'
+              }
+            ];
+          }
+        }
         
-        // Obtener todas las áreas disponibles
-        const todasLasAreas = JSON.parse(localStorage.getItem('olimpiadas_areas') || '[]');
-        
-        // HARD RESET: Definir de manera fija qué áreas tiene cada convocatoria
-        // Creamos arrays de áreas específicas para cada tipo de convocatoria
-        
-        // Áreas científicas clásicas para Oh Sansi!
-        const areasOhSansi = [
+        // Definir áreas para cada convocatoria
+        // Áreas científicas estándar
+        const areasCientificas = [
           { id: "1", nombre: "Astronomía", descripcion: "Estudio del universo y los cuerpos celestes" },
           { id: "2", nombre: "Biología", descripcion: "Estudio de los seres vivos" },
           { id: "3", nombre: "Física", descripcion: "Estudio de la materia y la energía" },
@@ -42,73 +73,52 @@ const MisConvocatorias = () => {
           { id: "7", nombre: "Química", descripcion: "Estudio de la composición de la materia" }
         ];
         
-        // Áreas específicas para Skillparty
-        const areasSkillparty = [
-          { id: "8", nombre: "Farmeo I", descripcion: "Farmeo de minions y campeones" },
-          { id: "9", nombre: "Support II", descripcion: "Asistencia y control de vision" }
-        ];
-        
-        // Áreas específicas para Lolsito
-        const areasLolsito = [
-          { id: "10", nombre: "Top Lane", descripcion: "Linea superior" },
-          { id: "11", nombre: "Mid Lane", descripcion: "Linea central" },
-          { id: "12", nombre: "Jungling", descripcion: "Rol de jungla" }
-        ];
-        
-        // Asignar áreas según el nombre exacto de cada convocatoria
-        const convocatoriasActualizadas = data.map(convocatoria => {
-          if (convocatoria.nombre === 'Olimpiadas Oh Sansi!') {
-            console.log('RESET: Asignando áreas fijas para Oh Sansi!');
-            return { ...convocatoria, areas: areasOhSansi };
+        // Asignar áreas a convocatorias que no las tengan
+        const convocatoriasActualizadas = convocatoriasData.map(convocatoria => {
+          // Si la convocatoria ya tiene áreas definidas, mantenerlas
+          if (convocatoria.areas && convocatoria.areas.length > 0) {
+            return convocatoria;
           }
-          else if (convocatoria.nombre === 'Olimpiadas Skillparty') {
-            console.log('RESET: Asignando áreas fijas para Skillparty!');
-            return { ...convocatoria, areas: areasSkillparty };
-          }
-          else if (convocatoria.nombre === 'Torneo Lolsito') {
-            console.log('RESET: Asignando áreas fijas para Lolsito!');
-            return { ...convocatoria, areas: areasLolsito };
-          }
-          else if (convocatoria.nombre === 'Olimpiada Científica 2025') {
-            console.log('RESET: Asignando áreas para Olimpiada Científica 2025');
-            return { ...convocatoria, areas: areasOhSansi };
-          }
-          else {
-            return { ...convocatoria, areas: convocatoria.areas || [] };
-          }
+          
+          // Asignar áreas basadas en el tipo de convocatoria
+          return { ...convocatoria, areas: areasCientificas };
         });
         
-        // Guardar las convocatorias actualizadas en localStorage
-        localStorage.setItem(convocatoriasKey, JSON.stringify(convocatoriasActualizadas));
+        // Guardar en localStorage como respaldo
+        localStorage.setItem('olimpiadas_convocatorias', JSON.stringify(convocatoriasActualizadas));
         
         // Obtener inscripciones del estudiante
-        const student = await apiService.getCurrentStudent();
-        const inscripcionesEstudiante = [];
-        
-        if (student) {
-          // Buscar inscripciones en areasInscritas, boletaPago o cualquier otra propiedad que almacene esta info
-          if (student.areasInscritas && student.areasInscritas.length > 0) {
-            inscripcionesEstudiante.push({
-              id: student.id + '-inscripcion',
-              areas: student.areasInscritas,
-              convocatoriaId: 'default', // Asignar alguna convocatoria por defecto si no está explícita
-              fechaInscripcion: student.boletaPago?.fecha || new Date().toISOString(),
-              ordenPago: student.boletaPago
-            });
-          }
+        let inscripcionesEstudiante = [];
+        try {
+          const student = await apiService.getCurrentStudent();
           
-          // Si hay una estructura específica para inscripciones, usarla
-          if (student.inscripciones && Array.isArray(student.inscripciones)) {
-            student.inscripciones.forEach(insc => inscripcionesEstudiante.push(insc));
+          if (student) {
+            // Buscar inscripciones en el estudiante
+            if (student.areasInscritas && student.areasInscritas.length > 0) {
+              inscripcionesEstudiante.push({
+                id: student.id + '-inscripcion',
+                areas: student.areasInscritas,
+                convocatoriaId: student.convocatoriaId || '1', // ID por defecto
+                fechaInscripcion: student.boletaPago?.fecha || new Date().toISOString(),
+                ordenPago: student.boletaPago
+              });
+            }
+            
+            // Si hay una estructura específica para inscripciones, usarla
+            if (student.inscripciones && Array.isArray(student.inscripciones)) {
+              student.inscripciones.forEach(insc => inscripcionesEstudiante.push(insc));
+            }
           }
-          
-          // Nota: Se ha eliminado el código de prueba que creaba inscripciones automáticas
+        } catch (profileError) {
+          console.error('Error al obtener perfil del estudiante:', profileError);
+          // Usar datos vacíos si no se puede obtener el perfil
+          inscripcionesEstudiante = [];
         }
         
         console.log('Inscripciones del estudiante:', inscripcionesEstudiante);
         setInscripciones(inscripcionesEstudiante);
         setConvocatorias(convocatoriasActualizadas);
-        console.log('Convocatorias actualizadas con áreas filtradas:', convocatoriasActualizadas);
+        console.log('Convocatorias disponibles:', convocatoriasActualizadas);
       } catch (err) {
         console.error('Error al cargar datos:', err);
         setError('No se pudieron cargar los datos necesarios.');
