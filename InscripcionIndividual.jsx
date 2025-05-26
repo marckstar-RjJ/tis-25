@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import './App.css';
 import { apiService } from './services/api';
 import { useAuth } from './context/AuthContext';
+import Logger from './services/logger';
 
 function InscripcionIndividual({ navigate: customNavigate }) {
   const { studentId } = useParams();
@@ -167,7 +168,22 @@ function InscripcionIndividual({ navigate: customNavigate }) {
       console.log('Student ID:', estudiante.id);
       console.log('Áreas seleccionadas:', areasSeleccionadas);
       
+      // Registrar intento de inscripción
+      await Logger.log('intento_inscripcion_individual', {
+        estudianteId: estudiante.id,
+        categoria: 'Áreas Olímpicas',
+        modalidad: 'Individual'
+      });
+
       await apiService.inscribirEstudianteEnAreas(estudiante.id, areasSeleccionadas);
+      
+      // Registrar inscripción exitosa
+      await Logger.log('inscripcion_individual_exitosa', {
+        inscripcionId: 'Nueva inscripción',
+        estudianteId: estudiante.id,
+        categoria: 'Áreas Olímpicas',
+        modalidad: 'Individual'
+      });
       
       // Mostrar mensaje de éxito incluyendo información sobre la boleta
       const mensaje = `Inscripción realizada con éxito en ${areasSeleccionadas.length} área(s).
@@ -183,6 +199,13 @@ function InscripcionIndividual({ navigate: customNavigate }) {
         navigate('/tutor/estudiantes');
       }
     } catch (err) {
+      // Registrar error en la inscripción
+      await Logger.logError(err, {
+        estudianteId: estudiante.id,
+        categoria: 'Áreas Olímpicas',
+        modalidad: 'Individual'
+      });
+
       console.error("Error al realizar la inscripción:", err);
       alert('Ocurrió un error al procesar la inscripción. Por favor, intente nuevamente.');
     } finally {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './App.css';
 import { apiService } from './services/api';
+import Logger from './services/logger';
 
 function Registro() {
   const navigate = useNavigate();
@@ -229,45 +230,48 @@ function Registro() {
           userData.apellidosTutor = formData.apellidosTutor;
         } else if (tipoUsuario === 'tutor') {
           userData.celular = formData.celular;
-          // Solo enviar colegio si se ha seleccionado uno
           if (formData.colegio) {
             userData.colegio = formData.colegio;
           }
           userData.departamento = formData.departamento;
         }
         
-        console.log('Objeto userData a enviar:', userData);
+        // Registrar intento de registro
+        await Logger.log('intento_registro', {
+          tipoUsuario,
+          email: formData.email,
+          ci: formData.ci
+        });
 
         // Enviar los datos al servidor
         const result = await apiService.createUser(userData);
-        console.log('Usuario registrado:', result);
+        
+        // Registrar registro exitoso
+        await Logger.log('registro_exitoso', {
+          tipoUsuario,
+          email: formData.email,
+          userId: result.id
+        });
         
         alert('Registro exitoso');
         navigate('/');
       } catch (error) {
+        // Registrar error en el registro
+        await Logger.logError(error, {
+          tipoUsuario,
+          email: formData.email,
+          ci: formData.ci
+        });
+
         console.error('Error al registrar:', error);
         if (error.response && error.response.data && error.response.data.errors) {
-          // Si hay errores de validación del backend
-          const backendErrors = error.response.data.errors;
-          const newErrors = {};
-          Object.keys(backendErrors).forEach(key => {
-            newErrors[key] = backendErrors[key][0];
-          });
-          setErrores(newErrors);
+          setErrores(error.response.data.errors);
         } else {
-          setErrores(prev => ({
-            ...prev,
-            general: error.message || 'Error al registrar usuario'
-          }));
+          alert('Error al registrar usuario. Por favor, intente nuevamente.');
         }
       } finally {
         setIsLoading(false);
       }
-    } else {
-      setErrores(prev => ({
-        ...prev,
-        general: 'Por favor, corrija los errores en el formulario'
-      }));
     }
   };
 
