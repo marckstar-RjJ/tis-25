@@ -3,27 +3,39 @@
   to = "https://tis-25-backend.onrender.com/api/:splat"
   status = 200
   force = true
+  headers = {Access-Control-Allow-Origin = "*"}
+
+[[redirects]]
+  from = "/colegios"
+  to = "https://tis-25-backend.onrender.com/api/colegios"
+  status = 200
+  force = true
+  headers = {Access-Control-Allow-Origin = "*"}
 
 [[redirects]]
   from = "/sanctum/*"
   to = "https://tis-25-backend.onrender.com/sanctum/:splat"
   status = 200
   force = true
+  headers = {Access-Control-Allow-Origin = "*"}
 
 [[redirects]]
   from = "/login"
-  to = "https://tis-25-backend.onrender.com/login"
+  to = "https://tis-25-backend.onrender.com/api/login"
   status = 200
   force = true
+  headers = {Access-Control-Allow-Origin = "*"}
 
 [[redirects]]
   from = "/logout"
-  to = "https://tis-25-backend.onrender.com/logout"
+  to = "https://tis-25-backend.onrender.com/api/logout"
   status = 200
   force = true
+  headers = {Access-Control-Allow-Origin = "*"}
 
 [[redirects]]
   from = "/registro"
-  to = "https://tis-25-backend.onrender.com/registro"
+  to = "https://tis-25-backend.onrender.com/api/registro"
   status = 200
-  force = true 
+  force = true
+  headers = {Access-Control-Allow-Origin = "*"} 
