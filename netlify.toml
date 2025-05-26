@@ -1,0 +1,29 @@
+[[redirects]]
+  from = "/api/*"
+  to = "https://tis-25-backend.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/sanctum/*"
+  to = "https://tis-25-backend.onrender.com/sanctum/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/login"
+  to = "https://tis-25-backend.onrender.com/login"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/logout"
+  to = "https://tis-25-backend.onrender.com/logout"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/registro"
+  to = "https://tis-25-backend.onrender.com/registro"
+  status = 200
+  force = true 
