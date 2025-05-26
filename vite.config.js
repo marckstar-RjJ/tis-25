@@ -7,29 +7,29 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'https://tis-25-backend.onrender.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
       '/sanctum': {
-        target: 'http://localhost:8000',
+        target: 'https://tis-25-backend.onrender.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
       '/login': {
-        target: 'http://localhost:8000',
+        target: 'https://tis-25-backend.onrender.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
       '/logout': {
-        target: 'http://localhost:8000',
+        target: 'https://tis-25-backend.onrender.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
       '/registro': {
-        target: 'http://localhost:8000',
+        target: 'https://tis-25-backend.onrender.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       }
     }
   }
