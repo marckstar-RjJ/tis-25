@@ -924,3 +924,88 @@ button[type="submit"]:disabled {
         height: 16px;
     }
 }
+
+/* Force light mode appearance for form elements */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="tel"],
+input[type="file"],
+select,
+textarea {
+    background-color: #ffffff !important;
+    color: #111111 !important;
+    border-color: #cccccc !important; /* Optional: ensure border is visible */
+}
+
+/* Ensure placeholder text is visible in light mode */
+input::placeholder,
+textarea::placeholder {
+    color: #888888 !important; /* Adjust as needed */
+}
+
+/* Ensure no horizontal overflow from child elements */
+.app > div,
+.container > div,
+.dashboard > div,
+.main-content > div {
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+/* Additional styles to ensure footer is correctly positioned and sized */
+.footer {
+    /* Ensure footer does not shrink below content */
+    flex-shrink: 0;
+    /* Ensure footer is at the bottom if the content is short */
+    margin-top: auto; /* Pushes the footer to the bottom */
+}
+
+/* Re-confirm key footer styles */
+.footer {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 20px; /* Default padding */
+}
+
+.footer .contact-info {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 10px;
+}
+
+.footer .contact-info a {
+    /* Ensure text within links wraps if needed */
+    word-break: break-word;
+}
+
+/* Responsive adjustments for footer */
+@media (max-width: 768px) {
+    .footer {
+        padding: 15px; /* Adjusted padding for smaller screens */
+    }
+
+    .footer .contact-info {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .footer {
+        padding: 10px; /* Adjusted padding for smaller screens */
+    }
+
+    .footer .contact-info {
+        gap: 8px;
+    }
+
+    .footer .contact-info a {
+         font-size: 0.85rem; /* Slightly smaller font */
+    }
+}
