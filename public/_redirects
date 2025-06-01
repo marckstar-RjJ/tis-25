@@ -4,7 +4,9 @@
 /sanctum/* https://tis-25-backend.onrender.com/sanctum/:splat 200
 /login https://tis-25-backend.onrender.com/api/login 200
 /logout https://tis-25-backend.onrender.com/api/logout 200
-/registro https://tis-25-backend.onrender.com/api/registro 200
+
+# Redirigir la ruta de registro al backend solo para las solicitudes de API
+/registro/api/* https://tis-25-backend.onrender.com/api/registro/:splat 200
 
 # Redirigir todas las demás rutas a index.html para el SPA
 /* /index.html 200 
