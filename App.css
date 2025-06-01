@@ -842,3 +842,85 @@ button[type="submit"]:disabled {
   margin: 3px 0 0 0;
   font-style: italic;
 }
+
+/* Footer styles */
+.footer {
+    background-color: var(--dark-green); /* Or another dark color */
+    color: var(--light-color); /* Or a light color for text */
+    padding: 20px;
+    text-align: center;
+    margin-top: 40px; /* Adjust spacing as needed */
+    width: 100%; /* Ensure footer takes full width */
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+.footer .contact-info {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+    gap: 20px; /* Space between contact items */
+    margin-top: 10px;
+}
+
+.footer .contact-info a {
+    color: var(--light-color);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 1rem;
+}
+
+.footer .contact-info a:hover {
+    text-decoration: underline;
+}
+
+/* Make icons responsive */
+.footer .contact-info img {
+    width: 20px; /* Adjust size as needed */
+    height: 20px; /* Ensure aspect ratio is maintained */
+    vertical-align: middle;
+}
+
+/* Responsive adjustments for footer */
+@media (max-width: 768px) {
+    .footer {
+        padding: 15px;
+        margin-top: 30px;
+    }
+
+    .footer .contact-info {
+        flex-direction: column; /* Stack contact items vertically on smaller screens */
+        gap: 10px; /* Reduce space when stacked */
+    }
+
+    .footer .contact-info a {
+        font-size: 0.9rem;
+    }
+
+    .footer .contact-info img {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .footer {
+        padding: 10px;
+        margin-top: 20px;
+    }
+
+    .footer .contact-info {
+        gap: 8px;
+    }
+
+    .footer .contact-info a {
+        font-size: 0.85rem;
+    }
+
+    .footer .contact-info img {
+        width: 16px;
+        height: 16px;
+    }
+}
