@@ -1,9 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './App.css';
 
 function Dashboard() {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    totalEstudiantes: 0,
+    totalTutores: 0,
+    totalAreas: 0,
+    inscripcionesPendientes: 0
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await axios.get('/api/dashboard/stats');
+        setStats(response.data);
+      } catch (error) {
+        console.error('Error al cargar estadísticas:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const handleLogout = () => {
     navigate('/');
@@ -56,6 +76,24 @@ function Dashboard() {
             <p>Ver el estado de inscripción y generar reportes.</p>
           </div>
         </section>
+        <div className="content-grid">
+          <div className="card">
+            <h3>Total Estudiantes</h3>
+            <p>{stats.totalEstudiantes}</p>
+          </div>
+          <div className="card">
+            <h3>Total Tutores</h3>
+            <p>{stats.totalTutores}</p>
+          </div>
+          <div className="card">
+            <h3>Áreas Disponibles</h3>
+            <p>{stats.totalAreas}</p>
+          </div>
+          <div className="card">
+            <h3>Inscripciones Pendientes</h3>
+            <p>{stats.inscripcionesPendientes}</p>
+          </div>
+        </div>
       </main>
     </div>
   );

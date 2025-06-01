@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './App.css';
 import { apiService } from './services/api';
 import Logger from './services/logger';
+import axios from 'axios';
 
 function Registro() {
   const navigate = useNavigate();
@@ -28,15 +29,16 @@ function Registro() {
   const [isLoading, setIsLoading] = useState(false);
   const [colegios, setColegios] = useState([]);
   const [cargandoColegios, setCargandoColegios] = useState(true);
+  const [error, setError] = useState('');
 
   // Cargar la lista de colegios disponibles al iniciar
   useEffect(() => {
     const fetchColegios = async () => {
       try {
-        const data = await apiService.getAllColleges();
-        setColegios(data);
-        if (data.length > 0) {
-          setFormData(prev => ({ ...prev, colegio: data[0].id }));
+        const response = await axios.get('/api/colegios');
+        setColegios(response.data);
+        if (response.data.length > 0) {
+          setFormData(prev => ({ ...prev, colegio: response.data[0].id }));
         }
       } catch (error) {
         console.error('Error al cargar colegios:', error);
@@ -201,15 +203,11 @@ function Registro() {
       if (response.success) {
         navigate('/');
       } else {
-        setErrores({
-          submit: response.message || 'Error al registrar usuario'
-        });
+        setError(response.message || 'Error al registrar usuario');
       }
     } catch (error) {
       console.error('Error en el registro:', error);
-      setErrores({
-        submit: 'Error al registrar usuario. Por favor, intente nuevamente.'
-      });
+      setError('Error al registrar usuario. Por favor, intente nuevamente.');
     } finally {
       setIsLoading(false);
     }
@@ -218,18 +216,30 @@ function Registro() {
   return (
     <div className="registro-container">
       <h2>Registro de Usuario</h2>
+      {error && <div className="error">{error}</div>}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label>Tipo de Usuario:</label>
-          <select
-            name="tipoUsuario"
-            value={tipoUsuario}
-            onChange={handleTipoUsuarioChange}
-            required
-          >
-            <option value="estudiante">Estudiante</option>
-            <option value="tutor">Tutor</option>
-          </select>
+          <div>
+            <label>
+              <input
+                type="radio"
+                name="tipoUsuario"
+                value="estudiante"
+                checked={tipoUsuario === 'estudiante'}
+                onChange={handleTipoUsuarioChange}
+              /> Estudiante
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="tipoUsuario"
+                value="tutor"
+                checked={tipoUsuario === 'tutor'}
+                onChange={handleTipoUsuarioChange}
+              /> Tutor
+            </label>
+          </div>
         </div>
 
         <div className="form-group">
@@ -307,6 +317,7 @@ function Registro() {
                 required
                 disabled={cargandoColegios}
               >
+                <option value="">Seleccione un colegio</option>
                 {colegios.map(colegio => (
                   <option key={colegio.id} value={colegio.id}>
                     {colegio.nombre}
@@ -431,8 +442,6 @@ function Registro() {
           />
           {errores.confirmarPassword && <span className="error">{errores.confirmarPassword}</span>}
         </div>
-
-        {errores.submit && <div className="error-message">{errores.submit}</div>}
 
         <button type="submit" disabled={isLoading}>
           {isLoading ? 'Registrando...' : 'Registrarse'}
