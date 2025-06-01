@@ -52,20 +52,7 @@ function Registro() {
   useEffect(() => {
     let newFormData = { ...formData };
     
-    if (tipoUsuario === 'administrador') {
-      newFormData = {
-        ...newFormData,
-        fechaNacimiento: '',
-        curso: '',
-        emailTutor: '',
-        celular: '',
-        celularTutor: '',
-        nombreTutor: '',
-        apellidosTutor: '',
-        colegio: '',
-        departamento: ''
-      };
-    } else if (tipoUsuario === 'tutor') {
+    if (tipoUsuario === 'tutor') {
       newFormData = {
         ...newFormData,
         fechaNacimiento: '',
@@ -119,8 +106,6 @@ function Registro() {
 
   const validarFormulario = () => {
     const nuevosErrores = {};
-
-    console.log('Validando formulario. Valor de departamento:', formData.departamento);
 
     // Validaciones comunes para todos los tipos de usuario
     if (!formData.nombre) {
@@ -192,11 +177,6 @@ function Registro() {
       if (!formData.celular) {
         nuevosErrores.celular = 'El número de celular es requerido';
       }
-      
-      // La validación de departamento ahora es opcional
-      // if (!formData.departamento) {
-      //   nuevosErrores.departamento = 'El departamento es requerido';
-      // }
     }
     
     setErrores(nuevosErrores);
@@ -206,408 +186,257 @@ function Registro() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (validarFormulario()) {
-      setIsLoading(true);
-      try {
-        // Preparar los datos según el tipo de usuario
-        const userData = {
-          tipoUsuario: tipoUsuario,
-          nombre: formData.nombre,
-          apellidos: formData.apellidos,
-          ci: formData.ci,
-          email: formData.email,
-          password: formData.password
-        };
-        
-        if (tipoUsuario === 'estudiante') {
-          userData.fechaNacimiento = formData.fechaNacimiento;
-          userData.curso = Number(formData.curso);
-          userData.colegio = formData.colegio;
-          userData.emailTutor = formData.emailTutor;
-          userData.celular = formData.celular;
-          userData.celularTutor = formData.celularTutor;
-          userData.nombreTutor = formData.nombreTutor;
-          userData.apellidosTutor = formData.apellidosTutor;
-        } else if (tipoUsuario === 'tutor') {
-          userData.celular = formData.celular;
-          if (formData.colegio) {
-            userData.colegio = formData.colegio;
-          }
-          userData.departamento = formData.departamento;
-        }
-        
-        // Registrar intento de registro
-        await Logger.log('intento_registro', {
-          tipoUsuario,
-          email: formData.email,
-          ci: formData.ci
-        });
-
-        // Enviar los datos al servidor
-        const result = await apiService.createUser(userData);
-        
-        // Registrar registro exitoso
-        await Logger.log('registro_exitoso', {
-          tipoUsuario,
-          email: formData.email,
-          userId: result.id
-        });
-        
-        alert('Registro exitoso');
+    if (!validarFormulario()) {
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const response = await apiService.register({
+        ...formData,
+        tipoUsuario
+      });
+      
+      if (response.success) {
         navigate('/');
-      } catch (error) {
-        // Registrar error en el registro
-        await Logger.logError(error, {
-          tipoUsuario,
-          email: formData.email,
-          ci: formData.ci
+      } else {
+        setErrores({
+          submit: response.message || 'Error al registrar usuario'
         });
-
-        console.error('Error al registrar:', error);
-        if (error.response && error.response.data && error.response.data.errors) {
-          setErrores(error.response.data.errors);
-        } else {
-          alert('Error al registrar usuario. Por favor, intente nuevamente.');
-        }
-      } finally {
-        setIsLoading(false);
       }
+    } catch (error) {
+      console.error('Error en el registro:', error);
+      setErrores({
+        submit: 'Error al registrar usuario. Por favor, intente nuevamente.'
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="registro-container">
-      <div className="registro-header">
-        <img src="/logo_umss.png" alt="Logo UMSS" className="logo" />
-        <h1>Registro de Usuario</h1>
-      </div>
-
-      <div className="tipo-usuario-selector">
-        <h2>Selecciona el tipo de usuario:</h2>
-        <div className="tipo-usuario-options">
-          <label>
-            <input
-              type="radio"
-              name="tipoUsuario"
-              value="estudiante"
-              checked={tipoUsuario === 'estudiante'}
-              onChange={handleTipoUsuarioChange}
-            />
-            Estudiante
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="tipoUsuario"
-              value="tutor"
-              checked={tipoUsuario === 'tutor'}
-              onChange={handleTipoUsuarioChange}
-            />
-            Tutor
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="tipoUsuario"
-              value="administrador"
-              checked={tipoUsuario === 'administrador'}
-              onChange={handleTipoUsuarioChange}
-            />
-            Administrador
-          </label>
-        </div>
-      </div>
-
-      <form className="registro-form" onSubmit={handleSubmit}>
-        {/* Campos comunes para todos los usuarios */}
+      <h2>Registro de Usuario</h2>
+      <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="nombre">Nombres</label>
+          <label>Tipo de Usuario:</label>
+          <select
+            name="tipoUsuario"
+            value={tipoUsuario}
+            onChange={handleTipoUsuarioChange}
+            required
+          >
+            <option value="estudiante">Estudiante</option>
+            <option value="tutor">Tutor</option>
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label>Nombre:</label>
           <input
             type="text"
-            id="nombre"
             name="nombre"
             value={formData.nombre}
             onChange={handleInputChange}
-            className={errores.nombre ? 'error' : ''}
+            required
           />
-          {errores.nombre && <span className="error-message">{errores.nombre}</span>}
+          {errores.nombre && <span className="error">{errores.nombre}</span>}
         </div>
 
         <div className="form-group">
-          <label htmlFor="apellidos">Apellidos</label>
+          <label>Apellidos:</label>
           <input
             type="text"
-            id="apellidos"
             name="apellidos"
             value={formData.apellidos}
             onChange={handleInputChange}
-            className={errores.apellidos ? 'error' : ''}
+            required
           />
-          {errores.apellidos && <span className="error-message">{errores.apellidos}</span>}
+          {errores.apellidos && <span className="error">{errores.apellidos}</span>}
         </div>
 
         <div className="form-group">
-          <label htmlFor="ci">Carnet de Identidad</label>
+          <label>Carnet de Identidad:</label>
           <input
             type="text"
-            id="ci"
             name="ci"
             value={formData.ci}
             onChange={handleInputChange}
-            className={errores.ci ? 'error' : ''}
+            required
           />
-          {errores.ci && <span className="error-message">{errores.ci}</span>}
+          {errores.ci && <span className="error">{errores.ci}</span>}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="email">Correo Electrónico</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            className={errores.email ? 'error' : ''}
-          />
-          {errores.email && <span className="error-message">{errores.email}</span>}
-        </div>
-
-        {/* Campos específicos para estudiantes */}
         {tipoUsuario === 'estudiante' && (
           <>
             <div className="form-group">
-              <label htmlFor="fechaNacimiento">Fecha de Nacimiento</label>
+              <label>Fecha de Nacimiento:</label>
               <input
                 type="date"
-                id="fechaNacimiento"
                 name="fechaNacimiento"
                 value={formData.fechaNacimiento}
                 onChange={handleInputChange}
-                className={errores.fechaNacimiento ? 'error' : ''}
+                required
               />
-              {errores.fechaNacimiento && <span className="error-message">{errores.fechaNacimiento}</span>}
+              {errores.fechaNacimiento && <span className="error">{errores.fechaNacimiento}</span>}
             </div>
 
             <div className="form-group">
-              <label htmlFor="curso">Curso</label>
+              <label>Curso:</label>
               <select
-                id="curso"
                 name="curso"
                 value={formData.curso}
                 onChange={handleInputChange}
-                className={errores.curso ? 'error' : ''}
+                required
               >
-                <option value="">Seleccione un curso</option>
                 <option value="3">3° Primaria</option>
                 <option value="4">4° Primaria</option>
                 <option value="5">5° Primaria</option>
                 <option value="6">6° Primaria</option>
-                <option value="7">1° Secundaria</option>
-                <option value="8">2° Secundaria</option>
-                <option value="9">3° Secundaria</option>
-                <option value="10">4° Secundaria</option>
-                <option value="11">5° Secundaria</option>
-                <option value="12">6° Secundaria</option>
               </select>
-              {errores.curso && <span className="error-message">{errores.curso}</span>}
+              {errores.curso && <span className="error">{errores.curso}</span>}
             </div>
 
             <div className="form-group">
-              <label htmlFor="colegio">Colegio</label>
+              <label>Colegio:</label>
               <select
-                id="colegio"
                 name="colegio"
                 value={formData.colegio}
                 onChange={handleInputChange}
-                className={errores.colegio ? 'error' : ''}
-                disabled={cargandoColegios || colegios.length === 0}
+                required
+                disabled={cargandoColegios}
               >
-                {cargandoColegios ? (
-                  <option value="">Cargando colegios...</option>
-                ) : colegios.length === 0 ? (
-                  <option value="">No hay colegios disponibles</option>
-                ) : (
-                  <>
-                    <option value="">Seleccione un colegio</option>
-                    {colegios.map(colegio => (
-                      <option key={colegio.id} value={colegio.id}>
-                        {colegio.nombre}
-                      </option>
-                    ))}
-                  </>
-                )}
+                {colegios.map(colegio => (
+                  <option key={colegio.id} value={colegio.id}>
+                    {colegio.nombre}
+                  </option>
+                ))}
               </select>
-              {errores.colegio && <span className="error-message">{errores.colegio}</span>}
+              {errores.colegio && <span className="error">{errores.colegio}</span>}
             </div>
+          </>
+        )}
 
-            <div className="form-group">
-              <label htmlFor="celular">Número de Celular</label>
-              <input
-                type="tel"
-                id="celular"
-                name="celular"
-                value={formData.celular}
-                onChange={handleInputChange}
-                className={errores.celular ? 'error' : ''}
-              />
-              {errores.celular && <span className="error-message">{errores.celular}</span>}
-            </div>
+        <div className="form-group">
+          <label>Email:</label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            required
+          />
+          {errores.email && <span className="error">{errores.email}</span>}
+        </div>
 
+        {tipoUsuario === 'estudiante' && (
+          <>
             <div className="form-group">
-              <label htmlFor="nombreTutor">Nombres del Tutor</label>
-              <input
-                type="text"
-                id="nombreTutor"
-                name="nombreTutor"
-                value={formData.nombreTutor}
-                onChange={handleInputChange}
-                className={errores.nombreTutor ? 'error' : ''}
-              />
-              {errores.nombreTutor && <span className="error-message">{errores.nombreTutor}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="apellidosTutor">Apellidos del Tutor</label>
-              <input
-                type="text"
-                id="apellidosTutor"
-                name="apellidosTutor"
-                value={formData.apellidosTutor}
-                onChange={handleInputChange}
-                className={errores.apellidosTutor ? 'error' : ''}
-              />
-              {errores.apellidosTutor && <span className="error-message">{errores.apellidosTutor}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="emailTutor">Correo Electrónico del Tutor</label>
+              <label>Email del Tutor:</label>
               <input
                 type="email"
-                id="emailTutor"
                 name="emailTutor"
                 value={formData.emailTutor}
                 onChange={handleInputChange}
-                className={errores.emailTutor ? 'error' : ''}
+                required
               />
-              {errores.emailTutor && <span className="error-message">{errores.emailTutor}</span>}
+              {errores.emailTutor && <span className="error">{errores.emailTutor}</span>}
             </div>
 
             <div className="form-group">
-              <label htmlFor="celularTutor">Número de Celular del Tutor</label>
+              <label>Celular:</label>
               <input
                 type="tel"
-                id="celularTutor"
-                name="celularTutor"
-                value={formData.celularTutor}
-                onChange={handleInputChange}
-                className={errores.celularTutor ? 'error' : ''}
-              />
-              {errores.celularTutor && <span className="error-message">{errores.celularTutor}</span>}
-            </div>
-          </>
-        )}
-
-        {/* Campos específicos para tutores */}
-        {tipoUsuario === 'tutor' && (
-          <>
-            <div className="form-group">
-              <label htmlFor="celular">Número de Celular</label>
-              <input
-                type="tel"
-                id="celular"
                 name="celular"
                 value={formData.celular}
                 onChange={handleInputChange}
-                className={errores.celular ? 'error' : ''}
+                required
               />
-              {errores.celular && <span className="error-message">{errores.celular}</span>}
+              {errores.celular && <span className="error">{errores.celular}</span>}
             </div>
 
             <div className="form-group">
-              <label htmlFor="colegio">Colegio</label>
-              <select
-                id="colegio"
-                name="colegio"
-                value={formData.colegio}
+              <label>Celular del Tutor:</label>
+              <input
+                type="tel"
+                name="celularTutor"
+                value={formData.celularTutor}
                 onChange={handleInputChange}
-                className={errores.colegio ? 'error' : ''}
-                disabled={cargandoColegios || colegios.length === 0}
-              >
-                {cargandoColegios ? (
-                  <option value="">Cargando colegios...</option>
-                ) : colegios.length === 0 ? (
-                  <option value="">No hay colegios disponibles</option>
-                ) : (
-                  <>
-                    <option value="">Seleccione un colegio</option>
-                    {colegios.map(colegio => (
-                      <option key={colegio.id} value={colegio.id}>
-                        {colegio.nombre}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
-              {errores.colegio && <span className="error-message">{errores.colegio}</span>}
+                required
+              />
+              {errores.celularTutor && <span className="error">{errores.celularTutor}</span>}
             </div>
 
             <div className="form-group">
-              <label htmlFor="departamento">Departamento</label>
-              <select
-                id="departamento"
-                name="departamento"
-                value={formData.departamento}
+              <label>Nombre del Tutor:</label>
+              <input
+                type="text"
+                name="nombreTutor"
+                value={formData.nombreTutor}
                 onChange={handleInputChange}
-                className={errores.departamento ? 'error' : ''}
-              >
-                <option value="">Seleccione un departamento</option>
-                <option value="Cochabamba">Cochabamba</option>
-                <option value="La Paz">La Paz</option>
-                <option value="Santa Cruz">Santa Cruz</option>
-              </select>
-              {errores.departamento && <span className="error-message">{errores.departamento}</span>}
+                required
+              />
+              {errores.nombreTutor && <span className="error">{errores.nombreTutor}</span>}
+            </div>
+
+            <div className="form-group">
+              <label>Apellidos del Tutor:</label>
+              <input
+                type="text"
+                name="apellidosTutor"
+                value={formData.apellidosTutor}
+                onChange={handleInputChange}
+                required
+              />
+              {errores.apellidosTutor && <span className="error">{errores.apellidosTutor}</span>}
             </div>
           </>
         )}
 
-        {/* Campos de contraseña para todos los usuarios */}
+        {tipoUsuario === 'tutor' && (
+          <div className="form-group">
+            <label>Celular:</label>
+            <input
+              type="tel"
+              name="celular"
+              value={formData.celular}
+              onChange={handleInputChange}
+              required
+            />
+            {errores.celular && <span className="error">{errores.celular}</span>}
+          </div>
+        )}
+
         <div className="form-group">
-          <label htmlFor="password">Contraseña</label>
+          <label>Contraseña:</label>
           <input
             type="password"
-            id="password"
             name="password"
             value={formData.password}
             onChange={handleInputChange}
-            className={errores.password ? 'error' : ''}
+            required
           />
-          {errores.password && <span className="error-message">{errores.password}</span>}
+          {errores.password && <span className="error">{errores.password}</span>}
         </div>
 
         <div className="form-group">
-          <label htmlFor="confirmarPassword">Confirmar Contraseña</label>
+          <label>Confirmar Contraseña:</label>
           <input
             type="password"
-            id="confirmarPassword"
             name="confirmarPassword"
             value={formData.confirmarPassword}
             onChange={handleInputChange}
-            className={errores.confirmarPassword ? 'error' : ''}
+            required
           />
-          {errores.confirmarPassword && <span className="error-message">{errores.confirmarPassword}</span>}
+          {errores.confirmarPassword && <span className="error">{errores.confirmarPassword}</span>}
         </div>
 
-        <button
-          type="submit"
-          className="submit-button"
-          disabled={isLoading || (tipoUsuario !== 'administrador' && colegios.length === 0)}
-        >
-          {isLoading ? 'Registrando...' : 'Registrar'}
+        {errores.submit && <div className="error-message">{errores.submit}</div>}
+
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? 'Registrando...' : 'Registrarse'}
         </button>
-
-        <div className="login-link">
-          <p>¿Ya tienes una cuenta? <a href="/" onClick={(e) => { e.preventDefault(); navigate('/'); }}>Inicia sesión</a></p>
-        </div>
       </form>
     </div>
   );
