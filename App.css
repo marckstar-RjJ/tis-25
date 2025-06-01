@@ -6,12 +6,18 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+html,
 body {
   background-color: #ffffff;
   color: #111;
   min-height: 100vh;
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: hidden !important;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  
+  /* Force light color scheme */
+  color-scheme: light !important;
 }
 
 /* ======================== */
@@ -925,24 +931,35 @@ button[type="submit"]:disabled {
     }
 }
 
-/* Force light mode appearance for form elements */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="date"],
-input[type="tel"],
-input[type="file"],
+/* Force light mode appearance for form elements - More specific attempt */
+input:is([type="text"], [type="email"], [type="password"], [type="date"], [type="tel"], [type="file"]),
 select,
 textarea {
     background-color: #ffffff !important;
-    color: #111111 !important;
-    border-color: #cccccc !important; /* Optional: ensure border is visible */
+    color: #000000 !important; /* Use pure black for maximum contrast */
+    border-color: #cccccc !important;
+    /* Ensure no unwanted filters are applied */
+    filter: none !important;
+    -webkit-filter: none !important;
 }
 
-/* Ensure placeholder text is visible in light mode */
+/* Ensure placeholder text is visible */
 input::placeholder,
 textarea::placeholder {
-    color: #888888 !important; /* Adjust as needed */
+    color: #555555 !important; /* Darker placeholder */
+    opacity: 1 !important; /* Ensure opacity is not reduced */
+}
+
+/* Potentially target autofill styles as well */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+    -webkit-text-fill-color: #000000 !important;
+    border-color: #cccccc !important;
+    filter: none !important;
+    -webkit-filter: none !important;
 }
 
 /* Ensure no horizontal overflow from child elements */
