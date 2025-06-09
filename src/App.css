@@ -65,7 +65,7 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 0.5rem 1rem;
   background-color: #f8f9fa;
   border-top: 1px solid #e0e0e0;
   width: 100%;
@@ -74,6 +74,82 @@ a {
   left: 0;
   right: 0;
   z-index: 100;
+}
+
+/* Estilos para dispositivos móviles */
+@media screen and (max-width: 768px) {
+  .footer {
+    flex-direction: column;
+    padding: 0.5rem;
+    gap: 1rem;
+  }
+  
+  .footer-content {
+    width: 100%;
+    gap: 1rem;
+  }
+  
+  .footer-left {
+    text-align: center;
+    width: 100%;
+  }
+  
+  .tech-icons {
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .tech-icon {
+    font-size: 1.2rem;
+  }
+  
+  .footer-nav {
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .footer-link {
+    font-size: 0.9rem;
+    padding: 0.3rem;
+  }
+  
+  /* Ajustes generales para móvil */
+  .app {
+    padding: 1rem;
+  }
+  
+  .header {
+    padding: 0.5rem 1rem;
+  }
+  
+  .header-left {
+    gap: 1rem;
+  }
+  
+  .header .main-nav {
+    gap: 1rem;
+  }
+  
+  .header .btn {
+    padding: 0.5rem 1rem;
+  }
+  
+  .welcome-card {
+    padding: 20px;
+  }
+  
+  .container {
+    padding: 1rem 0;
+  }
+  
+  .home-container {
+    padding: 1rem;
+  }
+  
+  .left-section {
+    padding: 0 1rem;
+  }
 }
 
 .footer-content {
