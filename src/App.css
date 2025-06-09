@@ -65,7 +65,7 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 1rem;
+  padding: 0.3rem 0.8rem;
   background-color: #f8f9fa;
   border-top: 1px solid #e0e0e0;
   width: 100%;
@@ -80,27 +80,27 @@ a {
 @media screen and (max-width: 768px) {
   /* Ajustes generales */
   html {
-    font-size: 14px;
+    font-size: 13px;
   }
   
   body {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
   
   .app {
-    padding: 0.5rem;
+    padding: 0.4rem;
   }
   
   /* Footer */
   .footer {
     flex-direction: column;
-    padding: 0.5rem;
-    gap: 0.8rem;
+    padding: 0.4rem;
+    gap: 0.6rem;
   }
   
   .footer-content {
     width: 100%;
-    gap: 0.8rem;
+    gap: 0.6rem;
   }
   
   .footer-left {
@@ -110,42 +110,53 @@ a {
   
   .tech-icons {
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
     flex-wrap: wrap;
   }
   
   .tech-icon {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
   
   .footer-nav {
     justify-content: center;
-    gap: 0.8rem;
+    gap: 0.6rem;
     flex-wrap: wrap;
   }
   
   .footer-link {
-    font-size: 0.85rem;
-    padding: 0.3rem;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
   }
   
-  /* Header y botones de inicio de sesión */
+  .footer-link svg {
+    width: 18px;
+    height: 18px;
+  }
+  
+  /* Header */
   .header {
-    padding: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
   .header-left {
-    gap: 0.8rem;
+    gap: 0.6rem;
   }
   
   .header .main-nav {
-    gap: 0.8rem;
+    gap: 0.6rem;
     flex-wrap: wrap;
   }
   
-  .header .btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.9rem;
+  .header .main-nav a {
+    font-size: 0.85rem;
+    padding: 0.3rem 0.6rem;
   }
   
   /* Botones de inicio de sesión y registro */
@@ -153,18 +164,22 @@ a {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.8rem;
-    margin: 1rem 0;
+    gap: 0.6rem;
+    margin: 0.8rem 0;
   }
 
   .auth-buttons button {
     width: 90%;
-    max-width: 280px;
-    font-size: 1rem;
-    padding: 0.8rem;
+    max-width: 260px;
+    font-size: 0.95rem;
+    padding: 0.6rem;
     border-radius: 6px;
     text-align: center;
     transition: all 0.3s ease;
+  }
+
+  .btn-registrar {
+    padding: 0.6rem;
   }
 
   .btn-ingresar {
