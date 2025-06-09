@@ -440,16 +440,6 @@ function Registro() {
             />
             Tutor
           </label>
-          <label>
-            <input
-              type="radio"
-              name="tipoUsuario"
-              value="administrador"
-              checked={tipoUsuario === 'administrador'}
-              onChange={handleTipoUsuarioChange}
-            />
-            Administrador
-          </label>
         </div>
       </div>
 
