@@ -53,7 +53,7 @@ const RecuperarContrasena = () => {
           
           Para continuar con el proceso de recuperación, haz clic en el siguiente enlace:
           
-          ${window.location.origin}/recuperar-contrasena/${resetToken}
+          ${window.location.origin}/reset-password/${resetToken}
           
           Este enlace expirará en 24 horas.
           Si no solicitaste este cambio, puedes ignorar este correo.

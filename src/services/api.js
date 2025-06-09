@@ -55,19 +55,13 @@ export const getEmailFromToken = async (token) => {
       body: JSON.stringify({ token })
     });
 
-    if (!response.ok) {
-      try {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al obtener email desde token');
-      } catch {
-        throw new Error('Error al procesar la solicitud');
-      }
-    }
-
-    return await response.json();
+    const data = await response.json();
+    
+    // Retornar el objeto completo para que el frontend pueda interpretar success y message
+    return data;
   } catch (error) {
-    console.error('Error en getEmailFromToken:', error);
-    throw new Error(`Error al obtener email desde token: ${error.message}`);
+    console.error('Error en la solicitud:', error);
+    throw new Error('Error al comunicarse con el servidor');
   }
 };
 

@@ -11,19 +11,33 @@ const ResetPassword = () => {
   const [message, setMessage] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [email, setEmail] = useState('');
+  const [error, setError] = useState(null);
 
   // Obtener el email del usuario usando el token
   useEffect(() => {
+    if (!token) {
+      setMessage('Token no encontrado en la URL');
+      setError('Token no encontrado en la URL');
+      return;
+    }
+
+    // Log para depuración
+    console.log('Token recibido en el frontend:', token);
+
     const fetchEmail = async () => {
       try {
-        const emailResponse = await getEmailFromToken(token);
-        if (emailResponse.data && emailResponse.data.email) {
-          setEmail(emailResponse.data.email);
+        const response = await getEmailFromToken(token);
+        
+        if (response.success && response.data && response.data.email) {
+          setEmail(response.data.email);
         } else {
-          setMessage('Token inválido o expirado');
+          setMessage(response.message || 'Token inválido o expirado (backend)');
+          setError(response.message || 'Token inválido o expirado (backend)');
         }
       } catch (error) {
-        setMessage('Error al obtener el email');
+        console.error('Error al obtener email:', error);
+        setMessage(error.message || 'Error al obtener el email (catch)');
+        setError(error.message || 'Error al obtener el email (catch)');
       }
     };
     fetchEmail();
@@ -45,14 +59,14 @@ const ResetPassword = () => {
     try {
       const response = await resetPassword(token, email, password);
       
-      if (response.status === 200) {
-        setMessage('Contraseña actualizada exitosamente');
+      if (response.success) {
+        setMessage(response.message);
         setShowSuccess(true);
         setTimeout(() => {
           navigate('/');
         }, 3000);
       } else {
-        setMessage('Error al restablecer la contraseña');
+        setMessage(response.message || 'Error al restablecer la contraseña');
       }
     } catch (error) {
       console.error('Error:', error);
