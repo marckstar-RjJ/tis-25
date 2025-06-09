@@ -74,7 +74,7 @@ function Home() {
             borderRadius: '6px', 
             margin: '0 4px',
             minWidth: '120px',
-            maxWidth: '395px'
+            maxWidth: '380px'
           }}>
             Iniciar Sesión
           </button>
@@ -88,7 +88,7 @@ function Home() {
             borderRadius: '4px', 
             margin: '0 4px',
             minWidth: '120px',
-            maxWidth: '395px',
+            maxWidth: '380px',
             display: 'inline-block'
           }}>
             Crear Cuenta
