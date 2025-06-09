@@ -133,70 +133,68 @@ const ListaConvocatorias = ({ onEditar, onCrearNueva }) => {
           No hay convocatorias registradas. ¡Crea la primera!
         </div>
       ) : (
-        <div className="table-responsive">
-          <table className="table table-hover">
-            <thead className="table-light">
-              <tr>
-                <th>Nombre</th>
-                <th>Período de Inscripción</th>
-                <th>Costo por Área</th>
-                <th>Máx. Áreas</th>
-                <th>Estado</th>
-                <th>Áreas</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {convocatorias.map((convocatoria) => {
-                const estadoInfo = getEstadoConvocatoria(convocatoria);
-                return (
-                  <tr key={convocatoria.id}>
-                    <td data-label="Nombre">{convocatoria.nombre}</td>
-                    <td data-label="Período de Inscripción">
-                      {formatearFecha(convocatoria.fecha_inicio_inscripciones)} - {formatearFecha(convocatoria.fecha_fin_inscripciones)}
-                    </td>
-                    <td data-label="Costo por Área">{convocatoria.costo_por_area} Bs</td>
-                    <td data-label="Máx. Áreas" className="text-center">{convocatoria.maximo_areas}</td>
-                    <td data-label="Estado">
-                      <Badge bg={estadoInfo.variant}>{estadoInfo.estado}</Badge>
-                    </td>
-                    <td data-label="Áreas" className="text-center">
-                      {convocatoria.areas?.length || 0}
+        <Table responsive bordered hover>
+          <thead className="table-light">
+            <tr>
+              <th>Nombre</th>
+              <th>Período de Inscripción</th>
+              <th>Costo por Área</th>
+              <th>Máx. Áreas</th>
+              <th>Estado</th>
+              <th>Áreas</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {convocatorias.map((convocatoria) => {
+              const estadoInfo = getEstadoConvocatoria(convocatoria);
+              return (
+                <tr key={convocatoria.id}>
+                  <td>{convocatoria.nombre}</td>
+                  <td>
+                    {formatearFecha(convocatoria.fecha_inicio_inscripciones)} - {formatearFecha(convocatoria.fecha_fin_inscripciones)}
+                  </td>
+                  <td>{convocatoria.costo_por_area} Bs</td>
+                  <td className="text-center">{convocatoria.maximo_areas}</td>
+                  <td>
+                    <Badge bg={estadoInfo.variant}>{estadoInfo.estado}</Badge>
+                  </td>
+                  <td className="text-center">
+                    {convocatoria.areas?.length || 0}
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => onEditar(convocatoria.id, 'areas')}
+                      title="Ver/Editar áreas"
+                    >
+                      <i className="bi bi-grid"></i>
+                    </Button>
+                  </td>
+                  <td>
+                    <div className="d-flex gap-2 justify-content-center">
                       <Button
-                        variant="link"
+                        variant="outline-primary"
                         size="sm"
-                        onClick={() => onEditar(convocatoria.id, 'areas')}
-                        title="Ver/Editar áreas"
+                        onClick={() => onEditar(convocatoria.id)}
+                        title="Editar convocatoria"
                       >
-                        <i className="bi bi-grid"></i>
+                        <i className="bi bi-pencil"></i>
                       </Button>
-                    </td>
-                    <td data-label="Acciones">
-                      <div className="d-flex gap-2 justify-content-center">
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() => onEditar(convocatoria.id)}
-                          title="Editar convocatoria"
-                        >
-                          <i className="bi bi-pencil"></i>
-                        </Button>
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={() => handleEliminar(convocatoria.id)}
-                          title="Eliminar convocatoria"
-                        >
-                          <i className="bi bi-trash"></i>
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={() => handleEliminar(convocatoria.id)}
+                        title="Eliminar convocatoria"
+                      >
+                        <i className="bi bi-trash"></i>
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </Table>
       )}
     </div>
   );

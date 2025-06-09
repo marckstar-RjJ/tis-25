@@ -36,134 +36,6 @@ a {
   min-height: 100vh;
 }
 
-/* Estilos para la tabla de convocatorias */
-.convocatorias-lista {
-  margin-top: 20px;
-}
-
-.convocatorias-lista h2 {
-  margin-bottom: 20px;
-}
-
-.convocatorias-lista .table {
-  margin-bottom: 0;
-}
-
-.convocatorias-lista .table thead th {
-  font-weight: 600;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.convocatorias-lista .table tbody td {
-  padding: 12px 8px;
-  vertical-align: middle;
-}
-
-.convocatorias-lista .table tbody td:first-child {
-  font-weight: 500;
-}
-
-.convocatorias-lista .badge {
-  padding: 0.35em 0.65em;
-}
-
-.convocatorias-lista .btn-link {
-  padding: 0;
-  margin: 0;
-}
-
-.convocatorias-lista .btn-link:hover {
-  text-decoration: none;
-}
-
-/* Estilos responsivos para móvil */
-@media (max-width: 768px) {
-  .convocatorias-lista {
-    overflow-x: auto;
-  }
-
-  .convocatorias-lista .table {
-    min-width: 100%;
-  }
-
-  .convocatorias-lista .table thead {
-    display: none;
-  }
-
-  .convocatorias-lista .table tbody {
-    display: block;
-  }
-
-  .convocatorias-lista .table tbody tr {
-    display: block;
-    margin-bottom: 15px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  }
-
-  .convocatorias-lista .table tbody tr td {
-    display: block;
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-  }
-
-  .convocatorias-lista .table tbody tr td:first-child {
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-  }
-
-  .convocatorias-lista .table tbody tr td:last-child {
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
-  }
-
-  .convocatorias-lista .table tbody tr td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    display: block;
-    margin-bottom: 5px;
-    color: #666;
-  }
-
-  .convocatorias-lista .table tbody tr td:first-child::before {
-    content: "Nombre";
-  }
-
-  .convocatorias-lista .table tbody tr td:nth-child(2)::before {
-    content: "Período";
-  }
-
-  .convocatorias-lista .table tbody tr td:nth-child(3)::before {
-    content: "Costo";
-  }
-
-  .convocatorias-lista .table tbody tr td:nth-child(4)::before {
-    content: "Máx. Áreas";
-  }
-
-  .convocatorias-lista .table tbody tr td:nth-child(5)::before {
-    content: "Estado";
-  }
-
-  .convocatorias-lista .table tbody tr td:nth-child(6)::before {
-    content: "Áreas";
-  }
-
-  .convocatorias-lista .table tbody tr td:nth-child(7)::before {
-    content: "Acciones";
-  }
-
-  .convocatorias-lista .btn-link {
-    padding: 4px 8px;
-  }
-
-  .convocatorias-lista .btn-link i {
-    font-size: 18px;
-  }
-}
-
 /* Overlay para mejorar legibilidad sobre la imagen de fondo */
 .app::before {
   content: '';
@@ -735,75 +607,38 @@ a {
   width: 250px;
   background-color: #4f46e5;
   color: white;
-  padding: 15px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  position: fixed;
-  height: 100vh;
-  overflow-y: auto;
-  z-index: 1000;
 }
 
 .sidebar .logo {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 30px;
-  padding: 10px 0;
+  margin-bottom: 50px;
 }
 
 .sidebar .logo img {
-  width: 80px;
-  margin-bottom: 8px;
+  width: 90px;
+  margin-bottom: 10px;
 }
 
 .sidebar nav ul {
   list-style: none;
-  padding: 0;
-  margin: 0;
 }
 
 .sidebar nav ul li {
-  margin-bottom: 10px;
-  padding: 5px 0;
+  margin-bottom: 15px;
 }
 
 .sidebar nav ul li a {
   color: white;
   font-weight: bold;
-  padding: 8px 15px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  text-decoration: none;
 }
 
 .sidebar nav ul li a:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  transform: translateX(5px);
-}
-
-/* Estilos específicos para móvil */
-@media (max-width: 768px) {
-  .sidebar {
-    width: 200px;
-    padding: 12px;
-  }
-
-  .sidebar .logo img {
-    width: 70px;
-  }
-
-  .sidebar nav ul li a {
-    padding: 6px 12px;
-    font-size: 0.9rem;
-  }
-
-  .sidebar nav ul li a:hover {
-    transform: translateX(3px);
-  }
+  text-decoration: underline;
 }
 
 .main-content {
