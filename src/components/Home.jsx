@@ -88,50 +88,42 @@ function Home() {
           </div>
         </div>
 
-        {/* Overlay para el modal */}
-        <div className={`login-overlay ${showLoginForm ? 'active' : ''}`} onClick={toggleLoginForm}>
-          {/* Formulario de inicio de sesión */}
-          <div className={`login-form ${showLoginForm ? 'active' : ''}`} onClick={(e) => e.stopPropagation()}>
-            <button className="close-btn" onClick={toggleLoginForm}>&times;</button>
-            <h2>Iniciar Sesión</h2>
-            {error && <div className="error-message login-error">{error}</div>}
-            
-            <form onSubmit={handleLogin}>
+        {showLoginForm && (
+          <div className="right-section">
+            <form className="form-login" onSubmit={handleLogin}>
+              <h2>Iniciar Sesión</h2>
+              {error && <div className="error-message login-error">{error}</div>}
+              
               <div className="form-group">
                 <label htmlFor="email">Correo Electrónico</label>
                 <input 
                   type="email" 
                   id="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
                   required
-                  className="form-control"
                 />
               </div>
-
               <div className="form-group">
                 <label htmlFor="password">Contraseña</label>
                 <input 
                   type="password" 
                   id="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
                   required
-                  className="form-control"
                 />
               </div>
-
-              <button type="submit" className="submit-button" disabled={isLoading}>
-                {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+              <button type="submit" disabled={isLoading}>
+                {isLoading ? 'Iniciando sesión...' : 'Ingresar'}
               </button>
+              <Link to="#">¿Olvidaste tu contraseña?</Link>
+              <div className="register-link">
+                <p>¿No tienes una cuenta? <Link to="/registro">Regístrate aquí</Link></p>
+              </div>
             </form>
-            
-            <div className="register-message">
-              ¿No tienes cuenta? <Link to="/registro">Crear cuenta</Link>
-            </div>
           </div>
-        </div>
-
+        )}
       </div>
 
       {/* Se elimina este contenedor ya que ahora utilizamos estilos en línea */}
