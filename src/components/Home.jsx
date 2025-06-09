@@ -139,7 +139,7 @@ function Home() {
               <button type="submit" disabled={isLoading}>
                 {isLoading ? 'Iniciando sesión...' : 'Ingresar'}
               </button>
-              <Link to="#">¿Olvidaste tu contraseña?</Link>
+              <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
               <div className="register-link">
                 <p>¿No tienes una cuenta? <Link to="/registro">Regístrate aquí</Link></p>
               </div>

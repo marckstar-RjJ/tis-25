@@ -1,5 +1,102 @@
 const API_URL = 'https://tis-25-backend.onrender.com/api';
 
+// Métodos para recuperación de contraseña
+export const checkUserEmail = async (email) => {
+  try {
+    const response = await fetch(`${API_URL}/forgot-password/check-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al verificar el correo');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en checkUserEmail:', error);
+    throw new Error(`Error al verificar el correo: ${error.message}`);
+  }
+};
+
+export const generateResetToken = async (email) => {
+  try {
+    const response = await fetch(`${API_URL}/forgot-password/generate-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al generar token de recuperación');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en generateResetToken:', error);
+    throw new Error(`Error al generar token: ${error.message}`);
+  }
+};
+
+export const getEmailFromToken = async (token) => {
+  try {
+    const response = await fetch(`${API_URL}/get-email-from-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token })
+    });
+
+    if (!response.ok) {
+      try {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al obtener email desde token');
+      } catch {
+        throw new Error('Error al procesar la solicitud');
+      }
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en getEmailFromToken:', error);
+    throw new Error(`Error al obtener email desde token: ${error.message}`);
+  }
+};
+
+export const resetPassword = async (token, email, password) => {
+  try {
+    const response = await fetch(`${API_URL}/forgot-password/reset`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token, email, password, password_confirmation: password })
+    });
+
+    if (!response.ok) {
+      try {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al restablecer la contraseña');
+      } catch {
+        throw new Error('Error al procesar la solicitud');
+      }
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en resetPassword:', error);
+    throw new Error(`Error al restablecer la contraseña: ${error.message}`);
+  }
+};
+
 // Obtener todos los usuarios (usando fetch a la API)
 const getUsers = async () => {
   try {

@@ -12,6 +12,8 @@ import InscripcionArea from './components/InscripcionArea';
 import OrdenPagoEstudiante from './components/OrdenPagoEstudiante';
 import InscripcionIndividual from './InscripcionIndividual';
 import InscripcionPorLista from './InscripcionPorLista';
+import RecuperarContrasena from './components/RecuperarContrasena';
+import ResetPassword from './components/ResetPassword';
 import Footer from './components/Footer';
 import Etapas from './components/Etapas';
 import Reglamento from './components/Reglamento';
@@ -77,6 +79,8 @@ function App() {
         {/* Rutas públicas */}
         <Route path="/" element={<Home />} />
         <Route path="/registro" element={<Registro />} />
+        <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
+        <Route path="/recuperar-contrasena/:token" element={<ResetPassword />} />
         <Route path="/convocatorias" element={<ConvocatoriasPublicas />} />
         <Route path="/etapas" element={<Etapas />} />
         <Route path="/reglamento" element={<Reglamento />} />
