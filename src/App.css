@@ -164,22 +164,40 @@ a {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.6rem;
-    margin: 0.8rem 0;
+    gap: 0.8rem;
+    margin: 1rem 0;
   }
 
   .auth-buttons button {
     width: 90%;
-    max-width: 260px;
-    font-size: 0.95rem;
-    padding: 0.6rem;
-    border-radius: 6px;
+    max-width: 280px;
+    font-size: 1rem;
+    padding: 0.8rem;
+    border-radius: 8px;
     text-align: center;
     transition: all 0.3s ease;
+    border: none;
+  }
+
+  .btn-ingresar {
+    background-color: #4f46e5;
+    color: white;
+  }
+
+  .btn-ingresar:hover {
+    background-color: #3730a3;
+    transform: translateY(-2px);
   }
 
   .btn-registrar {
-    padding: 0.6rem;
+    background-color: white;
+    color: #4f46e5;
+    border: 2px solid #4f46e5;
+  }
+
+  .btn-registrar:hover {
+    background-color: #f5f5ff;
+    transform: translateY(-2px);
   }
 
   .btn-ingresar {
@@ -207,11 +225,11 @@ a {
   /* Formulario de inicio de sesión */
   .form-login {
     background: white;
-    padding: 1.5rem;
+    padding: 2rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     border-radius: 12px;
     width: 100%;
-    max-width: 300px;
+    max-width: 400px;
     animation: fadeIn 0.3s ease-out;
   }
 
@@ -251,10 +269,17 @@ a {
   /* Ajustes específicos para PC */
   @media screen and (min-width: 769px) {
     .right-section {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 400px;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-left: 1px solid #e0e0e0;
     }
 
     .form-login {
@@ -263,7 +288,7 @@ a {
       margin: 0;
       padding: 2rem;
       width: 100%;
-      max-width: 400px;
+      max-width: 350px;
     }
   }
 
