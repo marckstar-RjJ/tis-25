@@ -162,15 +162,6 @@ a {
     max-width: 280px;
     font-size: 1rem;
     padding: 0.8rem;
-    border-radius: 8px;
-    text-align: center;
-  }
-  
-  .auth-buttons button {
-    width: 90%;
-    max-width: 280px;
-    font-size: 1rem;
-    padding: 0.8rem;
     border-radius: 6px;
     text-align: center;
     transition: all 0.3s ease;
@@ -212,10 +203,23 @@ a {
     width: 90%;
     max-width: 300px;
     display: none;
+    animation: fadeIn 0.3s ease-out;
   }
 
   .login-form.active {
     display: block;
+  }
+
+  /* Animación para el modal */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
   }
 
   .login-form h2 {
