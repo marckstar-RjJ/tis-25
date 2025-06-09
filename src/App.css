@@ -166,11 +166,20 @@ a {
     text-align: center;
   }
   
+  .auth-buttons button {
+    width: 90%;
+    max-width: 280px;
+    font-size: 1rem;
+    padding: 0.8rem;
+    border-radius: 6px;
+    text-align: center;
+    transition: all 0.3s ease;
+  }
+
   .btn-ingresar {
     background-color: #4f46e5;
     color: white;
     border: none;
-    transition: all 0.3s ease;
   }
   
   .btn-ingresar:hover {
@@ -182,7 +191,6 @@ a {
     background-color: #fff;
     border: 2px solid #4f46e5;
     color: #4f46e5;
-    transition: all 0.3s ease;
   }
   
   .btn-registrar:hover {
@@ -193,21 +201,21 @@ a {
   /* Formulario de inicio de sesión para móvil */
   .login-form {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     z-index: 999;
     background: white;
-    padding: 1rem;
+    padding: 1.5rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transform: translateY(-100%);
-    transition: transform 0.3s ease-in-out;
-    height: 300px;
-    overflow-y: auto;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 300px;
+    display: none;
   }
 
   .login-form.active {
-    transform: translateY(0);
+    display: block;
   }
 
   .login-form h2 {
@@ -219,14 +227,14 @@ a {
 
   .login-form .close-btn {
     position: absolute;
-    top: 0.5rem;
-    right: 0.8rem;
+    top: 1rem;
+    right: 1rem;
     background: none;
     border: none;
     font-size: 1.2rem;
     color: #666;
     cursor: pointer;
-    padding: 0.3rem;
+    padding: 0.5rem;
   }
 
   .login-form .form-group {
