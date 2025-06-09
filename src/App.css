@@ -273,6 +273,7 @@ a {
   background-color: #4f46e5;
   color: #fff;
   border: none;
+  width: 60;
 }
 
 .btn-ingresar:hover {
@@ -292,33 +293,34 @@ a {
 /* Estilos específicos para móviles */
 @media (max-width: 768px) {
   .header {
-    padding: 0.3rem 0.8rem;
+    padding: 0.2rem 0.5rem;
   }
   
   .header-left {
-    gap: 15px;
-  }
-  
-  .header .logo {
-    width: 35px;
-  }
-  
-  .header .main-nav {
     gap: 10px;
   }
   
+  .header .logo {
+    width: 30px;
+  }
+  
+  .header .main-nav {
+    gap: 8px;
+  }
+  
   .header .main-nav a {
-    font-size: 0.8rem;
-    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.3rem;
   }
   
   .header .btn {
-    padding: 4px 8px;
-    font-size: 0.8rem;
+    padding: 3px 6px;
+    font-size: 0.7rem;
+    border-radius: 4px;
   }
   
   .header .auth-buttons {
-    gap: 6px;
+    gap: 4px;
   }
 }
 

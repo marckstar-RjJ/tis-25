@@ -65,10 +65,32 @@ function Home() {
           </nav>
         </div>
         <div className="auth-buttons">
-          <button onClick={toggleLoginForm} className="btn btn-ingresar" style={{ border: 'none', padding: '10px 15px', backgroundColor: '#2C3E50', color: '#F2F2F2', fontWeight: 'bold', borderRadius: '6px', margin: '0 5px' }}>
+          <button onClick={toggleLoginForm} className="btn btn-ingresar" style={{ 
+            border: 'none', 
+            padding: '10px 12px', 
+            backgroundColor: '#2C3E50', 
+            color: '#F2F2F2', 
+            fontWeight: 'bold', 
+            borderRadius: '6px', 
+            margin: '0 4px',
+            minWidth: '120px',
+            maxWidth: '395px'
+          }}>
             Iniciar Sesión
           </button>
-          <Link to="/registro" className="btn btn-registrar" style={{ textDecoration: 'none', padding: '10px 15px', backgroundColor: '#F2F2F2', border: '2px solid #D4A017', color: '#D4A017', fontWeight: 'bold', borderRadius: '6px', margin: '0 5px', display: 'inline-block' }}>
+          <Link to="/registro" className="btn btn-registrar" style={{ 
+            textDecoration: 'none', 
+            padding: '8px 12px', 
+            backgroundColor: '#F2F2F2', 
+            border: '2px solid #D4A017', 
+            color: '#D4A017', 
+            fontWeight: 'bold', 
+            borderRadius: '4px', 
+            margin: '0 4px',
+            minWidth: '120px',
+            maxWidth: '395px',
+            display: 'inline-block'
+          }}>
             Crear Cuenta
           </Link>
         </div>
