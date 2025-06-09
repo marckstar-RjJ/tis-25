@@ -78,15 +78,29 @@ a {
 
 /* Estilos para dispositivos móviles */
 @media screen and (max-width: 768px) {
+  /* Ajustes generales */
+  html {
+    font-size: 14px;
+  }
+  
+  body {
+    font-size: 0.9rem;
+  }
+  
+  .app {
+    padding: 0.5rem;
+  }
+  
+  /* Footer */
   .footer {
     flex-direction: column;
     padding: 0.5rem;
-    gap: 1rem;
+    gap: 0.8rem;
   }
   
   .footer-content {
     width: 100%;
-    gap: 1rem;
+    gap: 0.8rem;
   }
   
   .footer-left {
@@ -97,6 +111,7 @@ a {
   .tech-icons {
     justify-content: center;
     gap: 0.5rem;
+    flex-wrap: wrap;
   }
   
   .tech-icon {
@@ -105,50 +120,94 @@ a {
   
   .footer-nav {
     justify-content: center;
-    gap: 1rem;
+    gap: 0.8rem;
     flex-wrap: wrap;
   }
   
   .footer-link {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     padding: 0.3rem;
   }
   
-  /* Ajustes generales para móvil */
-  .app {
-    padding: 1rem;
-  }
-  
+  /* Header */
   .header {
-    padding: 0.5rem 1rem;
+    padding: 0.5rem;
   }
   
   .header-left {
-    gap: 1rem;
+    gap: 0.8rem;
   }
   
   .header .main-nav {
-    gap: 1rem;
+    gap: 0.8rem;
+    flex-wrap: wrap;
   }
   
   .header .btn {
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
   }
   
+  /* Contenido principal */
   .welcome-card {
-    padding: 20px;
+    padding: 1.2rem;
+    font-size: 0.95rem;
   }
   
   .container {
-    padding: 1rem 0;
+    padding: 0.8rem 0;
   }
   
   .home-container {
-    padding: 1rem;
+    padding: 0.8rem;
   }
   
   .left-section {
-    padding: 0 1rem;
+    padding: 0 0.8rem;
+  }
+  
+  /* Tarjetas y elementos */
+  .card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .info-card {
+    padding: 0.8rem;
+  }
+  
+  .estudiante-content {
+    padding: 1.5rem;
+  }
+  
+  /* Formularios */
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .form-control {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .submit-button {
+    padding: 0.8rem;
+    font-size: 0.95rem;
+  }
+  
+  /* Navegación */
+  .sidebar nav ul {
+    padding: 0.5rem;
+  }
+  
+  .sidebar nav ul li {
+    margin-bottom: 0.5rem;
+  }
+  
+  .sidebar nav ul li a,
+  .sidebar nav ul li button {
+    padding: 0.6rem;
+    font-size: 0.9rem;
   }
 }
 
