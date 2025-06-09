@@ -151,18 +151,19 @@ a {
   /* Botones de inicio de sesión y registro */
   .auth-buttons {
     display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    margin: 1rem 0;
   }
-  
+
   .auth-buttons button {
-    width: 100%;
-    max-width: 300px;
+    width: 90%;
+    max-width: 280px;
     font-size: 1rem;
     padding: 0.8rem;
-    margin: 0.5rem 0;
     border-radius: 8px;
+    text-align: center;
   }
   
   .btn-ingresar {
@@ -197,10 +198,12 @@ a {
     right: 0;
     z-index: 999;
     background: white;
-    padding: 1.5rem;
+    padding: 1rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transform: translateY(-100%);
     transition: transform 0.3s ease-in-out;
+    height: 300px;
+    overflow-y: auto;
   }
 
   .login-form.active {
@@ -209,41 +212,41 @@ a {
 
   .login-form h2 {
     text-align: center;
-    margin-bottom: 1.5rem;
-    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
     color: #2c3e50;
   }
 
   .login-form .close-btn {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 0.5rem;
+    right: 0.8rem;
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     color: #666;
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0.3rem;
   }
 
   .login-form .form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
   }
 
   .login-form .form-control {
     width: 100%;
-    padding: 1rem;
-    font-size: 1.1rem;
+    padding: 0.8rem;
+    font-size: 1rem;
     border: 1px solid #ddd;
-    border-radius: 8px;
+    border-radius: 6px;
     background: #f8f9fa;
   }
 
   .login-form .submit-button {
     width: 100%;
-    padding: 1.2rem;
-    font-size: 1.1rem;
-    border-radius: 8px;
+    padding: 0.8rem;
+    font-size: 1rem;
+    border-radius: 6px;
     background: #4f46e5;
     color: white;
     border: none;
@@ -258,8 +261,8 @@ a {
 
   .login-form .register-message {
     text-align: center;
-    margin-top: 1.5rem;
-    font-size: 0.95rem;
+    margin-top: 1rem;
+    font-size: 0.9rem;
     color: #666;
   }
 
@@ -267,7 +270,6 @@ a {
     color: #4f46e5;
     text-decoration: none;
     font-weight: 500;
-    margin-left: 0.5rem;
   }
 
   .login-form .register-message a:hover {
