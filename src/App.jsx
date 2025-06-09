@@ -17,7 +17,6 @@ import Etapas from './components/Etapas';
 import Reglamento from './components/Reglamento';
 import Contactanos from './components/Contactanos';
 import ConvocatoriasPublicas from './components/ConvocatoriasPublicas';
-import Header from './components/Header';
 
 // Componente que redirige según el tipo de usuario
 const redirectByUserType = (user) => {
@@ -74,7 +73,6 @@ function App() {
 
   return (
     <div className="app-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Header />
       <Routes>
         {/* Rutas públicas */}
         <Route path="/" element={<Home />} />

@@ -90,44 +90,7 @@ a {
   .app {
     padding: 0.5rem;
   }
-
-  /* Header móvil */
-  .header {
-    padding: 1rem;
-  }
-
-  .hamburger-menu {
-    display: block;
-  }
-
-  .header .main-nav {
-    display: none;
-  }
-
-  .header-right {
-    gap: 1rem;
-  }
-
-  /* Botones de inicio de sesión */
-  .auth-buttons {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: white;
-    padding: 1rem;
-    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
-    border-top: 1px solid #eee;
-    z-index: 100;
-  }
-
-  .auth-buttons button {
-    width: 100%;
-    max-width: 300px;
-    margin: 0.5rem auto;
-    display: block;
-  }
-
+  
   /* Footer */
   .footer {
     flex-direction: column;
@@ -169,81 +132,20 @@ a {
   /* Header y botones de inicio de sesión */
   .header {
     padding: 0.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
-
+  
   .header-left {
-    display: flex;
-    align-items: center;
     gap: 0.8rem;
   }
-
-  .header-right {
-    display: flex;
-    align-items: center;
+  
+  .header .main-nav {
     gap: 0.8rem;
+    flex-wrap: wrap;
   }
-
-  /* Menú hamburguesa para móvil */
-  .hamburger-menu {
-    display: none;
-    cursor: pointer;
-    padding: 0.5rem;
-  }
-
-  .hamburger-menu span {
-    display: block;
-    width: 25px;
-    height: 2px;
-    background-color: #333;
-    margin: 4px 0;
-    transition: all 0.3s ease;
-  }
-
-  /* Navegación móvil */
-  .mobile-nav {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    background-color: white;
-    padding: 1rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    transform: translateY(-100%);
-    transition: transform 0.3s ease;
-  }
-
-  .mobile-nav.active {
-    transform: translateY(0);
-  }
-
-  .mobile-nav ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .mobile-nav li {
-    margin: 0.5rem 0;
-  }
-
-  .mobile-nav a {
-    display: block;
-    padding: 0.5rem 0;
-    color: #333;
-    text-decoration: none;
-    font-size: 1rem;
-    transition: color 0.3s ease;
-  }
-
-  .mobile-nav a:hover {
-    color: #4f46e5;
+  
+  .header .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
   }
   
   /* Botones de inicio de sesión y registro */
@@ -252,7 +154,7 @@ a {
     flex-direction: column;
     align-items: center;
     gap: 0.8rem;
-    margin: 0.5rem 0;
+    margin: 1rem 0;
   }
 
   .auth-buttons button {
@@ -288,11 +190,11 @@ a {
   }
   
   /* Formulario de inicio de sesión para móvil */
-  .login-form {
+  .form-login {
     position: fixed;
-    top: 50%;
+    top: 10%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     z-index: 999;
     background: white;
     padding: 1.5rem;
@@ -302,6 +204,35 @@ a {
     max-width: 300px;
     display: none;
     animation: fadeIn 0.3s ease-out;
+  }
+
+  /* Overlay para el modal */
+  .login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    display: none;
+    animation: fadeOverlay 0.3s ease-out;
+  }
+
+  .login-overlay.active {
+    display: block;
+  }
+
+  /* Ajustes específicos para móvil */
+  @media screen and (max-width: 768px) {
+    .form-login {
+      top: 10%;
+      display: block;
+    }
+
+    .login-overlay {
+      display: block;
+    }
   }
 
   .login-form.active {
@@ -331,6 +262,14 @@ a {
     z-index: 998;
     display: none;
     animation: fadeOverlay 0.3s ease-out;
+  }
+
+  /* Ajustes específicos para móvil */
+  @media screen and (max-width: 768px) {
+    .login-form {
+      top: 10%;
+      transform: translateX(-50%);
+    }
   }
 
   .login-overlay.active {

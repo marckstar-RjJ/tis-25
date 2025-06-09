@@ -84,50 +84,55 @@ function Home() {
               a participar en las Olimpiadas Escolares. Nuestras convocatorias promueven la excelencia
               académica y el espíritu competitivo en diversas áreas del conocimiento.
             </p>
-            {/* Se han eliminado los botones de acción */}
           </div>
         </div>
-
-        {showLoginForm && (
-          <div className="right-section">
-            <form className="form-login" onSubmit={handleLogin}>
-              <h2>Iniciar Sesión</h2>
-              {error && <div className="error-message login-error">{error}</div>}
-              
-              <div className="form-group">
-                <label htmlFor="email">Correo Electrónico</label>
-                <input 
-                  type="email" 
-                  id="email" 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="password">Contraseña</label>
-                <input 
-                  type="password" 
-                  id="password" 
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)} 
-                  required
-                />
-              </div>
-              <button type="submit" disabled={isLoading}>
-                {isLoading ? 'Iniciando sesión...' : 'Ingresar'}
-              </button>
-              <Link to="#">¿Olvidaste tu contraseña?</Link>
-              <div className="register-link">
-                <p>¿No tienes una cuenta? <Link to="/registro">Regístrate aquí</Link></p>
-              </div>
-            </form>
-          </div>
-        )}
       </div>
 
-      {/* Se elimina este contenedor ya que ahora utilizamos estilos en línea */}
+      {/* Overlay y formulario de login */}
+      <div className="login-overlay {showLoginForm ? 'active' : ''}" onClick={toggleLoginForm} />
       
+      {showLoginForm && (
+        <form className="form-login" onSubmit={handleLogin}>
+          <button type="button" className="close-btn" onClick={toggleLoginForm}>&times;</button>
+          <h2>Iniciar Sesión</h2>
+          {error && <div className="error-message login-error">{error}</div>}
+          
+          <div className="form-group">
+            <label htmlFor="email">Correo Electrónico</label>
+            <input 
+              type="email" 
+              id="email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="password">Contraseña</label>
+            <input 
+              type="password" 
+              id="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          
+          <button 
+            type="submit" 
+            className="submit-button"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Iniciando sesión...' : 'Ingresar'}
+          </button>
+          <Link to="#">¿Olvidaste tu contraseña?</Link>
+          <div className="register-link">
+            <p>¿No tienes una cuenta? <Link to="/registro">Regístrate aquí</Link></p>
+          </div>
+        </form>
+      )};
+
       <div className="quick-actions">
         <div className="quick-action-card">
           <h2>Convocatorias Actuales</h2>
