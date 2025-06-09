@@ -189,58 +189,105 @@ a {
     transform: translateY(-1px);
   }
   
-  /* Formulario de inicio de sesión */
+  /* Formulario de inicio de sesión para móvil */
   .login-form {
-    max-width: 100%;
-    width: 300px;
-    margin: 0 auto;
-    padding: 1.5rem;
-    border-radius: 12px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
     background: white;
+    padding: 1.5rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-100%);
+    transition: transform 0.3s ease-in-out;
   }
-  
+
+  .login-form.active {
+    transform: translateY(0);
+  }
+
   .login-form h2 {
     text-align: center;
     margin-bottom: 1.5rem;
-    font-size: 1.2rem;
+    font-size: 1.5rem;
+    color: #2c3e50;
   }
-  
+
+  .login-form .close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #666;
+    cursor: pointer;
+    padding: 0.5rem;
+  }
+
   .login-form .form-group {
-    margin-bottom: 1.2rem;
+    margin-bottom: 1.5rem;
   }
-  
+
   .login-form .form-control {
     width: 100%;
-    padding: 0.8rem;
-    font-size: 1rem;
+    padding: 1rem;
+    font-size: 1.1rem;
     border: 1px solid #ddd;
-    border-radius: 6px;
+    border-radius: 8px;
+    background: #f8f9fa;
   }
-  
+
   .login-form .submit-button {
     width: 100%;
-    padding: 1rem;
-    font-size: 1rem;
-    border-radius: 6px;
-    margin-top: 1rem;
+    padding: 1.2rem;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    background: #4f46e5;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
   }
-  
-  /* Mensaje de registro */
-  .register-message {
+
+  .login-form .submit-button:hover {
+    background: #3730a3;
+    transform: translateY(-2px);
+  }
+
+  .login-form .register-message {
     text-align: center;
-    margin-top: 1rem;
-    font-size: 0.9rem;
+    margin-top: 1.5rem;
+    font-size: 0.95rem;
+    color: #666;
   }
-  
-  .register-message a {
+
+  .login-form .register-message a {
     color: #4f46e5;
     text-decoration: none;
     font-weight: 500;
+    margin-left: 0.5rem;
   }
-  
-  .register-message a:hover {
+
+  .login-form .register-message a:hover {
     text-decoration: underline;
+  }
+
+  /* Overlay para el modal */
+  .login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    display: none;
+  }
+
+  .login-overlay.active {
+    display: block;
   }
   
   /* Contenido principal */
