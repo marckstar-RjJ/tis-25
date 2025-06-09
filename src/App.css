@@ -204,20 +204,14 @@ a {
     transform: translateY(-1px);
   }
   
-  /* Formulario de inicio de sesión para móvil */
+  /* Formulario de inicio de sesión */
   .form-login {
-    position: fixed;
-    top: 10%;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 999;
     background: white;
     padding: 1.5rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     border-radius: 12px;
-    width: 90%;
+    width: 100%;
     max-width: 300px;
-    display: none;
     animation: fadeIn 0.3s ease-out;
   }
 
@@ -241,12 +235,35 @@ a {
   /* Ajustes específicos para móvil */
   @media screen and (max-width: 768px) {
     .form-login {
+      position: fixed;
       top: 10%;
-      display: block;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+      display: none;
     }
 
     .login-overlay {
       display: block;
+    }
+  }
+
+  /* Ajustes específicos para PC */
+  @media screen and (min-width: 769px) {
+    .right-section {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .form-login {
+      position: relative;
+      display: block;
+      margin: 0;
+      padding: 2rem;
+      width: 100%;
+      max-width: 400px;
     }
   }
 
