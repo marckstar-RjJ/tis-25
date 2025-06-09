@@ -25,7 +25,8 @@ function Registro() {
     apellidosTutor: '',
     colegio: '',
     password: '',
-    confirmarPassword: ''
+    confirmarPassword: '',
+    verificationCode: ''
   });
   const [errores, setErrores] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -287,6 +288,13 @@ function Registro() {
     }
     
     if (tipoUsuario === 'tutor') {
+      // Validación de código de verificación
+      if (!formData.verificationCode) {
+        nuevosErrores.verificationCode = 'El código de verificación del colegio es requerido';
+      } else if (formData.verificationCode.length !== 4) {
+        nuevosErrores.verificationCode = 'El código de verificación debe tener exactamente 4 dígitos';
+      }
+
       // Validación de celular de tutor
       if (!formData.celular) {
         nuevosErrores.celular = 'El número de celular es requerido';
@@ -356,6 +364,7 @@ function Registro() {
           // También enviamos en snake_case
           userData.telefono = formData.celular;
           userData.colegio_id = Number(formData.colegio);
+          userData.verification_code = formData.verificationCode;
           
           // Imprimir en consola para verificar
           console.log('Datos de tutor para enviar:', {
@@ -383,7 +392,17 @@ function Registro() {
         }, 3000);
       } catch (error) {
         console.error('Error al registrar:', error);
-        setNotificationMessage(error.message || 'Error al registrar usuario');
+        
+        // Manejar errores específicos
+        if (error.response && error.response.data && error.response.data.message) {
+          if (error.response.data.message.includes('Código de verificación incorrecto')) {
+            setNotificationMessage('Error: El código de verificación del colegio es incorrecto');
+          } else {
+            setNotificationMessage(`Error al registrar: ${error.response.data.message}`);
+          }
+        } else {
+          setNotificationMessage('Error al registrar usuario');
+        }
         setShowNotification(true);
       } finally {
         setIsLoading(false);
@@ -501,6 +520,7 @@ function Registro() {
                 </option>
               ))}
             </select>
+            {errores.departamento && <span className="error-message">{errores.departamento}</span>}
           </div>
         </div>
 
@@ -588,27 +608,8 @@ function Registro() {
                 <option value="7">1° Secundaria</option>
                 <option value="8">2° Secundaria</option>
                 <option value="9">3° Secundaria</option>
-                <option value="10">4° Secundaria</option>
-                <option value="11">5° Secundaria</option>
-                <option value="12">6° Secundaria</option>
               </select>
               {errores.curso && <span className="error-message">{errores.curso}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="celular">Número de Celular</label>
-              <input
-                type="tel"
-                id="celular"
-                name="celular"
-                value={formData.celular}
-                onChange={handleInputChange}
-                className={errores.celular ? 'error' : ''}
-                pattern="[0-9]*"
-                inputMode="numeric"
-                placeholder="Ej: 60123456, 71234567"
-              />
-              {errores.celular && <span className="error-message">{errores.celular}</span>}
             </div>
 
             <div className="form-group">
@@ -671,6 +672,23 @@ function Registro() {
         {/* Campos específicos para tutores */}
         {tipoUsuario === 'tutor' && (
           <>
+            <div className="form-group">
+              <label htmlFor="verificationCode">Código de Verificación del Colegio</label>
+              <input
+                type="text"
+                id="verificationCode"
+                name="verificationCode"
+                value={formData.verificationCode}
+                onChange={handleInputChange}
+                className={errores.verificationCode ? 'error' : ''}
+                pattern="[0-9]*"
+                inputMode="numeric"
+                maxLength="4"
+                placeholder="Ej: 1234"
+              />
+              {errores.verificationCode && <span className="error-message">{errores.verificationCode}</span>}
+            </div>
+
             <div className="form-group">
               <label htmlFor="celular">Número de Celular</label>
               <input
