@@ -129,7 +129,7 @@ a {
     padding: 0.3rem;
   }
   
-  /* Header */
+  /* Header y botones de inicio de sesión */
   .header {
     padding: 0.5rem;
   }
@@ -146,6 +146,101 @@ a {
   .header .btn {
     padding: 0.4rem 0.8rem;
     font-size: 0.9rem;
+  }
+  
+  /* Botones de inicio de sesión y registro */
+  .auth-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .auth-buttons button {
+    width: 100%;
+    max-width: 300px;
+    font-size: 1rem;
+    padding: 0.8rem;
+    margin: 0.5rem 0;
+    border-radius: 8px;
+  }
+  
+  .btn-ingresar {
+    background-color: #4f46e5;
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-ingresar:hover {
+    background-color: #3730a3;
+    transform: translateY(-1px);
+  }
+  
+  .btn-registrar {
+    background-color: #fff;
+    border: 2px solid #4f46e5;
+    color: #4f46e5;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-registrar:hover {
+    background-color: #f5f5ff;
+    transform: translateY(-1px);
+  }
+  
+  /* Formulario de inicio de sesión */
+  .login-form {
+    max-width: 100%;
+    width: 300px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .login-form h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-size: 1.2rem;
+  }
+  
+  .login-form .form-group {
+    margin-bottom: 1.2rem;
+  }
+  
+  .login-form .form-control {
+    width: 100%;
+    padding: 0.8rem;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+  }
+  
+  .login-form .submit-button {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+  }
+  
+  /* Mensaje de registro */
+  .register-message {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .register-message a {
+    color: #4f46e5;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .register-message a:hover {
+    text-decoration: underline;
   }
   
   /* Contenido principal */
