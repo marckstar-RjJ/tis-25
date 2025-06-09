@@ -65,14 +65,14 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 0.3rem 0.8rem;
   background-color: #f8f9fa;
   border-top: 1px solid #e0e0e0;
-  margin-top: auto;
   width: 100%;
-  position: sticky;
+  position: fixed;
   bottom: 0;
   left: 0;
+  right: 0;
   z-index: 100;
 }
 
@@ -81,29 +81,33 @@ a {
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .footer-left {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
+  gap: 4px;
+  flex: 1;
 }
 
 .tech-icons {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .tech-icon {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   transition: transform 0.3s ease, opacity 0.3s ease;
   opacity: 0.75;
 }
 
 .tech-icon:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   opacity: 1;
 }
 
@@ -132,15 +136,18 @@ a {
 }
 
 .copyright {
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   color: #888;
   margin: 0;
+  white-space: nowrap;
 }
 
 .footer-nav {
   display: flex;
-  gap: 20px;
+  gap: 12px;
   align-items: center;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .footer-link {
@@ -150,10 +157,11 @@ a {
   transition: color 0.3s ease, transform 0.3s ease;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1.1rem;
-  padding: 0.5rem;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  padding: 0.3rem 0.5rem;
   border-radius: 4px;
+  white-space: nowrap;
 }
 
 .footer-link:hover {
@@ -168,9 +176,38 @@ a {
   color: #25d366;
 }
 
-/* ======================== */
-/* ======= Header ======== */
-/* ======================== */
+/* Estilos específicos para móviles */
+@media (max-width: 768px) {
+  .footer {
+    padding: 0.2rem 0.5rem;
+  }
+  
+  .footer-content {
+    gap: 0.3rem;
+  }
+  
+  .footer-left {
+    gap: 2px;
+  }
+  
+  .tech-icon {
+    font-size: 1rem;
+  }
+  
+  .footer-link {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.4rem;
+    gap: 0.3rem;
+  }
+  
+  .footer-nav {
+    gap: 8px;
+  }
+  
+  .copyright {
+    font-size: 0.7rem;
+  }
+}
 
 .header {
   display: flex;
@@ -178,7 +215,7 @@ a {
   align-items: center;
   background-color: white;
   margin: -20px -20px 0;
-  padding: 1rem 2rem;
+  padding: 0.5rem 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   position: relative;
   z-index: 10;
@@ -188,18 +225,21 @@ a {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: 20px;
+  flex: 1;
 }
 
 .header .logo {
-  width: 60px;
+  width: 40px;
   height: auto;
 }
 
 .header .main-nav {
   display: flex;
-  gap: 20px;
+  gap: 15px;
   align-items: center;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .header .main-nav a {
@@ -207,6 +247,8 @@ a {
   font-weight: 500;
   text-decoration: none;
   transition: color 0.3s ease;
+  font-size: 0.9rem;
+  padding: 0.3rem 0.5rem;
 }
 
 .header .main-nav a:hover {
@@ -215,13 +257,14 @@ a {
 
 .header .auth-buttons {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .header .btn {
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 6px;
   font-weight: 500;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -244,6 +287,39 @@ a {
 
 .btn-registrar:hover {
   background-color: #f5f5ff;
+}
+
+/* Estilos específicos para móviles */
+@media (max-width: 768px) {
+  .header {
+    padding: 0.3rem 0.8rem;
+  }
+  
+  .header-left {
+    gap: 15px;
+  }
+  
+  .header .logo {
+    width: 35px;
+  }
+  
+  .header .main-nav {
+    gap: 10px;
+  }
+  
+  .header .main-nav a {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  .header .btn {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
+  
+  .header .auth-buttons {
+    gap: 6px;
+  }
 }
 
 /* ======================== */
@@ -349,9 +425,48 @@ a {
   backdrop-filter: blur(10px);
 }
 
+/* Ajustes específicos para móvil */
+@media (max-width: 768px) {
+  .container {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+  
+  .home-container {
+    margin: 20px auto 0;
+  }
+  
+  .left-section {
+    grid-row: 2;
+    margin-bottom: 20px;
+  }
+  
+  .welcome-card {
+    max-width: 100%;
+    margin: 0;
+    padding: 25px;
+  }
+  
+  .welcome-card h1 {
+    font-size: 32px;
+  }
+  
+  .welcome-card p {
+    font-size: 15px;
+  }
+  
+  .right-section {
+    grid-row: 1;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+}
+
 /* Login Form */
 
 .form-login .form-group {
+{{ ... }}
   margin-bottom: 15px;
 }
 
