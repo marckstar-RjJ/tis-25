@@ -1,0 +1,66 @@
+.reportes-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.reportes-container h2 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.filtros-card,
+.estadisticas-card,
+.reportes-table-card {
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+.reportes-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.reportes-table th,
+.reportes-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.reportes-table th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+}
+
+.reportes-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+.MuiButton-contained {
+    margin-right: 10px;
+}
+
+.MuiTextField-root {
+    margin-bottom: 10px;
+}
+
+.filtros-card .MuiFormControl-root {
+    min-width: 400px !important;
+}
+
+@media (max-width: 600px) {
+    .reportes-container {
+        padding: 10px;
+    }
+
+    .reportes-table th,
+    .reportes-table td {
+        padding: 8px;
+    }
+} 

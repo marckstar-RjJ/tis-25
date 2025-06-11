@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { Card, CardContent, Typography, TextField, Button, Box, Paper, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, IconButton } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
 import AdminConvocatorias from './convocatorias/AdminConvocatorias';
-import { FaCog, FaSchool, FaCalendarAlt, FaGraduationCap, FaMedal, FaSignOutAlt } from 'react-icons/fa';
+import Reportes from '../pages/admin/Reportes';
+import { FaCog, FaSchool, FaCalendarAlt, FaGraduationCap, FaMedal, FaSignOutAlt, FaTrash } from 'react-icons/fa';
 
 // Componente para la configuración de olimpiadas
 const ConfiguracionOlimpiadas = () => {
@@ -248,9 +251,6 @@ const ConfiguracionOlimpiadas = () => {
               max="10" 
               required 
             />
-          </div>
-          
-          <div className="form-check mb-3">
             <input 
               type="checkbox" 
               id="activa" 
@@ -276,8 +276,24 @@ const GestionColegios = () => {
   const [colegios, setColegios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [newColegio, setNewColegio] = useState('');
+  const [newColegio, setNewColegio] = useState({
+    nombre: '',
+    direccion: '',
+    telefonoReferencia: '',
+    codigoColegio: ''
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    colegioId: null,
+    colegioNombre: ''
+  });
 
   useEffect(() => {
     const fetchColegios = async () => {
@@ -295,69 +311,263 @@ const GestionColegios = () => {
     fetchColegios();
   }, []);
 
+  const generateRandomCode = () => {
+    return Math.floor(1000 + Math.random() * 9000).toString();
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setNewColegio(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  const handleOpenDeleteDialog = (colegio) => {
+    setDeleteDialog({
+      open: true,
+      colegioId: colegio.id,
+      colegioNombre: colegio.nombre
+    });
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialog({
+      open: false,
+      colegioId: null,
+      colegioNombre: ''
+    });
+  };
+
+  const handleDeleteColegio = async () => {
+    try {
+      await apiService.deleteCollege(deleteDialog.colegioId);
+      setColegios(colegios.filter(c => c.id !== deleteDialog.colegioId));
+      setSnackbar({
+        open: true,
+        message: 'Colegio eliminado con éxito',
+        severity: 'success'
+      });
+    } catch (err) {
+      console.error('Error al eliminar colegio:', err);
+      setSnackbar({
+        open: true,
+        message: 'Error al eliminar el colegio',
+        severity: 'error'
+      });
+    } finally {
+      handleCloseDeleteDialog();
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!newColegio.trim()) {
-      alert('Por favor, ingrese un nombre de colegio válido');
+    if (!newColegio.nombre.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Por favor, ingrese un nombre de colegio válido',
+        severity: 'error'
+      });
       return;
     }
     
     setIsSubmitting(true);
-    
+    setError('');
+
     try {
-      const addedColegio = await apiService.addCollege(newColegio);
+      const code = generateRandomCode();
+      const colegioData = {
+        nombre: newColegio.nombre,
+        direccion: newColegio.direccion,
+        telefono: newColegio.telefonoReferencia,
+        verification_code: code
+      };
+
+      const addedColegio = await apiService.addCollege(colegioData);
       setColegios([...colegios, addedColegio]);
-      setNewColegio('');
-      alert('Colegio añadido con éxito');
+      setNewColegio(prev => ({
+        ...prev,
+        codigoColegio: addedColegio.verification_code || code
+      }));
+      setSnackbar({
+        open: true,
+        message: `¡Colegio "${colegioData.nombre}" creado con éxito! Código generado: ${addedColegio.verification_code || code}`,
+        severity: 'success'
+      });
+
+      setTimeout(() => {
+        setNewColegio({ nombre: '', direccion: '', telefonoReferencia: '', codigoColegio: '' });
+      }, 3000);
+
     } catch (err) {
       console.error('Error al añadir colegio:', err);
-      alert(err.message || 'Error al añadir colegio');
+      setSnackbar({
+        open: true,
+        message: err.message || 'Error al añadir colegio',
+        severity: 'error'
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const filteredColegios = colegios.filter(colegio =>
+    colegio.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (colegio.codigoColegio && colegio.codigoColegio.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (colegio.codigo_colegio && colegio.codigo_colegio.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   if (loading) {
-    return <p>Cargando colegios...</p>;
+    return <Typography>Cargando colegios...</Typography>;
   }
 
   return (
-    <div className="colegios-container">
-      <h2>Gestión de Colegios</h2>
-      {error && <p className="error-message">{error}</p>}
+    <Box className="colegios-container" sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom>Gestión de Colegios</Typography>
+      {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
       
-      <form onSubmit={handleSubmit} className="add-colegio-form">
-        <div className="form-group">
-          <label htmlFor="newColegio">Nuevo Colegio</label>
-          <input 
-            type="text" 
-            id="newColegio" 
-            value={newColegio} 
-            onChange={(e) => setNewColegio(e.target.value)} 
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>Añadir Nuevo Colegio</Typography>
+          <form onSubmit={handleSubmit}>
+            <TextField
+              fullWidth
+              label="Nombre del Colegio"
+              name="nombre"
+              value={newColegio.nombre}
+              onChange={handleChange}
             placeholder="Nombre del colegio" 
             required 
-          />
-        </div>
-        
-        <button type="submit" className="submit-button" disabled={isSubmitting}>
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              label="Dirección"
+              name="direccion"
+              value={newColegio.direccion}
+              onChange={handleChange}
+              placeholder="Dirección del colegio"
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              label="Teléfono de Referencia"
+              name="telefonoReferencia"
+              value={newColegio.telefonoReferencia}
+              onChange={handleChange}
+              placeholder="Teléfono de referencia"
+              margin="normal"
+            />
+            {newColegio.codigoColegio && (
+              <TextField
+                fullWidth
+                label="Código del Colegio (Generado)"
+                name="codigoColegio"
+                value={newColegio.codigoColegio}
+                InputProps={{ readOnly: true }}
+                margin="normal"
+              />
+            )}
+            
+            <Button 
+              type="submit" 
+              variant="contained" 
+              color="primary" 
+              disabled={isSubmitting} 
+              sx={{ mt: 2 }}
+            >
           {isSubmitting ? 'Añadiendo...' : 'Añadir Colegio'}
-        </button>
+            </Button>
       </form>
+        </CardContent>
+      </Card>
       
-      <div className="colegios-list">
-        <h3>Colegios Habilitados</h3>
-        {colegios.length === 0 ? (
-          <p>No hay colegios registrados.</p>
-        ) : (
-          <ul>
-            {colegios.map(colegio => (
-              <li key={colegio.id}>{colegio.nombre}</li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>Colegios Habilitados</Typography>
+          <TextField
+            fullWidth
+            label="Buscar Colegio"
+            value={searchTerm}
+            onChange={handleSearchChange}
+            placeholder="Buscar por nombre o código..."
+            margin="normal"
+            sx={{ mb: 2 }}
+          />
+
+          {filteredColegios.length === 0 ? (
+            <Typography>No hay colegios registrados que coincidan con la búsqueda.</Typography>
+          ) : (
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Nombre del Colegio</TableCell>
+                    <TableCell>Teléfono</TableCell>
+                    <TableCell>Código de Verificación</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredColegios.map((colegio) => (
+                    <TableRow key={colegio.id}>
+                      <TableCell>{colegio.nombre}</TableCell>
+                      <TableCell>{colegio.telefono || 'N/A'}</TableCell>
+                      <TableCell>{colegio.verification_code || 'N/A'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Snackbar para notificaciones */}
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
+      {/* Diálogo de confirmación para eliminar */}
+      <Dialog
+        open={deleteDialog.open}
+        onClose={handleCloseDeleteDialog}
+      >
+        <DialogTitle>Confirmar eliminación</DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Está seguro que desea eliminar el colegio "{deleteDialog.colegioNombre}"?
+            Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog}>Cancelar</Button>
+          <Button onClick={handleDeleteColegio} color="error" variant="contained">
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 
@@ -389,6 +599,9 @@ function AdministradorPanel() {
             </li>
             <li>
               <Link to="/admin/convocatorias">Gestión de Convocatorias</Link>
+            </li>
+            <li>
+              <Link to="/admin/reportes">Reportes</Link>
             </li>
             <li className="mt-auto" style={{ marginTop: '30px' }}>
               <button onClick={handleLogout} className="logout-button" style={{ width: '100%', textAlign: 'left', background: 'rgba(255, 255, 255, 0.1)', border: 'none', borderLeft: '2px solid rgba(255, 255, 255, 0.2)' }}>
@@ -438,6 +651,15 @@ function AdministradorPanel() {
                       <p>Administrar convocatorias de olimpiadas y sus áreas asociadas.</p>
                     </div>
                   </Link>
+                  <Link to="/admin/reportes" className="quick-link-card">
+                    <div className="quick-link-icon">
+                      <FaMedal size={36} color="#f1c40f" />
+                    </div>
+                    <div className="quick-link-text">
+                      <h3>Reportes</h3>
+                      <p>Ver el estado de inscripción y generar reportes.</p>
+                    </div>
+                  </Link>
                 </div>
 
               </div>
@@ -445,6 +667,7 @@ function AdministradorPanel() {
             <Route path="/configuracion" element={<ConfiguracionOlimpiadas />} />
             <Route path="/colegios" element={<GestionColegios />} />
             <Route path="/convocatorias" element={<AdminConvocatorias />} />
+            <Route path="/reportes" element={<Reportes />} />
           </Routes>
         </div>
       </main>

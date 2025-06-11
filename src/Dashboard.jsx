@@ -17,6 +17,10 @@ function Dashboard() {
     navigate('/inscripcion-lista');
   };
 
+  const goToReportes = () => {
+    navigate('/admin/reportes');
+  };
+
   return (
     <div className="dashboard">
       <aside className="sidebar">
@@ -29,7 +33,6 @@ function Dashboard() {
             <li><button onClick={goToInscripcion}>Inscripción Individual</button></li>
             <li><button onClick={goToInscripcionLista}>Inscripción por Lista</button></li>
             <li><button>Subir Comprobante</button></li>
-            <li><button>Reportes</button></li>
           </ul>
         </nav>
       </aside>
@@ -51,7 +54,7 @@ function Dashboard() {
             <h3>Subir Comprobante</h3>
             <p>Sube el comprobante de pago correspondiente.</p>
           </div>
-          <div className="card">
+          <div className="card" onClick={goToReportes} style={{ cursor: 'pointer' }}>
             <h3>Reportes</h3>
             <p>Ver el estado de inscripción y generar reportes.</p>
           </div>

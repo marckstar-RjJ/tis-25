@@ -165,7 +165,8 @@ const getColleges = async () => {
       id: colegio.id,
       nombre: colegio.nombre,
       direccion: colegio.direccion,
-      telefono: colegio.telefono
+      telefono: colegio.telefono,
+      verification_code: colegio.verification_code
     }));
   } catch (error) {
     console.error('Error en getColleges:', error);
@@ -611,6 +612,55 @@ const getAreas = async () => {
   }
 };
 
+// Añadir un nuevo colegio
+const addCollege = async (collegeData) => {
+  try {
+    const response = await fetch(`${API_URL}/colleges`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify(collegeData)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al crear el colegio');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en addCollege:', error);
+    throw new Error(`Error al crear colegio: ${error.message}`);
+  }
+};
+
+// Eliminar un colegio
+const deleteCollege = async (id) => {
+  try {
+    const response = await fetch(`${API_URL}/colegios/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al eliminar el colegio');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en deleteCollege:', error);
+    throw new Error(`Error al eliminar colegio: ${error.message}`);
+  }
+};
+
 // Exportar servicios
 export const apiService = {
   getUsers,
@@ -627,4 +677,10 @@ export const apiService = {
   getAllConvocatorias,
   getConvocatoriaById,
   getAreas,
+  addCollege,
+  deleteCollege,
+  checkUserEmail,
+  generateResetToken,
+  getEmailFromToken,
+  resetPassword
 };

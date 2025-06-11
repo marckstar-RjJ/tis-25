@@ -19,6 +19,7 @@ import Etapas from './components/Etapas';
 import Reglamento from './components/Reglamento';
 import Contactanos from './components/Contactanos';
 import ConvocatoriasPublicas from './components/ConvocatoriasPublicas';
+import Reportes from './pages/admin/Reportes';
 
 // Componente que redirige según el tipo de usuario
 const redirectByUserType = (user) => {
