@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'https://tis-25-backend.onrender.com/api';
 
 // Obtener todos los usuarios
 const getUsers = async () => {
@@ -240,22 +240,32 @@ const getAllColleges = async () => {
 // Añadir un nuevo colegio (solo admin)
 const addCollege = async (collegeData) => {
   try {
-    const response = await fetch(`${API_URL}/colleges`, {
+    console.log('Enviando datos del colegio:', collegeData);
+    const response = await fetch(`${API_URL}/colegios`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
-      body: JSON.stringify(collegeData),
+      body: JSON.stringify({
+        nombre: collegeData.nombre,
+        direccion: collegeData.direccion,
+        telefono: collegeData.telefono
+      }),
     });
 
     if (!response.ok) {
-      throw new Error('Error al añadir colegio');
+      const errorData = await response.json();
+      console.error('Error en respuesta de addCollege:', errorData);
+      throw new Error(errorData.message || 'Error al añadir colegio');
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log('Respuesta exitosa de addCollege:', data);
+    return data;
   } catch (error) {
-    throw new Error(error.message);
+    console.error('Error en addCollege:', error);
+    throw error;
   }
 };
 

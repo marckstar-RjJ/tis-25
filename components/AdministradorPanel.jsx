@@ -150,8 +150,13 @@ const GestionColegios = () => {
   const [colegios, setColegios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [newColegio, setNewColegio] = useState('');
+  const [formData, setFormData] = useState({
+    nombre: '',
+    direccion: '',
+    telefono: ''
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastCreatedCode, setLastCreatedCode] = useState(null);
 
   useEffect(() => {
     const fetchColegios = async () => {
@@ -169,21 +174,34 @@ const GestionColegios = () => {
     fetchColegios();
   }, []);
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!newColegio.trim()) {
-      alert('Por favor, ingrese un nombre de colegio válido');
+    if (!formData.nombre.trim() || !formData.direccion.trim() || !formData.telefono.trim()) {
+      alert('Por favor, complete todos los campos requeridos');
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      const addedColegio = await apiService.addCollege(newColegio);
+      const addedColegio = await apiService.addCollege(formData);
       setColegios([...colegios, addedColegio]);
-      setNewColegio('');
-      alert('Colegio añadido con éxito');
+      setLastCreatedCode(addedColegio.verification_code);
+      setFormData({
+        nombre: '',
+        direccion: '',
+        telefono: ''
+      });
+      alert(`Colegio añadido con éxito. Código de verificación: ${addedColegio.verification_code}`);
     } catch (err) {
       console.error('Error al añadir colegio:', err);
       alert(err.message || 'Error al añadir colegio');
@@ -203,13 +221,40 @@ const GestionColegios = () => {
       
       <form onSubmit={handleSubmit} className="add-colegio-form">
         <div className="form-group">
-          <label htmlFor="newColegio">Nuevo Colegio</label>
+          <label htmlFor="nombre">Nombre del Colegio</label>
           <input 
             type="text" 
-            id="newColegio" 
-            value={newColegio} 
-            onChange={(e) => setNewColegio(e.target.value)} 
+            id="nombre" 
+            name="nombre"
+            value={formData.nombre} 
+            onChange={handleChange}
             placeholder="Nombre del colegio" 
+            required 
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="direccion">Dirección</label>
+          <input 
+            type="text" 
+            id="direccion" 
+            name="direccion"
+            value={formData.direccion} 
+            onChange={handleChange}
+            placeholder="Dirección del colegio" 
+            required 
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="telefono">Teléfono de Referencia</label>
+          <input 
+            type="text" 
+            id="telefono" 
+            name="telefono"
+            value={formData.telefono} 
+            onChange={handleChange}
+            placeholder="Teléfono de contacto" 
             required 
           />
         </div>
@@ -226,7 +271,9 @@ const GestionColegios = () => {
         ) : (
           <ul>
             {colegios.map(colegio => (
-              <li key={colegio.id}>{colegio.nombre}</li>
+              <li key={colegio.id}>
+                {colegio.nombre} - Código: {colegio.verification_code}
+              </li>
             ))}
           </ul>
         )}

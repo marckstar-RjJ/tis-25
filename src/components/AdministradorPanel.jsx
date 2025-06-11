@@ -370,43 +370,28 @@ const GestionColegios = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!newColegio.nombre.trim()) {
-      setSnackbar({
-        open: true,
-        message: 'Por favor, ingrese un nombre de colegio válido',
-        severity: 'error'
-      });
-      return;
-    }
-    
     setIsSubmitting(true);
-    setError('');
 
     try {
-      const code = generateRandomCode();
       const colegioData = {
         nombre: newColegio.nombre,
         direccion: newColegio.direccion,
-        telefono: newColegio.telefonoReferencia,
-        verification_code: code
+        telefono: newColegio.telefonoReferencia
       };
 
       const addedColegio = await apiService.addCollege(colegioData);
-      setColegios([...colegios, addedColegio]);
-      setNewColegio(prev => ({
-        ...prev,
-        codigoColegio: addedColegio.verification_code || code
-      }));
+      
+      // Actualizar la lista de colegios
+      setColegios(prevColegios => [...prevColegios, addedColegio.colegio]);
+      
       setSnackbar({
         open: true,
-        message: `¡Colegio "${colegioData.nombre}" creado con éxito! Código generado: ${addedColegio.verification_code || code}`,
+        message: `¡Colegio "${colegioData.nombre}" creado con éxito! Código generado: ${addedColegio.colegio.verification_code}`,
         severity: 'success'
       });
 
-      setTimeout(() => {
-        setNewColegio({ nombre: '', direccion: '', telefonoReferencia: '', codigoColegio: '' });
-      }, 3000);
+      // Limpiar el formulario
+      setNewColegio({ nombre: '', direccion: '', telefonoReferencia: '' });
 
     } catch (err) {
       console.error('Error al añadir colegio:', err);
@@ -420,11 +405,13 @@ const GestionColegios = () => {
     }
   };
 
-  const filteredColegios = colegios.filter(colegio =>
-    colegio.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (colegio.codigoColegio && colegio.codigoColegio.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (colegio.codigo_colegio && colegio.codigo_colegio.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredColegios = colegios.filter(colegio => {
+    const searchTermLower = searchTerm.toLowerCase();
+    return (
+      (colegio.nombre && colegio.nombre.toLowerCase().includes(searchTermLower)) ||
+      (colegio.verification_code && colegio.verification_code.toLowerCase().includes(searchTermLower))
+    );
+  });
 
   if (loading) {
     return <Typography>Cargando colegios...</Typography>;
