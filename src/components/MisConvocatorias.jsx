@@ -57,40 +57,17 @@ const MisConvocatorias = () => {
           localStorage.setItem('olimpiadas_convocatorias', JSON.stringify(convocatoriasData));
         }
         
-        // Filtrar y clasificar convocatorias según su estado actual
-        const convocatoriasActualizadas = [];
-        
         const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0); // Normalizar a inicio del día
-        
-        convocatoriasData.forEach(convocatoria => {
-          // Normalizar el formato de datos
-          if (!convocatoria.areas) {
-            convocatoria.areas = [];
-          }
-          
-          // Determinar el estado real basado en las fechas y el campo 'activa'
-          const fechaInicio = new Date(convocatoria.fecha_inicio_inscripciones);
-          const fechaFin = new Date(convocatoria.fecha_fin_inscripciones);
-          
-          // Determinar si está abierta para inscripciones
-          const inscripcionesAbiertas = 
-            convocatoria.activa && 
-            fechaInicio <= hoy && 
-            fechaFin >= hoy;
-          
-          // Crear copia de la convocatoria con información adicional para UI
-          const convocatoriaUI = {
-            ...convocatoria,
-            inscripcionesAbiertas,
-            estado: inscripcionesAbiertas ? 'abierta' : 'cerrada'
-          };
-          
-          convocatoriasActualizadas.push(convocatoriaUI);
+        hoy.setHours(0, 0, 0, 0);
+
+        const convocatoriasAdmin = JSON.parse(localStorage.getItem('convocatorias') || '[]');
+        const convocatoriasAbiertas = convocatoriasAdmin.filter(conv => {
+          if (!conv.activa) return false;
+          const fechaInicio = new Date(conv.fecha_inicio);
+          const fechaFin = new Date(conv.fecha_fin);
+          return fechaInicio <= hoy && fechaFin >= hoy;
         });
-        
-        setConvocatorias(convocatoriasActualizadas);
-        console.log('Convocatorias disponibles:', convocatoriasActualizadas);
+        setConvocatorias(convocatoriasAbiertas);
         
         // Obtener inscripciones del estudiante actual
         if (currentUser) {
@@ -126,19 +103,12 @@ const MisConvocatorias = () => {
   
   // Manejar la selección de una convocatoria para inscripción
   const handleSeleccionarConvocatoria = (convocatoriaId) => {
-    // Verificar si la convocatoria está abierta
-    const convocatoriaSeleccionada = convocatorias.find(c => c.id === convocatoriaId);
-    
-    if (!convocatoriaSeleccionada || !convocatoriaSeleccionada.inscripcionesAbiertas) {
-      setError('Esta convocatoria no está disponible para inscripciones en este momento.');
-      return;
+    // Guardar la convocatoria seleccionada en sessionStorage
+    const convocatoria = convocatorias.find(c => c.id === convocatoriaId);
+    if (convocatoria) {
+      sessionStorage.setItem('convocatoriaSeleccionada', JSON.stringify(convocatoria));
+      navigate('/estudiante/inscripcion');
     }
-    
-    // Guardar ID de la convocatoria seleccionada en sessionStorage
-    sessionStorage.setItem('convocatoriaSeleccionadaId', convocatoriaId);
-    
-    // Navegar a la página de inscripción
-    navigate('/estudiante/inscripcion-area');
   };
   
   // Renderizar tarjeta de convocatoria
@@ -146,13 +116,19 @@ const MisConvocatorias = () => {
     // Verificar si el estudiante ya está inscrito en esta convocatoria
     const yaInscrito = inscripciones.some(i => i.convocatoria_id === convocatoria.id);
     
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fechaInicio = new Date(convocatoria.fecha_inicio_inscripciones);
+    const fechaFin = new Date(convocatoria.fecha_fin_inscripciones);
+    const abierta = convocatoria.activa && fechaInicio <= hoy && fechaFin >= hoy;
+
     return (
       <Card className="mb-3" key={convocatoria.id}>
         <Card.Header className="d-flex justify-content-between align-items-center">
           <div>
             <span className="fw-bold">{convocatoria.nombre}</span>
-            <span className={`ms-2 badge ${convocatoria.inscripcionesAbiertas ? 'bg-success' : 'bg-secondary'}`}>
-              {convocatoria.inscripcionesAbiertas ? 'Abierta' : 'Cerrada'}
+            <span className={`ms-2 badge ${abierta ? 'bg-success' : 'bg-secondary'}`}>
+              {abierta ? 'Abierta' : 'Cerrada'}
             </span>
           </div>
         </Card.Header>
@@ -167,6 +143,7 @@ const MisConvocatorias = () => {
             <Col md={6}>
               <p><strong>Costo por área:</strong> Bs. {convocatoria.costo_por_area}</p>
               <p><strong>Máx. áreas por estudiante:</strong> {convocatoria.maximo_areas}</p>
+              <p><strong>Áreas disponibles:</strong> {convocatoria.areas?.length || 0}</p>
             </Col>
           </Row>
           
@@ -178,10 +155,10 @@ const MisConvocatorias = () => {
             <div className="d-flex justify-content-end">
               <Button 
                 variant="primary" 
-                disabled={!convocatoria.inscripcionesAbiertas}
+                disabled={!abierta}
                 onClick={() => handleSeleccionarConvocatoria(convocatoria.id)}
               >
-                {convocatoria.inscripcionesAbiertas ? 'Inscribirme' : 'Inscripciones cerradas'}
+                {abierta ? 'Inscribirme' : 'Inscripciones cerradas'}
               </Button>
             </div>
           )}

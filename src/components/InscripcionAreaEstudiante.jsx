@@ -51,18 +51,15 @@ function InscripcionAreaEstudiante() {
         setLoading(true);
         setError('');
 
-        const convocatoriaId = sessionStorage.getItem('convocatoriaSeleccionadaId');
-        console.log("FetchData: convocatoriaId from sessionStorage:", convocatoriaId);
-        if (!convocatoriaId) {
+        // Obtener la convocatoria seleccionada del sessionStorage
+        const convocatoriaSeleccionadaStr = sessionStorage.getItem('convocatoriaSeleccionada');
+        if (!convocatoriaSeleccionadaStr) {
           setError('No has seleccionado una convocatoria. Debes seleccionar una convocatoria primero.');
           setTimeout(() => navigate('/estudiante/convocatorias'), 2000);
           return;
         }
         
-        const convocatoriasKey = 'olimpiadas_convocatorias';
-        const convocatorias = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
-        console.log("FetchData: Convocatorias from localStorage:", convocatorias);
-        const convocatoriaSeleccionada = convocatorias.find(c => c.id === convocatoriaId);
+        const convocatoriaSeleccionada = JSON.parse(convocatoriaSeleccionadaStr);
         console.log("FetchData: Convocatoria seleccionada:", convocatoriaSeleccionada);
         
         if (!convocatoriaSeleccionada) {
@@ -111,68 +108,26 @@ function InscripcionAreaEstudiante() {
         }
         
         setStudent(studentData);
-        
-        let areasDisponibles = [];
-        console.log("FetchData: Convocatoria seleccionada nombre:", convocatoriaSeleccionada.nombre);
-
-        // Intentar usar las áreas de la convocatoria si están presentes y son un array
-        if (Array.isArray(convocatoriaSeleccionada.areas) && convocatoriaSeleccionada.areas.length > 0) {
-          areasDisponibles = convocatoriaSeleccionada.areas;
-          console.log("FetchData: Usando áreas de la convocatoria seleccionada.", areasDisponibles);
-        } else {
-          // Si no hay áreas en la convocatoria, usar las hardcodeadas como respaldo
-          console.log("FetchData: No hay áreas en la convocatoria seleccionada o no es un array. Usando áreas hardcodeadas como respaldo.");
-          if (convocatoriaSeleccionada.nombre === 'Olimpiadas Oh Sansi!') {
-            areasDisponibles = [
-              { id: "1", nombre: "Astronomía", descripcion: "Estudio del universo y los cuerpos celestes" },
-              { id: "2", nombre: "Biología", descripcion: "Estudio de los seres vivos" },
-              { id: "3", nombre: "Física", descripcion: "Estudio de la materia y la energía" },
-              { id: "4", nombre: "Matemáticas", descripcion: "Estudio de números, estructuras y patrones" },
-              { id: "5", nombre: "Informática", descripcion: "Estudio de la computación y programación" },
-              { id: "6", nombre: "Robótica", descripcion: "Diseño y construcción de robots" },
-              { id: "7", nombre: "Química", descripcion: "Estudio de la composición de la materia" }
-            ];
-          } else if (convocatoriaSeleccionada.nombre === 'Olimpiadas Skillparty') {
-            areasDisponibles = [
-              { id: "8", nombre: "Farmeo I", descripcion: "Farmeo de minions y campeones" },
-              { id: "9", nombre: "Support II", descripcion: "Asistencia y control de vision" }
-            ];
-          } else if (convocatoriaSeleccionada.nombre === 'Torneo Lolsito') {
-            areasDisponibles = [
-              { id: "10", nombre: "Top Lane", descripcion: "Linea superior" },
-              { id: "11", nombre: "Mid Lane", descripcion: "Linea central" },
-              { id: "12", nombre: "Jungling", descripcion: "Rol de jungla" }
-            ];
-          } else {
-            // Fallback general si no hay áreas en la convocatoria y no coincide con nombres específicos
-            areasDisponibles = [
-              { id: "1", nombre: "Astronomía", descripcion: "Estudio del universo y los cuerpos celestes" },
-              { id: "2", nombre: "Biología", descripcion: "Estudio de los seres vivos" },
-              { id: "3", nombre: "Física", descripcion: "Estudio de la materia y la energía" },
-              { id: "4", nombre: "Matemáticas", descripcion: "Estudio de números, estructuras y patrones" },
-              { id: "5", nombre: "Informática", descripcion: "Estudio de la computación y programación" },
-              { id: "6", nombre: "Robótica", descripcion: "Diseño y construcción de robots" },
-              { id: "7", nombre: "Química", descripcion: "Estudio de la composición de la materia" }
-            ];
-            console.log("FetchData: Usando áreas por defecto como último recurso.", areasDisponibles);
-          }
-        }
-        
-        console.log("FetchData: Areas disponibles después de la lógica:", areasDisponibles);
-
         setConvocatoria(convocatoriaSeleccionada);
-        setAreas(areasDisponibles);
+        
+        // Usar las áreas de la convocatoria seleccionada
+        if (Array.isArray(convocatoriaSeleccionada.areas) && convocatoriaSeleccionada.areas.length > 0) {
+          setAreas(convocatoriaSeleccionada.areas);
+          console.log("FetchData: Áreas de la convocatoria cargadas:", convocatoriaSeleccionada.areas);
+        } else {
+          setError('No hay áreas disponibles para esta convocatoria.');
+        }
 
       } catch (err) {
         console.error('Error al cargar datos:', err);
-        setError(err.message || 'No se pudieron cargar los datos necesarios. Intente nuevamente.');
+        setError(err.message || 'Error al cargar los datos necesarios. Intente nuevamente.');
       } finally {
         setLoading(false);
       }
     };
     
     fetchData();
-  }, [navigate, currentUser]);
+  }, [currentUser, navigate]);
 
   useEffect(() => {
     if (convocatoria && convocatoria.costo_por_area) {

@@ -4,6 +4,7 @@ import './App.css';
 import { apiService } from './services/api';
 import { useAuth } from './context/AuthContext';
 import emailjs from '@emailjs/browser';
+import { Container, Row, Col, Alert, Card, Spinner } from 'react-bootstrap';
 
 // Inicializar EmailJS con tu User ID
 emailjs.init({
@@ -132,8 +133,6 @@ function InscripcionIndividual({ navigate: customNavigate }) {
   const [mensaje, setMensaje] = useState('');
   const [config, setConfig] = useState(null);
 
-  const PRECIO_POR_AREA = 16; // Precio en dólares por área
-
   // Usar el navigate personalizado si se proporciona, o el hook useNavigate por defecto
   const defaultNavigate = useNavigate();
   const navigate = customNavigate || defaultNavigate;
@@ -179,98 +178,92 @@ function InscripcionIndividual({ navigate: customNavigate }) {
     }
   };
 
-  // Obtener configuración de olimpiadas para el límite de áreas
-  useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const configData = await apiService.getOlympiadConfig();
-        setConfig(configData);
+      // Obtener la convocatoria seleccionada del sessionStorage
+      const convocatoriaSeleccionadaStr = sessionStorage.getItem('convocatoriaSeleccionada');
+      if (!convocatoriaSeleccionadaStr) {
+        throw new Error('No has seleccionado una convocatoria. Debes seleccionar una convocatoria primero.');
+      }
+
+      const convocatoriaSeleccionada = JSON.parse(convocatoriaSeleccionadaStr);
+      console.log("FetchConfig: Convocatoria seleccionada:", convocatoriaSeleccionada);
+      
+      if (!convocatoriaSeleccionada) {
+        throw new Error('La convocatoria seleccionada no existe o ha sido eliminada.');
+      }
+
+      // Verificar fechas de inscripción
+      const fechaActual = new Date();
+      const fechaInicio = new Date(convocatoriaSeleccionada.fecha_inicio_inscripciones);
+      const fechaFin = new Date(convocatoriaSeleccionada.fecha_fin_inscripciones);
+
+      if (fechaActual < fechaInicio) {
+        throw new Error('Las inscripciones para esta convocatoria aún no han comenzado.');
+      }
+
+      if (fechaActual > fechaFin) {
+        throw new Error('Las inscripciones para esta convocatoria ya han finalizado.');
+      }
+
+      setConfig(convocatoriaSeleccionada);
+      
+      // Usar las áreas de la convocatoria seleccionada
+      if (Array.isArray(convocatoriaSeleccionada.areas) && convocatoriaSeleccionada.areas.length > 0) {
+        setAvailableAreas(convocatoriaSeleccionada.areas);
+        setAllAreas(convocatoriaSeleccionada.areas);
+        console.log("FetchConfig: Áreas de la convocatoria cargadas:", convocatoriaSeleccionada.areas);
+      } else {
+        throw new Error('No hay áreas disponibles para esta convocatoria.');
+      }
+
       } catch (err) {
         console.error('Error al cargar configuración:', err);
+      setError(err.message || 'Error al cargar la configuración de la convocatoria.');
+      setTimeout(() => navigate('/estudiante/convocatorias'), 2000);
       }
     };
     
-    fetchConfig();
-  }, []);
-
-  // Cargar datos del estudiante y áreas disponibles
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError('');
         
-        // Obtener todas las áreas
-        const areasData = await apiService.getAreas();
-        setAllAreas(areasData);
-        
-        // Obtener datos del estudiante según el contexto
-        let data;
+        // Obtener datos del estudiante
+        let studentData;
         try {
-          if (currentUser.tipoUsuario === 'estudiante') {
-            // Si es un estudiante, obtener sus propios datos
-            data = await apiService.getCurrentStudent();
-            console.log("Datos del estudiante actual obtenidos:", data);
-          } else if (studentId) {
-            // Si es un tutor accediendo a un estudiante específico
-            data = await apiService.getStudentById(studentId);
-            console.log("Datos del estudiante por ID obtenidos:", data);
-          } else {
-            throw new Error('No se puede identificar al estudiante');
+          studentData = await apiService.getCurrentStudent();
+          if (!studentData || !studentData.id) {
+            throw new Error('No se pudo obtener la información del estudiante');
           }
-        } catch (err) {
-          console.error("Error al cargar datos del estudiante:", err);
-          // Intentar cargar datos del usuario actual como respaldo
+        } catch (studentError) {
+          console.error('Error al obtener datos del estudiante:', studentError);
           if (currentUser) {
-            console.log("Usando datos del usuario actual como respaldo");
-            data = {
-              ...currentUser,
-              areasInscritas: currentUser.areasInscritas || []
-            };
+            studentData = currentUser;
           } else {
-            throw new Error('No se pudo obtener información del estudiante');
+            throw new Error('No se pudo obtener la información del estudiante');
           }
         }
-        
-        setEstudiante(data);
-        
-        // Convertir el curso numérico a texto para comparar con las áreas disponibles
-        const cursoTexto = getCursoTexto(data.curso);
-        console.log("Curso del estudiante (texto):", cursoTexto);
-        
-        // Determinar áreas disponibles según el curso
-        const areasDisponiblesNombres = Object.keys(areasCursos).filter(areaNombre => 
-          areasCursos[areaNombre].includes(cursoTexto)
-        );
-        console.log("Áreas disponibles para este curso:", areasDisponiblesNombres);
-        
-        const areasDisponibles = areasData.filter(area => 
-          areasDisponiblesNombres.includes(area.nombre)
-        );
-        console.log("Áreas disponibles (objetos completos):", areasDisponibles);
-        
-        setAvailableAreas(areasDisponibles);
-        
-        // Si el estudiante ya tiene áreas inscritas, seleccionarlas
-        if (data.areasInscritas && data.areasInscritas.length > 0) {
-          setAreasSeleccionadas(data.areasInscritas);
-          setTotal(data.areasInscritas.length * PRECIO_POR_AREA);
-        }
+
+        setEstudiante(studentData);
+        await fetchConfig();
+
       } catch (err) {
-        console.error("Error al cargar datos:", err);
-        setError('Ocurrió un error al cargar la información. Por favor, intente nuevamente.');
+        console.error('Error al cargar datos:', err);
+        setError(err.message || 'Error al cargar los datos necesarios. Intente nuevamente.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [studentId, currentUser]);
+  }, [currentUser, navigate]);
 
   // Actualizar el total cuando cambien las áreas seleccionadas
   useEffect(() => {
-    setTotal(areasSeleccionadas.length * PRECIO_POR_AREA);
-  }, [areasSeleccionadas]);
+    setTotal(areasSeleccionadas.length * (config?.costo_por_area || 16));
+  }, [areasSeleccionadas, config]);
 
   const handleAreaChange = (areaId) => {
     setAreasSeleccionadas(prev => {
@@ -307,27 +300,47 @@ function InscripcionIndividual({ navigate: customNavigate }) {
       console.log('Student ID:', estudiante.id);
       console.log('Áreas seleccionadas:', areasSeleccionadas);
       
-      let result;
+      // Guardar la inscripción en localStorage
+      const inscripcion = {
+        id: Date.now(),
+        estudiante: {
+          id: estudiante.id,
+          nombre: estudiante.nombre,
+          apellido: estudiante.apellido,
+          ci: estudiante.ci,
+          curso: estudiante.curso,
+          colegio: estudiante.colegio
+        },
+        convocatoria: config,
+        areas: areasSeleccionadas.map(areaId => {
+          const area = availableAreas.find(a => a.id === areaId);
+          return {
+            id: area.id,
+            nombre: area.nombre,
+            descripcion: area.descripcion
+          };
+        }),
+        fechaInscripcion: new Date().toISOString(),
+        estado: 'pendiente',
+        costoTotal: areasSeleccionadas.length * (config?.costo_por_area || 16)
+      };
+
+      // Guardar en localStorage
+      const inscripcionesKey = 'olimpiadas_inscripciones';
+      const inscripciones = JSON.parse(localStorage.getItem(inscripcionesKey) || '[]');
+      inscripciones.push(inscripcion);
+      localStorage.setItem(inscripcionesKey, JSON.stringify(inscripciones));
+
+      // Guardar la inscripción actual en sessionStorage para la orden de pago
+      sessionStorage.setItem('inscripcionActual', JSON.stringify(inscripcion));
       
-      if (currentUser.tipoUsuario === 'estudiante') {
-        // Usar updateStudentAreas para estudiantes (no genera orden de pago inmediatamente)
-        result = await apiService.updateStudentAreas(currentUser.id, areasSeleccionadas);
-        console.log("Inscripción de estudiante actualizada:", result);
-        
-        setMensaje('Áreas seleccionadas correctamente. Ahora debes generar tu orden de pago.');
-        
-        // Esperar 2 segundos y redirigir
+      setMensaje('Áreas seleccionadas correctamente. Redirigiendo a la orden de pago...');
+      
+      // Redirigir a la página de orden de pago después de 2 segundos
         setTimeout(() => {
-          if (customNavigate) {
-            customNavigate('/estudiante/areas');
-          } else {
-            navigate('/estudiante/areas');
-          }
+        navigate('/estudiante/orden-pago');
         }, 2000);
-      } else {
-        // Para tutores
-        setError('Esta funcionalidad está disponible solo para estudiantes.');
-      }
+
     } catch (err) {
       console.error('Error al inscribir áreas:', err);
       setError(err.message || 'Ocurrió un error al procesar la inscripción. Intente nuevamente.');
@@ -353,9 +366,121 @@ function InscripcionIndividual({ navigate: customNavigate }) {
 
   if (loading) {
     return (
-      <div className="inscripcion-form loading-container">
-        <p>Cargando información del estudiante...</p>
+      <Container className="py-4">
+        <Row className="mb-4">
+          <Col>
+            <h2 className="text-center">
+              Inscripción a {config?.nombre || 'Áreas Olímpicas'}
+            </h2>
+          </Col>
+        </Row>
+
+        {error && (
+          <Alert variant="danger" className="mb-4">
+            {error}
+          </Alert>
+        )}
+
+        {loading ? (
+          <div className="text-center">
+            <Spinner animation="border" variant="primary" />
+            <p className="mt-2">Cargando información...</p>
+          </div>
+        ) : (
+          <>
+            <Card className="mb-4">
+              <Card.Body>
+                <Row>
+                  <Col md={6}>
+                    <h5>Información del Estudiante</h5>
+                    <p><strong>Nombre:</strong> {estudiante?.nombre} {estudiante?.apellido}</p>
+                    <p><strong>CI:</strong> {estudiante?.ci}</p>
+                    <p><strong>Curso:</strong> {estudiante?.curso <= 6 ? `${estudiante?.curso}° Primaria` : `${estudiante?.curso - 6}° Secundaria`}</p>
+                    <p><strong>Colegio:</strong> {estudiante?.colegio?.nombre || 'No asignado'}</p>
+                  </Col>
+                  <Col md={6}>
+                    <h5>Información de la Convocatoria</h5>
+                    <p><strong>Período de Inscripción:</strong></p>
+                    <p>{new Date(config?.fecha_inicio_inscripciones).toLocaleDateString()} al {new Date(config?.fecha_fin_inscripciones).toLocaleDateString()}</p>
+                    <p><strong>Costo por área:</strong> Bs. {config?.costo_por_area || 16}</p>
+                    <p><strong>Máximo de áreas:</strong> {config?.maximo_areas || 2} por estudiante</p>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+
+            <form onSubmit={handleSubmit}>
+              <div className="areas-selection">
+                <h3>Selección de Áreas (máximo {config?.maximo_areas || 2})</h3>
+                <p className="areas-price-info">Precio por área: Bs. {config?.costo_por_area || 16}</p>
+                
+                <div className="checkbox-group areas-list">
+                  {availableAreas.map(area => {
+                    const isSelected = areasSeleccionadas.includes(area.id);
+                    return (
+                      <div 
+                        key={area.id} 
+                        className={`area-option`}
+                      >
+                        <input
+                          type="checkbox"
+                          id={`area-${area.id}`}
+                          name="area"
+                          value={area.id}
+                          checked={isSelected}
+                          onChange={() => handleAreaChange(area.id)}
+                          disabled={areasSeleccionadas.length >= 2 && !isSelected}
+                        />
+                        <label 
+                          htmlFor={`area-${area.id}`}
+                        >
+                          {area.nombre}
+                          <p className="area-description">{area.descripcion}</p>
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {availableAreas.length > 0 && (
+                  <div className="areas-info">
+                    <p>Áreas disponibles para {estudiante.curso}:</p>
+                    <ul>
+                      {availableAreas.map(area => (
+                        <li key={area.id}>{area.nombre}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {availableAreas.length === 0 && (
+                  <div className="areas-info">
+                    <p>No hay áreas disponibles para tu curso actualmente.</p>
+                  </div>
+                )}
+                
+                <div className="price-summary">
+                  <p><strong>Áreas seleccionadas:</strong> {areasSeleccionadas.length}</p>
+                  <p><strong>Costo total:</strong> Bs. {areasSeleccionadas.length * (config?.costo_por_area || 16)}</p>
+                </div>
+              </div>
+              
+              <div className="form-buttons">
+                <button type="button" onClick={handleBack} className="back-button">
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="submit-button" 
+                  disabled={isSubmitting || areasSeleccionadas.length === 0}
+                >
+                  {isSubmitting ? 'Procesando...' : 'Confirmar Selección'}
+                </button>
       </div>
+            </form>
+          </>
+        )}
+      </Container>
     );
   }
 
@@ -370,7 +495,7 @@ function InscripcionIndividual({ navigate: customNavigate }) {
 
   return (
     <div className="inscripcion-form">
-      <h2>Inscripción a Áreas Olímpicas</h2>
+      <h2>Inscripción a {config?.nombre || 'Áreas Olímpicas'}</h2>
       
       {mensaje && <div className="success-message">{mensaje}</div>}
       
@@ -398,8 +523,8 @@ function InscripcionIndividual({ navigate: customNavigate }) {
       
       <form onSubmit={handleSubmit}>
         <div className="areas-selection">
-          <h3>Selección de Áreas (máximo 2)</h3>
-          <p className="areas-price-info">Precio por área: ${PRECIO_POR_AREA}</p>
+          <h3>Selección de Áreas (máximo {config?.maximo_areas || 2})</h3>
+          <p className="areas-price-info">Precio por área: Bs. {config?.costo_por_area || 16}</p>
           
           <div className="checkbox-group areas-list">
             {availableAreas.map(area => {
@@ -447,8 +572,8 @@ function InscripcionIndividual({ navigate: customNavigate }) {
           )}
           
           <div className="price-summary">
-            <p>Número de áreas seleccionadas: <strong>{areasSeleccionadas.length}</strong></p>
-            <p className="total-price">Total a pagar: <strong>${total}</strong></p>
+            <p><strong>Áreas seleccionadas:</strong> {areasSeleccionadas.length}</p>
+            <p><strong>Costo total:</strong> Bs. {areasSeleccionadas.length * (config?.costo_por_area || 16)}</p>
           </div>
         </div>
         
