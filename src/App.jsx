@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
+import './styles/form-fields.css';
 import { useAuth } from './context/AuthContext';
 import Home from './components/Home';
 import Registro from './Registro';

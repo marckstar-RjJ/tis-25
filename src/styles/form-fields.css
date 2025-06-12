@@ -1,0 +1,94 @@
+/* Estilos modernos para campos de texto */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 1rem !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  width: 100% !important;
+}
+
+/* Efecto hover */
+input:not([type="checkbox"]):not([type="radio"]):hover,
+select:hover,
+textarea:hover {
+  border-color: #d1d5db !important;
+}
+
+/* Efecto focus */
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+}
+
+/* Placeholders */
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important;
+  opacity: 1 !important;
+}
+
+/* Select personalizado */
+select {
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 1rem !important;
+  padding-right: 2.5rem !important;
+}
+
+/* Override para modo oscuro */
+@media (prefers-color-scheme: dark) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    border-color: #e5e7eb !important;
+  }
+  
+  input::placeholder,
+  textarea::placeholder {
+    color: #9ca3af !important;
+  }
+}
+
+/* Estilos para campos con error */
+input.error,
+select.error,
+textarea.error {
+  border-color: #dc2626 !important;
+  background-color: #fef2f2 !important;
+}
+
+/* Estilos para labels */
+label {
+  color: #374151 !important;
+  font-weight: 500 !important;
+  font-size: 0.95rem !important;
+  margin-bottom: 0.5rem !important;
+  display: block !important;
+}
+
+/* Estilos para grupos de formulario */
+.form-group {
+  margin-bottom: 1.5rem !important;
+}
+
+/* Estilos para campos deshabilitados */
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background-color: #f3f4f6 !important;
+  cursor: not-allowed !important;
+  opacity: 0.7 !important;
+} 

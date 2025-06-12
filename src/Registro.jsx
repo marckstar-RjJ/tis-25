@@ -3,12 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import './App.css';
 import './Notification.css';
 import { apiService } from './services/api';
-import { useAuth } from './context/AuthContext';
 import { sendRegistrationEmail } from './InscripcionIndividual';
 
 function Registro() {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
   const [tipoUsuario, setTipoUsuario] = useState('estudiante');
   const [formData, setFormData] = useState({
     nombre: '',
@@ -16,7 +14,7 @@ function Registro() {
     ci: '',
     departamento: 'LP', // Valor predeterminado
     fechaNacimiento: '',
-    curso: '3', // Valor predeterminado: 3° primaria
+    curso: '', // Eliminamos el valor predeterminado
     email: '',
     emailTutor: '',
     celular: '',
@@ -32,7 +30,7 @@ function Registro() {
   const [isLoading, setIsLoading] = useState(false);
   const [colegios, setColegios] = useState([]);
   const [cargandoColegios, setCargandoColegios] = useState(true);
-  const [tutorColegio, setTutorColegio] = useState(null);
+  const [tutorColegio] = useState(null);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
 
@@ -127,11 +125,6 @@ function Registro() {
         newFormData.colegio = colegios[0].id;
       }
     } else if (tipoUsuario === 'estudiante') {
-      // Establecer curso predeterminado para estudiante
-      if (!newFormData.curso) {
-        newFormData.curso = '3'; // 3° primaria por defecto
-      }
-      
       // Si hay un tutor con sesión iniciada, usar su colegio
       if (tutorColegio) {
         newFormData.colegio = tutorColegio;
@@ -143,7 +136,7 @@ function Registro() {
     }
     
     setFormData(newFormData);
-  }, [tipoUsuario, colegios, tutorColegio]);
+  }, [tipoUsuario, colegios, tutorColegio, formData]); // Agregamos formData como dependencia
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -197,10 +190,18 @@ function Registro() {
     // Validaciones comunes para todos los tipos de usuario
     if (!formData.nombre) {
       nuevosErrores.nombre = 'El nombre es requerido';
+    } else if (formData.nombre.length < 2) {
+      nuevosErrores.nombre = 'El nombre debe tener al menos 2 caracteres';
+    } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(formData.nombre)) {
+      nuevosErrores.nombre = 'El nombre solo debe contener letras y espacios';
     }
     
     if (!formData.apellidos) {
       nuevosErrores.apellidos = 'Los apellidos son requeridos';
+    } else if (formData.apellidos.length < 2) {
+      nuevosErrores.apellidos = 'Los apellidos deben tener al menos 2 caracteres';
+    } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(formData.apellidos)) {
+      nuevosErrores.apellidos = 'Los apellidos solo deben contener letras y espacios';
     }
     
     // Validación de CI
@@ -208,18 +209,24 @@ function Registro() {
       nuevosErrores.ci = 'El carnet de identidad es requerido';
     } else if (formData.ci.length < 6 || formData.ci.length > 9) {
       nuevosErrores.ci = 'El CI debe tener entre 6 y 9 dígitos';
+    } else if (!/^\d+$/.test(formData.ci)) {
+      nuevosErrores.ci = 'El CI solo debe contener números';
     }
     
     if (!formData.email) {
       nuevosErrores.email = 'El email es requerido';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       nuevosErrores.email = 'El email no es válido';
+    } else if (formData.email.length > 100) {
+      nuevosErrores.email = 'El email no puede tener más de 100 caracteres';
     }
     
     if (!formData.password) {
       nuevosErrores.password = 'La contraseña es requerida';
-    } else if (formData.password.length < 6) {
-      nuevosErrores.password = 'La contraseña debe tener al menos 6 caracteres';
+    } else if (formData.password.length < 8) {
+      nuevosErrores.password = 'La contraseña debe tener al menos 8 caracteres';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      nuevosErrores.password = 'La contraseña debe contener al menos una mayúscula, una minúscula y un número';
     }
     
     if (formData.password !== formData.confirmarPassword) {
@@ -232,12 +239,14 @@ function Registro() {
       if (!formData.fechaNacimiento) {
         nuevosErrores.fechaNacimiento = 'La fecha de nacimiento es requerida';
       } else {
-        // Validar que la fecha sea anterior a julio de 2017
         const fechaNacimiento = new Date(formData.fechaNacimiento);
         const fechaLimite = new Date('2017-07-01');
+        const fechaMinima = new Date('2000-01-01');
         
         if (fechaNacimiento >= fechaLimite) {
           nuevosErrores.fechaNacimiento = 'Solo se permiten registros de personas nacidas antes de julio de 2017';
+        } else if (fechaNacimiento < fechaMinima) {
+          nuevosErrores.fechaNacimiento = 'La fecha de nacimiento no puede ser anterior al año 2000';
         }
       }
       
@@ -245,11 +254,23 @@ function Registro() {
         nuevosErrores.curso = 'Debe seleccionar un curso';
       }
       
-      // Validación de nombre y correo del tutor (no pueden ser iguales al estudiante)
+      // Validación de nombre y correo del tutor
       if (!formData.nombreTutor) {
         nuevosErrores.nombreTutor = 'El nombre del tutor es requerido';
+      } else if (formData.nombreTutor.length < 2) {
+        nuevosErrores.nombreTutor = 'El nombre del tutor debe tener al menos 2 caracteres';
+      } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(formData.nombreTutor)) {
+        nuevosErrores.nombreTutor = 'El nombre del tutor solo debe contener letras y espacios';
       } else if (formData.nombreTutor === formData.nombre && formData.apellidosTutor === formData.apellidos) {
         nuevosErrores.nombreTutor = 'El nombre del tutor no puede ser igual al del estudiante';
+      }
+      
+      if (!formData.apellidosTutor) {
+        nuevosErrores.apellidosTutor = 'Los apellidos del tutor son requeridos';
+      } else if (formData.apellidosTutor.length < 2) {
+        nuevosErrores.apellidosTutor = 'Los apellidos del tutor deben tener al menos 2 caracteres';
+      } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(formData.apellidosTutor)) {
+        nuevosErrores.apellidosTutor = 'Los apellidos del tutor solo deben contener letras y espacios';
       }
       
       if (!formData.emailTutor) {
@@ -258,6 +279,8 @@ function Registro() {
         nuevosErrores.emailTutor = 'El email del tutor no es válido';
       } else if (formData.emailTutor === formData.email) {
         nuevosErrores.emailTutor = 'El email del tutor no puede ser igual al del estudiante';
+      } else if (formData.emailTutor.length > 100) {
+        nuevosErrores.emailTutor = 'El email del tutor no puede tener más de 100 caracteres';
       }
       
       // Validación de celular de estudiante
@@ -265,10 +288,8 @@ function Registro() {
         nuevosErrores.celular = 'El número de celular es requerido';
       } else if (formData.celular.length !== 8) {
         nuevosErrores.celular = 'El número de celular debe tener 8 dígitos';
-      } else if (
-        !(/^6[01234578]\d{6}$/.test(formData.celular) || /^7\d{7}$/.test(formData.celular))
-      ) {
-        nuevosErrores.celular = 'El número debe comenzar con 60, 61, 62, 63, 64, 65, 67, 68 o 7';
+      } else if (!/^[67]\d{7}$/.test(formData.celular)) {
+        nuevosErrores.celular = 'El número debe comenzar con 6 o 7 seguido de 7 dígitos';
       }
       
       // Validación de celular de tutor
@@ -276,14 +297,10 @@ function Registro() {
         nuevosErrores.celularTutor = 'El número de celular del tutor es requerido';
       } else if (formData.celularTutor.length !== 8) {
         nuevosErrores.celularTutor = 'El número de celular del tutor debe tener 8 dígitos';
-      } else if (
-        !(/^6[01234578]\d{6}$/.test(formData.celularTutor) || /^7\d{7}$/.test(formData.celularTutor))
-      ) {
-        nuevosErrores.celularTutor = 'El número debe comenzar con 60, 61, 62, 63, 64, 65, 67, 68 o 7';
-      }
-      
-      if (!formData.apellidosTutor) {
-        nuevosErrores.apellidosTutor = 'Los apellidos del tutor son requeridos';
+      } else if (!/^[67]\d{7}$/.test(formData.celularTutor)) {
+        nuevosErrores.celularTutor = 'El número debe comenzar con 6 o 7 seguido de 7 dígitos';
+      } else if (formData.celularTutor === formData.celular) {
+        nuevosErrores.celularTutor = 'El número de celular del tutor no puede ser igual al del estudiante';
       }
     }
     
@@ -293,6 +310,8 @@ function Registro() {
         nuevosErrores.verificationCode = 'El código de verificación del colegio es requerido';
       } else if (formData.verificationCode.length !== 4) {
         nuevosErrores.verificationCode = 'El código de verificación debe tener exactamente 4 dígitos';
+      } else if (!/^\d{4}$/.test(formData.verificationCode)) {
+        nuevosErrores.verificationCode = 'El código de verificación solo debe contener números';
       }
 
       // Validación de celular de tutor
@@ -300,10 +319,8 @@ function Registro() {
         nuevosErrores.celular = 'El número de celular es requerido';
       } else if (formData.celular.length !== 8) {
         nuevosErrores.celular = 'El número de celular debe tener 8 dígitos';
-      } else if (
-        !(/^6[01234578]\d{6}$/.test(formData.celular) || /^7\d{7}$/.test(formData.celular))
-      ) {
-        nuevosErrores.celular = 'El número debe comenzar con 60, 61, 62, 63, 64, 65, 67, 68 o 7';
+      } else if (!/^[67]\d{7}$/.test(formData.celular)) {
+        nuevosErrores.celular = 'El número debe comenzar con 6 o 7 seguido de 7 dígitos';
       }
       
       if (!formData.colegio) {
@@ -601,6 +618,8 @@ function Registro() {
                 className={errores.curso ? 'error' : ''}
               >
                 <option value="">Seleccione un curso</option>
+                <option value="1">1° Primaria</option>
+                <option value="2">2° Primaria</option>
                 <option value="3">3° Primaria</option>
                 <option value="4">4° Primaria</option>
                 <option value="5">5° Primaria</option>
@@ -608,6 +627,9 @@ function Registro() {
                 <option value="7">1° Secundaria</option>
                 <option value="8">2° Secundaria</option>
                 <option value="9">3° Secundaria</option>
+                <option value="10">4° Secundaria</option>
+                <option value="11">5° Secundaria</option>
+                <option value="12">6° Secundaria</option>
               </select>
               {errores.curso && <span className="error-message">{errores.curso}</span>}
             </div>
