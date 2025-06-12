@@ -251,10 +251,10 @@ const logout = async () => {
   }
 };
 
-// Crear un nuevo usuario (usando fetch a la API)
-const createUser = async (userData) => {
+// Registrar usuario (para administradores o tutores)
+const registerUser = async (userData) => {
   try {
-    const response = await fetch(`${API_URL}/register`, { // Usar la ruta /register
+    const response = await fetch(`${API_URL}/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -263,162 +263,127 @@ const createUser = async (userData) => {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Error al crear usuario');
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al registrar usuario');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en registerUser:', error);
+    throw error;
+  }
+};
+
+// Crear usuario (para administradores o tutores)
+const createUser = async (userData) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al crear usuario');
     }
 
     return await response.json();
   } catch (error) {
     console.error('Error en createUser:', error);
-    throw new Error(`Error al crear usuario: ${error.message}`);
+    throw error;
   }
 };
 
-// Obtener convocatorias disponibles
+// Obtener convocatorias desde el backend
 const getConvocatorias = async () => {
   try {
-    console.log('Llamando a API para obtener convocatorias...');
-    const response = await fetch(`${API_URL}/convocatorias-abiertas`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      }
-    });
-
-    console.log('Respuesta de convocatorias recibida:', response.status);
-    
+    const response = await fetch(`${API_URL}/convocatorias`);
     if (!response.ok) {
-      console.error('Error en respuesta de convocatorias:', response.status, response.statusText);
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Error al obtener convocatorias: ${response.status}`);
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al obtener las convocatorias');
     }
-
-    const data = await response.json();
-    console.log('Datos de convocatorias recibidos:', data);
-    
-    if (!Array.isArray(data)) {
-      console.error('Los datos recibidos no son un array:', data);
-      return [];
-    }
-    
-    return data;
+    return await response.json();
   } catch (error) {
-    console.error('Error en getConvocatorias:', error);
-    throw new Error(`Error al obtener convocatorias: ${error.message}`);
+    console.error('Error al obtener convocatorias:', error);
+    throw error;
   }
 };
 
-// Obtener información del estudiante actual
+// Obtener datos del estudiante actual (usando el token)
 const getCurrentStudent = async () => {
   try {
-    console.log('Intentando obtener perfil del estudiante actual...');
-    
-    // Intentar usar el usuario actual del localStorage si está disponible
-    const currentUserStr = localStorage.getItem('currentUser');
-    if (currentUserStr) {
-      try {
-        const currentUser = JSON.parse(currentUserStr);
-        console.log('Usuario actual encontrado en localStorage:', currentUser);
-        
-        // Si el usuario ya tiene los datos de curso y colegio, devolverlos directamente
-        if (currentUser.curso !== undefined && (currentUser.colegio_id !== undefined || currentUser.colegio !== undefined)) {
-          console.log('Usando datos de estudiante desde localStorage:', {
-            curso: currentUser.curso,
-            colegio_id: currentUser.colegio_id,
-            colegio: currentUser.colegio
-          });
-          return currentUser;
-        }
-      } catch (parseError) {
-        console.error('Error al parsear currentUser de localStorage:', parseError);
-      }
-    }
-    
-    // Si no hay datos en localStorage o no son completos, intentar obtenerlos de la API
     const token = localStorage.getItem('token');
     if (!token) {
-      throw new Error('No hay sesión activa');
+      throw new Error('No hay token de autenticación disponible.');
     }
 
-    console.log('Solicitando perfil de estudiante a la API...');
-    const response = await fetch(`${API_URL}/student/profile`, {
+    const response = await fetch(`${API_URL}/user-student`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
       },
     });
 
-    console.log('Respuesta recibida:', response.status);
-    
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Error en respuesta de perfil:', response.status, errorText);
-      let errorMessage = 'Error al obtener perfil del estudiante';
-      
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage = errorData.message || errorMessage;
-      } catch (e) {}
-      
-      throw new Error(errorMessage);
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al obtener datos del estudiante actual');
     }
 
     const data = await response.json();
-    console.log('Datos de perfil recibidos:', data);
-    
-    // Actualizar los datos en localStorage
-    if (data && currentUserStr) {
+    console.log("Datos del estudiante actual:", data);
+
+    // Asegurarse de que `areas_inscritas` sea un array, incluso si viene null o indefinido
+    if (data && data.areas_inscritas && typeof data.areas_inscritas === 'string') {
       try {
-        const currentUser = JSON.parse(currentUserStr);
-        const updatedUser = { ...currentUser, ...data };
-        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-        console.log('Datos de usuario actualizados en localStorage');
-      } catch (e) {
-        console.error('Error al actualizar localStorage:', e);
+        data.areasInscritas = JSON.parse(data.areas_inscritas);
+      } catch (parseError) {
+        console.error('Error al parsear areas_inscritas:', parseError);
+        data.areasInscritas = []; // Asignar un array vacío si hay un error de parseo
       }
+    } else if (!data.areas_inscritas) {
+      data.areasInscritas = []; // Si no existe o es null, inicializar como array vacío
+    } else {
+      data.areasInscritas = data.areas_inscritas; // Si ya es un array, usarlo directamente
     }
     
+    // Mapear areas_inscritas a areasInscritas para compatibilidad
+    if (data && data.areas_inscritas) {
+      data.areasInscritas = data.areas_inscritas;
+    } else {
+      data.areasInscritas = [];
+    }
+
+
+    // Asegurarse de que `convocatorias_inscritas` sea un array de IDs
+    if (data && data.convocatorias_inscritas && typeof data.convocatorias_inscritas === 'string') {
+      try {
+        data.convocatoriasInscritas = JSON.parse(data.convocatorias_inscritas);
+      } catch (parseError) {
+        console.error('Error al parsear convocatorias_inscritas:', parseError);
+        data.convocatoriasInscritas = [];
+      }
+    } else if (!data.convocatorias_inscritas) {
+      data.convocatoriasInscritas = [];
+    } else {
+      data.convocatoriasInscritas = data.convocatorias_inscritas;
+    }
+
+
     return data;
   } catch (error) {
     console.error('Error en getCurrentStudent:', error);
-    
-    // Intentar usar el currentUser como fallback
-    const currentUserStr = localStorage.getItem('currentUser');
-    if (currentUserStr) {
-      try {
-        const currentUser = JSON.parse(currentUserStr);
-        console.log('Usando currentUser como fallback debido al error:', currentUser);
-        return currentUser;
-      } catch (e) {}
-    }
-    
-    throw new Error(`Error al obtener perfil del estudiante: ${error.message}`);
+    throw error;
   }
 };
 
-// Obtener un estudiante por su ID
+// Obtener un estudiante por ID
 const getStudentById = async (id) => {
   try {
     const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No hay sesión activa');
-    }
-
-    // Intentar primero obtener el perfil actual si el ID coincide con el usuario actual
-    try {
-      const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-      if (currentUser && currentUser.id === id) {
-        console.log('Obteniendo perfil del estudiante actual');
-        return await getCurrentStudent();
-      }
-    } catch (e) {
-      console.error('Error al verificar usuario actual:', e);
-    }
-
-    // Si no es el usuario actual o hubo un error, obtener por ID
     const response = await fetch(`${API_URL}/students/${id}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -432,255 +397,183 @@ const getStudentById = async (id) => {
 
     return await response.json();
   } catch (error) {
-    console.error(`Error en getStudentById(${id}):`, error);
-    throw new Error(`Error al obtener estudiante: ${error.message}`);
+    console.error(`Error en getStudentById (ID: ${id}):`, error);
+    throw error;
   }
 };
 
-// Obtener todas las convocatorias (admin y gestión de inscripciones)
+// Obtener todas las convocatorias (incluyendo las públicas y las gestionadas por el admin)
 const getAllConvocatorias = async () => {
   try {
-    console.log('Llamando a API para obtener todas las convocatorias...');
-    const response = await fetch(`${API_URL}/convocatorias`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      }
-    });
-
-    console.log('Respuesta de todas las convocatorias recibida:', response.status);
-    
+    const response = await fetch(`${API_URL}/convocatorias`);
     if (!response.ok) {
-      console.error('Error en respuesta de todas las convocatorias:', response.status, response.statusText);
-      
-      // Si el backend no responde correctamente, usar datos guardados en localStorage
-      console.log('Intentando usar datos de convocatorias desde localStorage...');
-      const convocatoriasKey = 'olimpiadas_convocatorias';
-      const cachedConvocatorias = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
-      
-      if (cachedConvocatorias.length > 0) {
-        console.log('Usando datos de convocatorias desde localStorage:', cachedConvocatorias.length, 'encontradas');
-        return cachedConvocatorias;
-      }
-      
-      // Si no hay datos en localStorage, lanzar error
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Error al obtener todas las convocatorias: ${response.status}`);
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al obtener todas las convocatorias');
     }
-
     const data = await response.json();
-    console.log('Datos de todas las convocatorias recibidos:', data);
-    
-    if (!Array.isArray(data)) {
-      console.error('Los datos recibidos no son un array:', data);
-      return [];
-    }
-    
     return data;
   } catch (error) {
     console.error('Error en getAllConvocatorias:', error);
-    
-    // Intentar devolver desde localStorage como fallback
-    try {
-      const convocatoriasKey = 'olimpiadas_convocatorias';
-      const cachedConvocatorias = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
-      
-      if (cachedConvocatorias.length > 0) {
-        console.log('Fallback: Usando datos de convocatorias desde localStorage:', cachedConvocatorias.length, 'encontradas');
-        return cachedConvocatorias;
-      }
-    } catch (e) {
-      console.error('Error al obtener convocatorias de localStorage:', e);
-    }
-    
-    // Si todo falla, devolver un array vacío
-    return [];
+    throw error;
   }
 };
 
-// Obtener una convocatoria específica por ID
+// Obtener una convocatoria por ID
 const getConvocatoriaById = async (id) => {
   try {
-    console.log(`Llamando a API para obtener convocatoria con ID ${id}...`);
-    const response = await fetch(`${API_URL}/convocatorias/${id}`, {
-      method: 'GET',
+    const response = await fetch(`${API_URL}/convocatorias/${id}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Error al obtener la convocatoria con ID ${id}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`Error en getConvocatoriaById (ID: ${id}):`, error);
+    throw error;
+  }
+};
+
+// Función para inscribir estudiante a un área
+const inscribirEstudianteArea = async (studentId, areaId, convocatoriaId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/inscripciones`, {
+      method: 'POST',
       headers: {
-        'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      }
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ student_id: studentId, area_id: areaId, convocatoria_id: convocatoriaId }),
     });
 
     if (!response.ok) {
-      console.error(`Error en respuesta de convocatoria ${id}:`, response.status, response.statusText);
-      
-      // Si el backend no responde correctamente, buscar en localStorage
-      console.log('Intentando encontrar convocatoria en localStorage...');
-      const convocatoriasKey = 'olimpiadas_convocatorias';
-      const cachedConvocatorias = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
-      const cachedConvocatoria = cachedConvocatorias.find(c => c.id === id);
-      
-      if (cachedConvocatoria) {
-        console.log('Convocatoria encontrada en localStorage:', cachedConvocatoria.nombre);
-        return cachedConvocatoria;
-      }
-      
-      // Si no se encuentra en localStorage, lanzar error
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Error al obtener convocatoria ${id}: ${response.status}`);
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al inscribir estudiante en el área.');
     }
 
     return await response.json();
   } catch (error) {
-    console.error(`Error en getConvocatoriaById (${id}):`, error);
-    
-    // Intentar obtener desde localStorage como fallback
-    try {
-      const convocatoriasKey = 'olimpiadas_convocatorias';
-      const cachedConvocatorias = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
-      const cachedConvocatoria = cachedConvocatorias.find(c => c.id === id);
-      
-      if (cachedConvocatoria) {
-        console.log('Fallback: Usando convocatoria desde localStorage:', cachedConvocatoria.nombre);
-        return cachedConvocatoria;
-      }
-    } catch (e) {
-      console.error('Error al obtener convocatoria de localStorage:', e);
-    }
-    
-    // Si no se encuentra, crear un objeto vacío
-    return { id, nombre: 'Convocatoria no disponible', areas: [] };
+    console.error('Error en inscribirEstudianteArea:', error);
+    throw error;
   }
 };
 
-// Obtener todas las áreas académicas
+// Obtener todas las áreas
 const getAreas = async () => {
   try {
-    console.log('Llamando a API para obtener áreas académicas...');
-    const response = await fetch(`${API_URL}/areas`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      }
-    });
-
+    const response = await fetch(`${API_URL}/areas`);
     if (!response.ok) {
-      console.error('Error en respuesta de áreas:', response.status, response.statusText);
-      
-      // Si falla la API, usar áreas predefinidas como fallback
-      const areasDefault = [
-        { id: "1", nombre: "Astronomía", descripcion: "Estudio del universo y los cuerpos celestes" },
-        { id: "2", nombre: "Biología", descripcion: "Estudio de los seres vivos" },
-        { id: "3", nombre: "Física", descripcion: "Estudio de la materia y la energía" },
-        { id: "4", nombre: "Matemáticas", descripcion: "Estudio de números, estructuras y patrones" },
-        { id: "5", nombre: "Informática", descripcion: "Estudio de la computación y programación" },
-        { id: "6", nombre: "Robótica", descripcion: "Diseño y construcción de robots" },
-        { id: "7", nombre: "Química", descripcion: "Estudio de la composición de la materia" }
-      ];
-      console.log('Usando áreas predefinidas como fallback');
-      return areasDefault;
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al obtener las áreas');
     }
-
-    const data = await response.json();
-    console.log('Datos de áreas recibidos:', data);
-    
-    if (!Array.isArray(data)) {
-      console.error('Los datos de áreas recibidos no son un array:', data);
-      return [];
-    }
-    
-    return data;
+    return await response.json();
   } catch (error) {
     console.error('Error en getAreas:', error);
-    
-    // Devolver áreas predefinidas como fallback
-    const areasDefault = [
-      { id: "1", nombre: "Astronomía", descripcion: "Estudio del universo y los cuerpos celestes" },
-      { id: "2", nombre: "Biología", descripcion: "Estudio de los seres vivos" },
-      { id: "3", nombre: "Física", descripcion: "Estudio de la materia y la energía" },
-      { id: "4", nombre: "Matemáticas", descripcion: "Estudio de números, estructuras y patrones" },
-      { id: "5", nombre: "Informática", descripcion: "Estudio de la computación y programación" },
-      { id: "6", nombre: "Robótica", descripcion: "Diseño y construcción de robots" },
-      { id: "7", nombre: "Química", descripcion: "Estudio de la composición de la materia" }
-    ];
-    console.log('Fallback: Usando áreas predefinidas');
-    return areasDefault;
+    throw error;
   }
 };
 
 // Añadir un nuevo colegio
 const addCollege = async (collegeData) => {
   try {
-    const response = await fetch(`${API_URL}/colleges`, {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/colegios`, {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(collegeData)
+      body: JSON.stringify(collegeData),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || 'Error al crear el colegio');
+      throw new Error(errorData.message || 'Error al agregar colegio');
     }
 
     return await response.json();
   } catch (error) {
     console.error('Error en addCollege:', error);
-    throw new Error(`Error al crear colegio: ${error.message}`);
+    throw error;
   }
 };
 
-// Eliminar un colegio
+// Eliminar un colegio por ID
 const deleteCollege = async (id) => {
   try {
+    const token = localStorage.getItem('token');
     const response = await fetch(`${API_URL}/colegios/${id}`, {
       method: 'DELETE',
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      }
+        'Authorization': `Bearer ${token}`
+      },
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || 'Error al eliminar el colegio');
+      throw new Error(errorData.message || 'Error al eliminar colegio');
     }
 
     return await response.json();
   } catch (error) {
     console.error('Error en deleteCollege:', error);
-    throw new Error(`Error al eliminar colegio: ${error.message}`);
+    throw error;
   }
 };
 
-// Exportar servicios
+// Verificar si un estudiante tiene una orden de pago activa
+const tieneOrdenPagoActiva = async (studentId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/ordenes-pago/activa/${studentId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 404) {
+      // Si la ruta no existe, o no se encuentra orden, asumimos que no hay orden activa
+      return false;
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al verificar orden de pago activa');
+    }
+
+    const data = await response.json();
+    // Suponemos que el backend devuelve { activa: true } o { activa: false }
+    return data.activa;
+  } catch (error) {
+    console.error('Error en tieneOrdenPagoActiva:', error);
+    // Si hay un error de red o similar, asumimos que no hay orden activa para no bloquear la app
+    return false;
+  }
+};
+
+
 export const apiService = {
+  checkUserEmail,
+  generateResetToken,
+  getEmailFromToken,
+  resetPassword,
   getUsers,
   getStudents,
   getColleges,
   getAllColleges,
   login,
   logout,
+  registerUser,
   createUser,
   getConvocatorias,
   getCurrentStudent,
   getStudentById,
-  // Nuevos métodos agregados
   getAllConvocatorias,
   getConvocatoriaById,
+  inscribirEstudianteArea,
   getAreas,
   addCollege,
   deleteCollege,
-  checkUserEmail,
-  generateResetToken,
-  getEmailFromToken,
-  resetPassword
+  tieneOrdenPagoActiva, // Exportar la función
 };

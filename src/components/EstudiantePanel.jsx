@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, Routes, Route } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
@@ -332,7 +332,7 @@ function EstudiantePanel() {
             <Route path="/convocatorias" element={<MisConvocatorias />} />
             <Route path="/mis-areas" element={<MisAreas />} />
             <Route path="/inscripcion" element={<InscripcionIndividual />} />
-            <Route path="/inscripcion-areas" element={<InscripcionAreaEstudiante />} />
+            <Route path="/inscripcion-area" element={<InscripcionAreaEstudiante />} />
             <Route path="/inscripciones" element={<MisInscripciones />} />
             <Route path="/ocr" element={<div className="p-4">
               <h2>Verificar Comprobante de Pago</h2>

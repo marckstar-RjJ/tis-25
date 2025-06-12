@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
+import { Container, Spinner, Alert, Button, Card } from 'react-bootstrap';
 
 // Función para verificar si un estudiante cumple con los requisitos de curso para un área específica
 const cumpleRequisitosArea = (curso, nombreArea) => {
@@ -55,35 +56,25 @@ function InscripcionAreaEstudiante() {
   const [success, setSuccess] = useState('');
   const [totalCost, setTotalCost] = useState(0);
 
-  // Cargar datos iniciales
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Log para depuración: verificar si el currentUser tiene información de curso/colegio
-        console.log('Current user en InscripcionAreaEstudiante:', currentUser);
-        if (currentUser) {
-          console.log('Información relevante del estudiante:', {
-            curso: currentUser.curso,
-            colegio_id: currentUser.colegio_id,
-            colegio: currentUser.colegio
-          });
-        }
-        
-        // Verificar si hay una convocatoria seleccionada
+        setError('');
+
         const convocatoriaId = sessionStorage.getItem('convocatoriaSeleccionadaId');
+        console.log("FetchData: convocatoriaId from sessionStorage:", convocatoriaId);
         if (!convocatoriaId) {
-          // No hay convocatoria seleccionada, redirigir a la página de convocatorias
           setError('No has seleccionado una convocatoria. Debes seleccionar una convocatoria primero.');
           setTimeout(() => navigate('/estudiante/convocatorias'), 2000);
           return;
         }
         
-        // Obtener la convocatoria seleccionada
         const convocatoriasKey = 'olimpiadas_convocatorias';
         const convocatorias = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
+        console.log("FetchData: Convocatorias from localStorage:", convocatorias);
         const convocatoriaSeleccionada = convocatorias.find(c => c.id === convocatoriaId);
+        console.log("FetchData: Convocatoria seleccionada:", convocatoriaSeleccionada);
         
         if (!convocatoriaSeleccionada) {
           setError('La convocatoria seleccionada no existe o ha sido eliminada.');
@@ -91,142 +82,101 @@ function InscripcionAreaEstudiante() {
           return;
         }
         
-        // Verificar que la convocatoria tenga áreas asignadas correctamente
-        console.log('Convocatoria seleccionada:', convocatoriaSeleccionada.nombre);
-        console.log('Áreas de la convocatoria:', convocatoriaSeleccionada.areas?.map(a => a.nombre) || []);
-        
-        // HARD RESET: Definir de manera fija qué áreas tiene cada convocatoria
-        // Creamos arrays de áreas específicas para cada tipo de convocatoria
-        
-        // Áreas científicas clásicas para Oh Sansi!
-        const areasOhSansi = [
-          { id: "1", nombre: "Astronomía", descripcion: "Estudio del universo y los cuerpos celestes" },
-          { id: "2", nombre: "Biología", descripcion: "Estudio de los seres vivos" },
-          { id: "3", nombre: "Física", descripcion: "Estudio de la materia y la energía" },
-          { id: "4", nombre: "Matemáticas", descripcion: "Estudio de números, estructuras y patrones" },
-          { id: "5", nombre: "Informática", descripcion: "Estudio de la computación y programación" },
-          { id: "6", nombre: "Robótica", descripcion: "Diseño y construcción de robots" },
-          { id: "7", nombre: "Química", descripcion: "Estudio de la composición de la materia" }
-        ];
-        
-        // Áreas específicas para Skillparty
-        const areasSkillparty = [
-          { id: "8", nombre: "Farmeo I", descripcion: "Farmeo de minions y campeones" },
-          { id: "9", nombre: "Support II", descripcion: "Asistencia y control de vision" }
-        ];
-        
-        // Áreas específicas para Lolsito
-        const areasLolsito = [
-          { id: "10", nombre: "Top Lane", descripcion: "Linea superior" },
-          { id: "11", nombre: "Mid Lane", descripcion: "Linea central" },
-          { id: "12", nombre: "Jungling", descripcion: "Rol de jungla" }
-        ];
-        
-        // Asignar áreas según el nombre exacto de la convocatoria
-        if (convocatoriaSeleccionada.nombre === 'Olimpiadas Oh Sansi!') {
-          convocatoriaSeleccionada.areas = areasOhSansi;
-          console.log('RESET: Áreas para Oh Sansi!:', areasOhSansi.map(a => a.nombre));
+        const fechaActual = new Date();
+        const fechaInicio = new Date(convocatoriaSeleccionada.fecha_inicio_inscripciones);
+        const fechaFin = new Date(convocatoriaSeleccionada.fecha_fin_inscripciones);
+
+        if (fechaActual < fechaInicio) {
+          setError('Las inscripciones para esta convocatoria aún no han comenzado.');
+          setTimeout(() => navigate('/estudiante/convocatorias'), 2000);
+          return;
         }
-        // Olimpiadas Skillparty: SOLO Farmeo I y Support II
-        else if (convocatoriaSeleccionada.nombre === 'Olimpiadas Skillparty') {
-          convocatoriaSeleccionada.areas = areasSkillparty;
-          console.log('RESET: Áreas para Skillparty:', areasSkillparty.map(a => a.nombre));
+
+        if (fechaActual > fechaFin) {
+          setError('Las inscripciones para esta convocatoria ya han finalizado.');
+          setTimeout(() => navigate('/estudiante/convocatorias'), 2000);
+          return;
         }
-        // Torneo Lolsito: SOLO Top Lane, Mid Lane, Jungling
-        else if (convocatoriaSeleccionada.nombre === 'Torneo Lolsito') {
-          convocatoriaSeleccionada.areas = areasLolsito;
-          console.log('RESET: Áreas para Lolsito:', areasLolsito.map(a => a.nombre));
-        }
-        
-        // Actualizar en localStorage para futuras consultas
-        const convocatoriasActualizadas = convocatorias.map(c => 
-          c.id === convocatoriaId ? convocatoriaSeleccionada : c
-        );
-        localStorage.setItem(convocatoriasKey, JSON.stringify(convocatoriasActualizadas));
-        
-        setConvocatoria(convocatoriaSeleccionada);
-        
-        // Obtener datos del estudiante
+
         let studentData;
         try {
-          // Intentar obtener datos del estudiante desde la API
-          console.log('Intentando obtener datos del estudiante desde API...');
           studentData = await apiService.getCurrentStudent();
-          console.log('Datos obtenidos desde API:', studentData);
+
+          if (!studentData || !studentData.id) {
+            throw new Error('No se pudo obtener la información del estudiante');
+          }
+
+          studentData.curso = parseInt(studentData.curso) || 0;
+
         } catch (studentError) {
-          console.error('Error al obtener datos del estudiante desde API:', studentError);
+          console.error('Error al obtener datos del estudiante:', studentError);
           
-          // Si falla la API, usar los datos del contexto de autenticación (currentUser)
           if (currentUser) {
-            console.log('Usando datos del estudiante desde el contexto de autenticación:', currentUser);
             studentData = {
               ...currentUser,
-              // Agregar cualquier campo adicional necesario
-              areasInscritas: currentUser.areasInscritas || [],
-              convocatoriaId: currentUser.convocatoriaId || null
+              curso: parseInt(currentUser.curso) || 0
             };
-            
-            // Verificar explícitamente que los datos necesarios estén presentes
-            if (studentData.curso === undefined || studentData.curso === null) {
-              console.warn('Advertencia: El estudiante no tiene un curso asignado');
-              // Intentar obtener del localStorage como último recurso
-              const storedUser = localStorage.getItem('currentUser');
-              if (storedUser) {
-                try {
-                  const parsedUser = JSON.parse(storedUser);
-                  if (parsedUser.curso !== undefined) {
-                    studentData.curso = parsedUser.curso;
-                    console.log('Curso obtenido de localStorage:', studentData.curso);
-                  }
-                } catch (e) {
-                  console.error('Error al parsear currentUser de localStorage:', e);
-                }
-              }
-            }
           } else {
-            // Si no hay datos de usuario autenticado, lanzar error
             throw new Error('No se pudo obtener la información del estudiante');
           }
         }
         
-        // Verificar que se tienen los datos mínimos necesarios
-        if (!studentData || !studentData.id) {
-          throw new Error('Datos de estudiante incompletos o inválidos');
-        }
-        
-        // Asegurarse de que el curso sea un número
-        if (studentData.curso !== undefined && studentData.curso !== null) {
-          studentData.curso = parseInt(studentData.curso);
-          console.log('Curso del estudiante (convertido a número):', studentData.curso);
-        } else {
-          console.warn('El estudiante no tiene un curso asignado o es inválido');
-        }
-        
         setStudent(studentData);
         
-        // Verificar si el estudiante ya está inscrito en esta convocatoria
-        if (studentData.convocatoriaId === convocatoriaId && 
-            studentData.areasInscritas && 
-            studentData.areasInscritas.length > 0) {
-          setSelectedAreaIds(studentData.areasInscritas);
-        }
-        
-        // Obtener áreas disponibles para esta convocatoria
-        // Si la convocatoria tiene áreas específicas, usarlas
-        if (convocatoriaSeleccionada.areas && convocatoriaSeleccionada.areas.length > 0) {
-          setAreas(convocatoriaSeleccionada.areas);
-          
-          // Si el estudiante ya está inscrito, cargar las áreas seleccionadas
-          if (studentData.areasInscritas && studentData.areasInscritas.length > 0) {
-            const areasSeleccionadas = convocatoriaSeleccionada.areas.filter(area => 
-              studentData.areasInscritas.includes(area.id)
-            );
-            setSelectedAreas(areasSeleccionadas);
+        let areasDisponibles = [];
+        console.log("FetchData: Convocatoria seleccionada nombre:", convocatoriaSeleccionada.nombre);
+
+        // Intentar usar las áreas de la convocatoria si están presentes y son un array
+        if (Array.isArray(convocatoriaSeleccionada.areas) && convocatoriaSeleccionada.areas.length > 0) {
+          areasDisponibles = convocatoriaSeleccionada.areas;
+          console.log("FetchData: Usando áreas de la convocatoria seleccionada.", areasDisponibles);
+        } else {
+          // Si no hay áreas en la convocatoria, usar las hardcodeadas como respaldo
+          console.log("FetchData: No hay áreas en la convocatoria seleccionada o no es un array. Usando áreas hardcodeadas como respaldo.");
+          if (convocatoriaSeleccionada.nombre === 'Olimpiadas Oh Sansi!') {
+            areasDisponibles = [
+              { id: "1", nombre: "Astronomía", descripcion: "Estudio del universo y los cuerpos celestes" },
+              { id: "2", nombre: "Biología", descripcion: "Estudio de los seres vivos" },
+              { id: "3", nombre: "Física", descripcion: "Estudio de la materia y la energía" },
+              { id: "4", nombre: "Matemáticas", descripcion: "Estudio de números, estructuras y patrones" },
+              { id: "5", nombre: "Informática", descripcion: "Estudio de la computación y programación" },
+              { id: "6", nombre: "Robótica", descripcion: "Diseño y construcción de robots" },
+              { id: "7", nombre: "Química", descripcion: "Estudio de la composición de la materia" }
+            ];
+          } else if (convocatoriaSeleccionada.nombre === 'Olimpiadas Skillparty') {
+            areasDisponibles = [
+              { id: "8", nombre: "Farmeo I", descripcion: "Farmeo de minions y campeones" },
+              { id: "9", nombre: "Support II", descripcion: "Asistencia y control de vision" }
+            ];
+          } else if (convocatoriaSeleccionada.nombre === 'Torneo Lolsito') {
+            areasDisponibles = [
+              { id: "10", nombre: "Top Lane", descripcion: "Linea superior" },
+              { id: "11", nombre: "Mid Lane", descripcion: "Linea central" },
+              { id: "12", nombre: "Jungling", descripcion: "Rol de jungla" }
+            ];
+          } else {
+            // Fallback general si no hay áreas en la convocatoria y no coincide con nombres específicos
+            areasDisponibles = [
+              { id: "1", nombre: "Astronomía", descripcion: "Estudio del universo y los cuerpos celestes" },
+              { id: "2", nombre: "Biología", descripcion: "Estudio de los seres vivos" },
+              { id: "3", nombre: "Física", descripcion: "Estudio de la materia y la energía" },
+              { id: "4", nombre: "Matemáticas", descripcion: "Estudio de números, estructuras y patrones" },
+              { id: "5", nombre: "Informática", descripcion: "Estudio de la computación y programación" },
+              { id: "6", nombre: "Robótica", descripcion: "Diseño y construcción de robots" },
+              { id: "7", nombre: "Química", descripcion: "Estudio de la composición de la materia" }
+            ];
+            console.log("FetchData: Usando áreas por defecto como último recurso.", areasDisponibles);
           }
         }
+        
+        console.log("FetchData: Areas disponibles después de la lógica:", areasDisponibles);
+
+        setConvocatoria(convocatoriaSeleccionada);
+        setAreas(areasDisponibles);
+
       } catch (err) {
         console.error('Error al cargar datos:', err);
-        setError('No se pudieron cargar los datos necesarios. Intente nuevamente.');
+        setError(err.message || 'No se pudieron cargar los datos necesarios. Intente nuevamente.');
       } finally {
         setLoading(false);
       }
@@ -235,7 +185,6 @@ function InscripcionAreaEstudiante() {
     fetchData();
   }, [navigate, currentUser]);
 
-  // Calcular costo total cuando cambian las áreas seleccionadas o se carga la convocatoria
   useEffect(() => {
     if (convocatoria && convocatoria.costo_por_area) {
       setTotalCost(selectedAreas.length * convocatoria.costo_por_area);
@@ -247,43 +196,34 @@ function InscripcionAreaEstudiante() {
     if (!area) return;
     
     setSelectedAreaIds(prevSelected => {
-      // Si ya está seleccionada, la quitamos
-      if (prevSelected.includes(areaId)) {
-        const updatedAreaIds = prevSelected.filter(id => id !== areaId);
-        
-        // Actualizar array de áreas seleccionadas completas
-        setSelectedAreas(areas.filter(area => updatedAreaIds.includes(area.id)));
-        
-        return updatedAreaIds;
-      } 
-      // Si no está seleccionada, verificamos si podemos añadirla
-      else {
-        // Verificar si el estudiante no excede el máximo de áreas permitidas
-        if (convocatoria && prevSelected.length >= convocatoria.maximo_areas) {
+      const newSelectedAreaIds = prevSelected.includes(areaId)
+        ? prevSelected.filter(id => id !== areaId)
+        : [...prevSelected, areaId];
+
+      if (convocatoria && newSelectedAreaIds.length > convocatoria.maximo_areas) {
           alert(`Solo puedes seleccionar un máximo de ${convocatoria.maximo_areas} áreas.`);
-          return prevSelected;
-        }
-        
-        const updatedAreaIds = [...prevSelected, areaId];
-        
-        // Actualizar array de áreas seleccionadas completas
-        setSelectedAreas(areas.filter(area => updatedAreaIds.includes(area.id)));
-        
-        return updatedAreaIds;
+        return prevSelected; // No permitir la selección si excede el máximo
       }
+
+      setSelectedAreas(areas.filter(a => newSelectedAreaIds.includes(a.id)));
+      console.log("handleToggleArea: Selected areas updated to:", areas.filter(a => newSelectedAreaIds.includes(a.id)));
+      return newSelectedAreaIds;
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("handleSubmit: Initiated.");
     
     if (selectedAreas.length === 0) {
       setError('Debes seleccionar al menos un área para inscribirte.');
+      console.log("handleSubmit: No areas selected.");
       return;
     }
     
     if (convocatoria.maximo_areas && selectedAreas.length > convocatoria.maximo_areas) {
       setError(`Solo puedes inscribirte en un máximo de ${convocatoria.maximo_areas} áreas.`);
+      console.log("handleSubmit: Exceeded max areas.");
       return;
     }
     
@@ -291,191 +231,192 @@ function InscripcionAreaEstudiante() {
       setSubmitting(true);
       setError('');
       
-      // Recuperar la lista de estudiantes actualizada
-      const studentsKey = 'olimpiadas_students';
-      const students = JSON.parse(localStorage.getItem(studentsKey) || '[]');
-      
-      // Buscar al estudiante actual
-      let currentStudentIndex = students.findIndex(s => s.id === student.id);
-      console.log('Índice del estudiante en localStorage:', currentStudentIndex);
-      console.log('ID del estudiante actual:', student.id);
-      console.log('Estudiantes en localStorage:', students);
-      
-      // Si no encontramos al estudiante, lo agregamos a la lista
-      if (currentStudentIndex === -1) {
-        console.log('No se encontró el registro del estudiante. Creando uno nuevo...');
-        // Crear un nuevo registro para este estudiante
-        students.push({
-          id: student.id,
-          nombre: student.nombre,
-          apellido: student.apellido,
-          curso: student.curso,
-          colegio_id: student.colegio_id,
-          ci: student.ci,
-          areasInscritas: [],
-          convocatoriaId: null
-        });
-        // Actualizar el índice
-        currentStudentIndex = students.length - 1;
-        console.log('Nuevo estudiante agregado con índice:', currentStudentIndex);
+      const fechaActual = new Date();
+      const fechaInicio = new Date(convocatoria.fecha_inicio_inscripciones);
+      const fechaFin = new Date(convocatoria.fecha_fin_inscripciones);
+      console.log("handleSubmit: Checking dates. Current:", fechaActual, "Start:", fechaInicio, "End:", fechaFin);
+
+      if (fechaActual < fechaInicio) {
+        throw new Error(`Las inscripciones comienzan el ${fechaInicio.toLocaleDateString()}`);
       }
-      
-      // Actualizar áreas inscritas
-      students[currentStudentIndex].areasInscritas = selectedAreaIds;
-      students[currentStudentIndex].convocatoriaId = convocatoria.id;
-      
-      // Guardar cambios
-      localStorage.setItem(studentsKey, JSON.stringify(students));
-      
-      // Actualizar user en localStorage
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      currentUser.areasInscritas = selectedAreaIds;
-      currentUser.convocatoriaId = convocatoria.id;
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      
-      setSuccess('¡Te has inscrito exitosamente! Redirigiendo al dashboard...');
-      
-      // Redirigir después de un breve momento
-      setTimeout(() => navigate('/estudiante'), 2000);
+
+      if (fechaActual > fechaFin) {
+        throw new Error(`Las inscripciones finalizaron el ${fechaFin.toLocaleDateString()}`);
+      }
+
+      const inscripcionesKey = 'olimpiadas_inscripciones';
+      const inscripciones = JSON.parse(localStorage.getItem(inscripcionesKey) || '[]');
+      console.log("handleSubmit: Current inscripciones:", inscripciones);
+      const inscripcionExistente = inscripciones.find(i => i.estudianteId === student.id);
+      console.log("handleSubmit: Existing inscripcion for student:", inscripcionExistente);
+
+      if (inscripcionExistente && inscripcionExistente.convocatoriaId !== convocatoria.id) {
+        throw new Error('Ya estás inscrito en otra convocatoria. No puedes inscribirte en múltiples convocatorias.');
+      }
+
+      const inscripcion = {
+        id: Date.now().toString(),
+        estudianteId: student.id,
+        convocatoriaId: convocatoria.id,
+        areas: selectedAreas.map(area => ({
+          id: area.id,
+          nombre: area.nombre
+        })),
+        fechaInscripcion: new Date().toISOString(),
+        estado: 'pendiente',
+        costoTotal: totalCost
+      };
+
+      inscripciones.push(inscripcion);
+      localStorage.setItem(inscripcionesKey, JSON.stringify(inscripciones));
+      console.log("handleSubmit: New inscripcion saved:", inscripcion);
+
+      sessionStorage.removeItem('convocatoriaSeleccionadaId');
+      console.log("handleSubmit: convocatoriaSeleccionadaId removed from sessionStorage.");
+
+      setSuccess('¡Inscripción realizada con éxito! Se ha generado una orden de pago.');
+      console.log("handleSubmit: Success. Navigating to order page.");
+
+      setTimeout(() => {
+        navigate('/estudiante/orden-pago');
+      }, 2000);
       
     } catch (err) {
-      console.error('Error al inscribirse:', err);
-      setError(`Error al procesar la inscripción: ${err.message}`);
+      console.error('Error al realizar la inscripción:', err);
+      setError(err.message || 'Error al realizar la inscripción. Intente nuevamente.');
     } finally {
       setSubmitting(false);
+      console.log("handleSubmit: Submitting set to false.");
     }
   };
 
-  // Si está cargando, mostrar spinner
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Cargando datos...</p>
-      </div>
+      <Container className="py-5 text-center">
+        <Spinner animation="border" variant="primary" />
+        <p className="mt-3">Cargando información...</p>
+      </Container>
     );
   }
 
-  // Si hay error y no hay datos, mostrar mensaje
-  if (error && (!student || !convocatoria)) {
+  if (error) {
     return (
-      <div className="error-container">
-        <p className="error-message">{error}</p>
+      <Container className="py-5">
+        <Alert variant="danger">
+          <Alert.Heading>Error</Alert.Heading>
+          <p>{error}</p>
+          <hr />
+          <div className="d-flex justify-content-end">
+            <Button variant="outline-danger" onClick={() => navigate('/estudiante/convocatorias')}>
+              Volver a Convocatorias
+            </Button>
       </div>
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!convocatoria || !student) {
+    return (
+      <Container className="py-5">
+        <Alert variant="warning">
+          <Alert.Heading>Información no disponible</Alert.Heading>
+          <p>No se encontró la información necesaria para la inscripción.</p>
+          <hr />
+          <div className="d-flex justify-content-end">
+            <Button variant="outline-warning" onClick={() => navigate('/estudiante/convocatorias')}>
+              Volver a Convocatorias
+            </Button>
+      </div>
+        </Alert>
+      </Container>
     );
   }
 
   return (
-    <div className="inscripcion-container">
-      <div className="inscripcion-header">
-        <button onClick={() => navigate('/estudiante')} className="back-button">
-          ← Volver al Dashboard
-        </button>
-        <h2>Inscripción en Áreas Académicas</h2>
-      </div>
-      
-      <div className="student-info-panel">
-        <h3>Mi Información</h3>
-        <p><strong>Nombre:</strong> {student.nombre} {student.apellido}</p>
-        <p><strong>CI:</strong> {student.ci}</p>
-        <p><strong>Curso:</strong> {
-          student.curso <= 6 
-            ? `${student.curso}° Primaria` 
-            : `${student.curso - 6}° Secundaria`
-        }</p>
-        <p><strong>Colegio:</strong> {student.colegio ? 
-          (typeof student.colegio === 'string' ? student.colegio : student.colegio.nombre) : 
-          (student.colegio_id ? `ID: ${student.colegio_id}` : 'No asignado')}</p>
-      </div>
-      
-      {convocatoria && (
-        <div className="olympiad-info">
-          <h3>Información de la Convocatoria</h3>
-          <p><strong>Nombre:</strong> {convocatoria.nombre}</p>
+    <Container className="py-5">
+      <Card className="mb-4">
+        <Card.Header className="bg-primary text-white">
+          <h3 className="mb-0">Inscripción a Áreas</h3>
+        </Card.Header>
+        <Card.Body>
+          <div className="convocatoria-info mb-4">
+            <h4>{convocatoria.nombre}</h4>
           <p><strong>Período de Inscripción:</strong> {new Date(convocatoria.fecha_inicio_inscripciones).toLocaleDateString()} - {new Date(convocatoria.fecha_fin_inscripciones).toLocaleDateString()}</p>
           <p><strong>Precio por área:</strong> Bs. {convocatoria.costo_por_area}</p>
           <p><strong>Máximo de áreas:</strong> {convocatoria.maximo_areas} por estudiante</p>
         </div>
-      )}
       
-      {error && <p className="error-message">{error}</p>}
-      {success && <p className="success-message">{success}</p>}
+          {error && <Alert variant="danger">{error}</Alert>}
+          {success && <Alert variant="success">{success}</Alert>}
       
-      <form onSubmit={handleSubmit} className="inscripcion-form">
-        <h3>Seleccionar Áreas</h3>
-        
+          <form onSubmit={handleSubmit}>
+            <h4 className="mb-3">Seleccionar Áreas</h4>
         <div className="areas-grid">
           {areas.map(area => {
-            // Verificar si el estudiante cumple con los requisitos para esta área
             const cumpleRequisitos = student && student.curso !== undefined && cumpleRequisitosArea(student.curso, area.nombre);
-            
-            // Log para depuración
-            console.log(`Verificando elegibilidad para área ${area.nombre}:`, {
-              'student.curso': student?.curso,
-              'cumple requisitos': cumpleRequisitos
-            });
-            
             return (
-              <div 
+                  <Card
                 key={area.id} 
-                className={`area-card ${selectedAreaIds.includes(area.id) ? 'selected' : ''} ${!cumpleRequisitos ? 'disabled' : ''}`}
+                    className={`mb-3 ${selectedAreaIds.includes(area.id) ? 'border-primary' : ''} ${!cumpleRequisitos ? 'bg-light' : ''}`}
                 onClick={() => cumpleRequisitos && handleToggleArea(area.id)}
-              >
-                <h4>{area.nombre}</h4>
-                <p>{area.descripcion}</p>
-                {!cumpleRequisitos && (
-                  <div className="requisitos-warning">
-                    No cumples con los requisitos de curso
+                    style={{ cursor: cumpleRequisitos ? 'pointer' : 'not-allowed' }}
+                  >
+                    <Card.Body>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                          <h5 className="mb-1">{area.nombre}</h5>
+                          <p className="mb-0 text-muted">{area.descripcion}</p>
+                        </div>
+                        {selectedAreaIds.includes(area.id) && (
+                          <div className="text-primary">
+                            <i className="fas fa-check-circle"></i>
                   </div>
                 )}
-                <div className="selection-indicator">
-                  {selectedAreaIds.includes(area.id) 
-                    ? '✓ Seleccionada' 
-                    : cumpleRequisitos 
-                      ? 'Click para seleccionar' 
-                      : 'No disponible'}
                 </div>
-              </div>
+                      {!cumpleRequisitos && (
+                        <small className="text-danger">
+                          No cumples con los requisitos de curso para esta área
+                        </small>
+                      )}
+                    </Card.Body>
+                  </Card>
             );
           })}
         </div>
         
-        <div className="inscripcion-summary">
-          <h3>Resumen de Inscripción</h3>
+            <div className="mt-4">
+              <h5>Resumen de Inscripción</h5>
           <p><strong>Áreas seleccionadas:</strong> {selectedAreas.length}</p>
           <p><strong>Costo total:</strong> Bs. {totalCost}</p>
-          
-          {selectedAreas.length > 0 && (
-            <div className="selected-areas-list">
-              <p><strong>Áreas elegidas:</strong></p>
-              <ul>
-                {selectedAreas.map(area => (
-                  <li key={area.id}>{area.nombre}</li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
         
-        <div className="inscripcion-actions">
-          <button 
-            type="button" 
-            onClick={() => navigate('/estudiante')} 
-            className="cancel-button"
-            disabled={submitting}
-          >
-            Cancelar
-          </button>
-          <button 
+            <div className="mt-4 d-flex justify-content-between">
+              <Button
+                variant="outline-secondary"
+                onClick={() => navigate('/estudiante/convocatorias')}
+              >
+                Volver
+              </Button>
+              <Button
             type="submit" 
-            className="inscribir-button"
-            disabled={selectedAreas.length === 0 || submitting}
-          >
-            {submitting ? 'Procesando...' : 'Confirmar Inscripción'}
-          </button>
+                variant="primary"
+                disabled={submitting || selectedAreas.length === 0}
+              >
+                {submitting ? (
+                  <>
+                    <Spinner as="span" animation="border" size="sm" className="me-2" />
+                    Procesando...
+                  </>
+                ) : (
+                  'Confirmar Inscripción'
+                )}
+              </Button>
         </div>
       </form>
-    </div>
+        </Card.Body>
+      </Card>
+    </Container>
   );
 }
 
