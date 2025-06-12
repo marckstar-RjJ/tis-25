@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Button, Alert, Spinner } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiService } from '../services/api';
 import { getConvocatoriasActivas, loadConvocatorias } from '../services/dataSync';
 
 const MisConvocatorias = () => {
@@ -19,44 +18,16 @@ const MisConvocatorias = () => {
       try {
         setLoading(true);
         
-        // Usar el servicio dataSync para obtener convocatorias activas
-        // Esto garantiza consistencia entre sesiones de diferentes usuarios
-        console.log('Obteniendo convocatorias activas usando dataSync...');
-        
-        // Primero intentamos obtener convocatorias de la API
-        let convocatoriasData = [];
-        try {
-          // Intentar obtener desde la API primero
-          const apiConvocatorias = await apiService.getConvocatorias();
-          console.log('Convocatorias obtenidas de la API:', apiConvocatorias);
-          
-          if (Array.isArray(apiConvocatorias) && apiConvocatorias.length > 0) {
-            convocatoriasData = apiConvocatorias;
-          }
-        } catch (apiError) {
-          console.error('Error al obtener convocatorias de la API:', apiError);
-        }
-        
-        // Cargar convocatorias desde localStorage usando dataSync como fuente definitiva
-        // Esto asegura que los cambios hechos por el administrador sean visibles
+        // Cargar convocatorias desde localStorage usando dataSync
         const storedConvocatorias = loadConvocatorias();
-        console.log('Convocatorias cargadas desde localStorage (fuente principal):', storedConvocatorias);
-        
-        // Si tenemos datos en localStorage, usarlos como fuente principal
-        if (storedConvocatorias.length > 0) {
-          convocatoriasData = storedConvocatorias;
-        }
+        console.log('Convocatorias cargadas desde localStorage:', storedConvocatorias);
         
         // Filtrar solo las convocatorias activas para estudiantes
         const convocatoriasActivas = getConvocatoriasActivas();
         console.log('Convocatorias activas filtradas:', convocatoriasActivas);
         
-        // Si hay convocatorias activas, usarlas preferentemente
-        if (convocatoriasActivas.length > 0) {
-          convocatoriasData = convocatoriasActivas;
-        }
-        
         // Si no hay convocatorias, crear unas de muestra (solo para desarrollo)
+        let convocatoriasData = convocatoriasActivas;
         if (convocatoriasData.length === 0) {
           console.log('Creando convocatorias de muestra...');
           convocatoriasData = [
@@ -79,16 +50,6 @@ const MisConvocatorias = () => {
               costo_por_area: 16,
               maximo_areas: 2,
               activa: true
-            },
-            {
-              id: '3',
-              nombre: 'Olimpiadas Skillparty',
-              descripcion: 'Torneo de habilidades científicas',
-              fecha_inicio_inscripciones: '2025-07-15T00:00:00',
-              fecha_fin_inscripciones: '2025-08-15T23:59:59',
-              costo_por_area: 25,
-              maximo_areas: 3,
-              activa: false
             }
           ];
           

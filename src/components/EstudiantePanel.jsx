@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, Routes, Route } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiService } from '../services/api';
-import { Card, Row, Col, Container, Badge, Spinner, Alert, Button } from 'react-bootstrap';
-import { FaUser, FaIdCard, FaEnvelope, FaSchool, FaGraduationCap, FaUserTie, FaClipboardList, FaSignOutAlt } from 'react-icons/fa';
+import { Container, Row, Col, Card, Badge, Spinner, Alert, Button } from 'react-bootstrap';
+import { FaUser, FaIdCard, FaEnvelope, FaSchool, FaGraduationCap, FaUserTie, FaClipboardList, FaSignOutAlt, FaPhone } from 'react-icons/fa';
 import MisAreas from './MisAreas';
 import MisConvocatorias from './MisConvocatorias';
 import InscripcionAreaEstudiante from './InscripcionAreaEstudiante';
@@ -14,7 +13,8 @@ import OCRScanner from './OCRScanner';
 
 // Componente para mostrar información personal del estudiante
 const InformacionEstudiante = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
   const [estudiante, setEstudiante] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -22,26 +22,64 @@ const InformacionEstudiante = () => {
   useEffect(() => {
     const fetchEstudiante = async () => {
       try {
-        // Si currentUser ya tiene toda la información necesaria, usamos esa
-        if (currentUser?.tipo_usuario === 'estudiante') {
-          setEstudiante(currentUser);
-          setLoading(false);
-          return;
-        }
+        setLoading(true);
         
-        // Si no, obtenemos la información completa del estudiante
-        const estudianteData = await apiService.getStudentById(currentUser.id);
+        // Verificar si hay un token válido
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No hay token de autenticación');
+          throw new Error('No hay token de autenticación');
+        }
+
+        console.log('Token encontrado:', token.substring(0, 20) + '...');
+        console.log('Usuario actual:', currentUser);
+
+        // Obtener datos del estudiante desde el backend
+        const response = await fetch('https://tis-25-backend.onrender.com/api/student/profile', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include'
+        });
+
+        console.log('Respuesta del servidor:', response.status, response.statusText);
+
+        if (response.status === 401 || response.status === 403) {
+          console.error('Error de autenticación:', response.status);
+          // Si el token no es válido, cerrar sesión y redirigir al login
+          await logout();
+          navigate('/login');
+          throw new Error('Sesión expirada. Por favor, inicie sesión nuevamente.');
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Error en la respuesta:', errorData);
+          throw new Error(`Error al obtener datos del estudiante: ${response.statusText}`);
+        }
+
+        const estudianteData = await response.json();
+        console.log("Datos del estudiante recuperados:", estudianteData);
         setEstudiante(estudianteData);
       } catch (err) {
         console.error('Error al cargar datos del estudiante:', err);
-        setError('No se pudo cargar la información del estudiante. Intente nuevamente.');
+        setError(err.message || 'No se pudo cargar la información del estudiante. Intente nuevamente.');
       } finally {
         setLoading(false);
       }
     };
     
+    if (currentUser) {
     fetchEstudiante();
-  }, [currentUser]);
+    } else {
+      console.error('No hay usuario autenticado');
+      setLoading(false);
+      setError('No hay usuario autenticado');
+    }
+  }, [currentUser, logout, navigate]);
 
   // Función para formatear el nombre del curso
   const formatearCurso = (curso) => {

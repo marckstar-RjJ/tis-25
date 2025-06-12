@@ -16,7 +16,7 @@ const ListaConvocatorias = ({ onEditar, onCrearNueva }) => {
     setLoading(true);
     try {
       // Cargar convocatorias directamente desde localStorage
-      const convocatoriasKey = 'olimpiadas_convocatorias';
+      const convocatoriasKey = 'convocatorias';
       const data = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
       
       // Verificar si ya existe la convocatoria "Olimpiadas Oh Sansi!"
@@ -25,7 +25,7 @@ const ListaConvocatorias = ({ onEditar, onCrearNueva }) => {
       // Si no existe, agregarla como primera convocatoria
       if (!hasOhSansi) {
         // Obtener todas las áreas disponibles
-        const todasLasAreas = JSON.parse(localStorage.getItem('olimpiadas_areas') || '[]');
+        const todasLasAreas = JSON.parse(localStorage.getItem('areas') || '[]');
         
         // Filtrar solo las áreas estandar para Oh Sansi! (excluir áreas de Skillparty)
         const areasOhSansi = todasLasAreas.filter(area => 
@@ -33,10 +33,10 @@ const ListaConvocatorias = ({ onEditar, onCrearNueva }) => {
         );
         
         const ohSansiConvocatoria = {
-          id: data.length > 0 ? (Math.max(...data.map(c => parseInt(c.id, 10))) + 1).toString() : '1',
+          id: Date.now(),
           nombre: 'Olimpiadas Oh Sansi!',
-          fecha_inicio_inscripciones: new Date(2025, 1, 15).toISOString(), // 15 de Febrero 2025
-          fecha_fin_inscripciones: new Date(2025, 2, 31).toISOString(), // 31 de Marzo 2025
+          fecha_inicio: new Date(2025, 1, 15).toISOString(), // 15 de Febrero 2025
+          fecha_fin: new Date(2025, 2, 31).toISOString(), // 31 de Marzo 2025
           costo_por_area: 16.00,
           maximo_areas: 2,
           activa: true,
@@ -48,7 +48,7 @@ const ListaConvocatorias = ({ onEditar, onCrearNueva }) => {
         setConvocatorias(updatedData);
       } else {
         // Asegurarnos de que la convocatoria Oh Sansi! no tenga las áreas de Skillparty
-        const todasLasAreas = JSON.parse(localStorage.getItem('olimpiadas_areas') || '[]');
+        const todasLasAreas = JSON.parse(localStorage.getItem('areas') || '[]');
         const updatedData = data.map(convocatoria => {
           if (convocatoria.nombre === 'Olimpiadas Oh Sansi!') {
             // Filtrar áreas para Oh Sansi!
@@ -77,7 +77,7 @@ const ListaConvocatorias = ({ onEditar, onCrearNueva }) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar esta convocatoria? Esta acción no se puede deshacer.')) {
       try {
         // Eliminar convocatoria directamente de localStorage
-        const convocatoriasKey = 'olimpiadas_convocatorias';
+        const convocatoriasKey = 'convocatorias';
         const convocatoriasActuales = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
         const convocatoriasActualizadas = convocatoriasActuales.filter(conv => conv.id !== id);
         
@@ -93,8 +93,8 @@ const ListaConvocatorias = ({ onEditar, onCrearNueva }) => {
 
   const getEstadoConvocatoria = (convocatoria) => {
     const hoy = new Date();
-    const fechaInicio = new Date(convocatoria.fecha_inicio_inscripciones);
-    const fechaFin = new Date(convocatoria.fecha_fin_inscripciones);
+    const fechaInicio = new Date(convocatoria.fecha_inicio);
+    const fechaFin = new Date(convocatoria.fecha_fin);
 
     if (!convocatoria.activa) {
       return { estado: 'Inactiva', variant: 'secondary' };
@@ -152,7 +152,7 @@ const ListaConvocatorias = ({ onEditar, onCrearNueva }) => {
                 <tr key={convocatoria.id}>
                   <td>{convocatoria.nombre}</td>
                   <td>
-                    {formatearFecha(convocatoria.fecha_inicio_inscripciones)} - {formatearFecha(convocatoria.fecha_fin_inscripciones)}
+                    {formatearFecha(convocatoria.fecha_inicio)} - {formatearFecha(convocatoria.fecha_fin)}
                   </td>
                   <td>{convocatoria.costo_por_area} Bs</td>
                   <td className="text-center">{convocatoria.maximo_areas}</td>

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Form, Button, Alert, Spinner, Table, Badge } from 'react-bootstrap';
-import { apiService } from '../../services/api';
 
 const GestionAreasConvocatoria = ({ convocatoriaId, onGuardado, onCancelar }) => {
   const [convocatoria, setConvocatoria] = useState(null);
@@ -14,17 +13,24 @@ const GestionAreasConvocatoria = ({ convocatoriaId, onGuardado, onCancelar }) =>
     const cargarDatos = async () => {
       setLoading(true);
       try {
-        // Cargar datos de la convocatoria
-        const datosConvocatoria = await apiService.getConvocatoriaById(convocatoriaId);
+        // Cargar convocatoria desde localStorage
+        const convocatorias = JSON.parse(localStorage.getItem('convocatorias') || '[]');
+        const datosConvocatoria = convocatorias.find(c => c.id === convocatoriaId);
+        
+        if (!datosConvocatoria) {
+          throw new Error('Convocatoria no encontrada');
+        }
+        
         setConvocatoria(datosConvocatoria);
         
-        // Inicializar áreas seleccionadas
-        const areasIds = datosConvocatoria.areas.map(area => area.id);
-        setAreasSeleccionadas(areasIds);
+        // Cargar áreas disponibles desde localStorage
+        const areas = JSON.parse(localStorage.getItem('areas') || '[]');
+        setAreasDisponibles(areas);
         
-        // Cargar todas las áreas disponibles
-        const todasLasAreas = await apiService.getAllAreas();
-        setAreasDisponibles(todasLasAreas);
+        // Inicializar áreas seleccionadas
+        if (datosConvocatoria.areas && datosConvocatoria.areas.length > 0) {
+          setAreasSeleccionadas(datosConvocatoria.areas.map(area => area.id));
+        }
         
       } catch (err) {
         console.error('Error al cargar datos:', err);
@@ -67,7 +73,30 @@ const GestionAreasConvocatoria = ({ convocatoriaId, onGuardado, onCancelar }) =>
     setError(null);
     
     try {
-      await apiService.actualizarAreasConvocatoria(convocatoriaId, areasSeleccionadas);
+      // Obtener convocatorias actuales
+      const convocatorias = JSON.parse(localStorage.getItem('convocatorias') || '[]');
+      
+      // Encontrar la convocatoria a actualizar
+      const convocatoriaIndex = convocatorias.findIndex(c => c.id === convocatoriaId);
+      
+      if (convocatoriaIndex === -1) {
+        throw new Error('Convocatoria no encontrada');
+      }
+      
+      // Obtener las áreas completas seleccionadas
+      const areasCompletas = areasDisponibles.filter(area => 
+        areasSeleccionadas.includes(area.id)
+      );
+      
+      // Actualizar las áreas de la convocatoria
+      convocatorias[convocatoriaIndex] = {
+        ...convocatorias[convocatoriaIndex],
+        areas: areasCompletas
+      };
+      
+      // Guardar en localStorage
+      localStorage.setItem('convocatorias', JSON.stringify(convocatorias));
+      
       onGuardado();
     } catch (err) {
       console.error('Error al actualizar áreas:', err);

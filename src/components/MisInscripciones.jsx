@@ -4,6 +4,7 @@ import { FaDownload, FaEdit, FaTrash, FaFileInvoiceDollar, FaCheckCircle, FaTime
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
 import { limpiarDatosIncorrectos } from './utils/limpiarInscripciones';
+import { jsPDF } from 'jspdf';
 
 const MisInscripciones = () => {
   const { currentUser } = useAuth();
@@ -17,6 +18,8 @@ const MisInscripciones = () => {
   const [areasSeleccionadas, setAreasSeleccionadas] = useState([]);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
   const [loadingAction, setLoadingAction] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [editandoInscripcion, setEditandoInscripcion] = useState(null);
   
   // Limpiar inscripciones incorrectas al iniciar el componente
   useEffect(() => {
@@ -29,78 +32,65 @@ const MisInscripciones = () => {
     const fetchInscripciones = async () => {
       try {
         setLoading(true);
+        setError('');
         
         // Obtener estudiante actual con sus datos completos
         const estudiante = await apiService.getCurrentStudent();
+        console.log('Estudiante recuperado completo:', estudiante);
         
         if (!estudiante) {
           setError('No se pudo obtener información del estudiante.');
           return;
         }
         
-        console.log('Estudiante recuperado:', estudiante);
-        const todasLasInscripciones = [];
+        // Obtener todas las convocatorias del localStorage
+        const convocatoriasKey = 'olimpiadas_convocatorias';
+        const convocatorias = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
+        console.log('Convocatorias obtenidas:', convocatorias);
         
-        // Comprobar si tiene inscripciones en el formato antiguo
-        if (estudiante.areasInscritas && estudiante.areasInscritas.length > 0) {
-          // Obtener todas las convocatorias
-          const convocatoriaData = await apiService.getAllConvocatorias();
-          const convocatoriaDefecto = convocatoriaData.find(c => c.activa) || convocatoriaData[0];
+        // Obtener todas las áreas del localStorage
+        const areasKey = 'olimpiadas_areas';
+        const areas = JSON.parse(localStorage.getItem(areasKey) || '[]');
+        console.log('Áreas obtenidas:', areas);
+        
+        // Obtener las inscripciones del localStorage
+        const inscripcionesKey = 'olimpiadas_inscripciones';
+        const todasLasInscripciones = JSON.parse(localStorage.getItem(inscripcionesKey) || '[]');
+        console.log('Todas las inscripciones:', todasLasInscripciones);
+        
+        // Filtrar las inscripciones del estudiante actual
+        const inscripcionesEstudiante = todasLasInscripciones.filter(
+          inscripcion => inscripcion.estudianteId === estudiante.id
+        );
+        console.log('Inscripciones del estudiante:', inscripcionesEstudiante);
+        
+        // Procesar las inscripciones con datos completos
+        const inscripcionesCompletas = inscripcionesEstudiante.map(inscripcion => {
+          // Obtener la convocatoria correspondiente
+          const convocatoria = convocatorias.find(c => c.id === inscripcion.convocatoriaId) || 
+                             convocatorias[0]; // Usar la primera como fallback
           
-          // Obtener áreas completas
-          const areasCompletas = await apiService.getAreas();
-          const areasSeleccionadas = areasCompletas.filter(area => 
-            estudiante.areasInscritas.includes(area.id)
-          );
-          
-          const inscripcionAntigua = {
-            id: estudiante.id + '-inscripcion-antigua',
-            convocatoriaId: convocatoriaDefecto.id,
-            convocatoria: convocatoriaDefecto,
-            areas: areasSeleccionadas,
-            fechaInscripcion: estudiante.boletaPago?.fecha || new Date().toISOString(),
-            ordenPago: estudiante.boletaPago || {
-              id: 'orden-' + estudiante.id,
-              fecha: new Date().toISOString(),
-              estado: 'pendiente',
-              total: (convocatoriaDefecto.costo_por_area || 16) * areasSeleccionadas.length
+          // Obtener las áreas completas
+          const areasCompletas = inscripcion.areas.map(areaId => {
+            // Primero buscar en las áreas de la convocatoria
+            const areaConvocatoria = convocatoria.areas?.find(a => a.id === areaId);
+            if (areaConvocatoria) {
+              return areaConvocatoria;
             }
-          };
-          
-          todasLasInscripciones.push(inscripcionAntigua);
-        }
-        
-        // Obtener las inscripciones del nuevo formato
-        if (estudiante.inscripciones && Array.isArray(estudiante.inscripciones)) {
-          // Obtener detalles completos de cada inscripción
-          const inscripcionesCompletas = await Promise.all(
-            estudiante.inscripciones.map(async (inscripcion) => {
-              // Si la inscripción ya tiene toda la información necesaria, usarla
-              if (inscripcion.convocatoria && inscripcion.areas && inscripcion.ordenPago) {
-                return inscripcion;
-              }
-              
-              // Si no, obtener información complementaria
-              let convocatoria;
-              try {
-                convocatoria = await apiService.getConvocatoriaById(inscripcion.convocatoriaId);
-              } catch (error) {
-                console.warn('No se pudo obtener la convocatoria:', error);
-                // Obtener todas las convocatorias y buscar la coincidencia
-                const todasConvocatorias = await apiService.getAllConvocatorias();
-                convocatoria = todasConvocatorias.find(c => c.id === inscripcion.convocatoriaId) ||
-                              todasConvocatorias[0]; // Usar la primera como fallback
-              }
-              
-              // Asegurarnos de que las áreas sean objetos completos
-              let areasCompletas = inscripcion.areas;
-              if (inscripcion.areas && inscripcion.areas.some(a => typeof a === 'string' || !a.nombre)) {
-                const todasAreas = await apiService.getAreas();
-                areasCompletas = inscripcion.areas.map(areaId => {
-                  const id = typeof areaId === 'string' ? areaId : areaId.id;
-                  return todasAreas.find(a => a.id === id) || { id, nombre: `Área ${id}` };
-                });
-              }
+            
+            // Si no está en la convocatoria, buscar en el listado general de áreas
+            const area = areas.find(a => a.id === areaId);
+            if (area) {
+              return area;
+            }
+            
+            // Si no se encuentra, devolver un objeto con la información mínima
+            return { 
+              id: areaId, 
+              nombre: `Área ${areaId}`,
+              descripcion: 'Área no encontrada'
+            };
+          });
               
               return {
                 ...inscripcion,
@@ -113,44 +103,10 @@ const MisInscripciones = () => {
                   total: (convocatoria.costo_por_area || 16) * areasCompletas.length
                 }
               };
-            })
-          );
-          
-          todasLasInscripciones.push(...inscripcionesCompletas);
-        }
-        
-        // Se eliminó el código de prueba que generaba inscripciones automáticas
-        
-        // Filtrar inscripciones duplicadas o erróneas
-        // Esta función elimina inscripciones duplicadas basadas en la convocatoria
-        // y se asegura de que el estudiante esté realmente inscrito en las áreas mostradas
-        const inscripcionesFiltradas = [];
-        const convocatoriasVistas = new Map();
-        
-        todasLasInscripciones.forEach(inscripcion => {
-          const convocatoriaId = inscripcion.convocatoriaId;
-          const areasIds = inscripcion.areas?.map(a => a.id || a).sort().join(',') || '';
-          const clave = `${convocatoriaId}-${areasIds}`;
-          
-          // Si es la primera vez que vemos esta combinación de convocatoria y áreas, la agregamos
-          if (!convocatoriasVistas.has(clave)) {
-            // Ignorar específicamente la inscripción errónea (Biología en Oh Sansi)
-            const esBiologiaOhSansi = 
-              inscripcion.convocatoria?.nombre === 'Olimpiadas Oh Sansi!' && 
-              inscripcion.areas?.length === 1 && 
-              inscripcion.areas[0]?.nombre === 'Biología';
-              
-            // Solo agregar si no es la inscripción errónea específica o si fue explícitamente confirmada
-            if (!esBiologiaOhSansi || inscripcion.confirmada === true) {
-              inscripcionesFiltradas.push(inscripcion);
-              convocatoriasVistas.set(clave, true);
-            }
-          }
         });
         
-        console.log('Inscripciones encontradas (originales):', todasLasInscripciones);
-        console.log('Inscripciones filtradas (a mostrar):', inscripcionesFiltradas);
-        setInscripciones(inscripcionesFiltradas);
+        console.log('Inscripciones procesadas:', inscripcionesCompletas);
+        setInscripciones(inscripcionesCompletas);
       } catch (err) {
         console.error('Error al cargar inscripciones:', err);
         setError('No se pudieron cargar tus inscripciones. Intenta nuevamente más tarde.');
@@ -201,19 +157,55 @@ const MisInscripciones = () => {
   
   // Descargar orden de pago
   const handleDescargarOrden = async (ordenId) => {
+    if (!inscripciones || inscripciones.length === 0) return;
+    
     try {
       setDescargandoPDF(true);
-      const pdfBlob = await apiService.descargarOrdenPDF(ordenId);
       
-      // Crear URL para el blob y forzar descarga
-      const url = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `orden_pago_${ordenId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const inscripcionConOrden = inscripciones.find(insc => insc.ordenPago && insc.ordenPago.id === ordenId);
+      
+      if (!inscripcionConOrden) {
+        throw new Error('Orden de pago no encontrada.');
+      }
+      
+      const ordenPago = inscripcionConOrden.ordenPago;
+      const estudiante = inscripcionConOrden.estudiante || currentUser;
+      const convocatoria = inscripcionConOrden.convocatoria;
+
+      const doc = new jsPDF();
+      
+      // Título
+      doc.setFontSize(16);
+      doc.text("ORDEN DE PAGO", 105, 20, { align: "center" });
+      
+      // Información básica
+      doc.setFontSize(12);
+      doc.text(`ID: ${ordenPago.id}`, 20, 40);
+      doc.text(`Fecha: ${formatearFecha(ordenPago.fecha)}`, 20, 50);
+      doc.text(`Estado: ${ordenPago.estado.toUpperCase()}`, 20, 60);
+      doc.text(`Total: ${ordenPago.total ? ordenPago.total.toFixed(2) : 'N/A'} Bs.`, 20, 70);
+      
+      // Datos del estudiante
+      doc.text(`Estudiante: ${estudiante.nombre} ${estudiante.apellido || ''}`, 20, 90);
+      doc.text(`Email: ${estudiante.email || 'N/A'}`, 20, 100);
+      doc.text(`CI: ${estudiante.ci || 'N/A'}`, 20, 110);
+      
+      // Datos de la convocatoria
+      doc.text(`Convocatoria: ${convocatoria?.nombre || 'No disponible'}`, 20, 130);
+      doc.text(`Inicio: ${convocatoria?.fecha_inicio ? formatearFecha(convocatoria.fecha_inicio) : 'No disponible'}`, 20, 140);
+      doc.text(`Fin: ${convocatoria?.fecha_fin ? formatearFecha(convocatoria.fecha_fin) : 'No disponible'}`, 20, 150);
+      
+      // Áreas
+      if (inscripcionConOrden.areas && inscripcionConOrden.areas.length > 0) {
+        doc.text("Áreas inscritas:", 20, 170);
+        inscripcionConOrden.areas.forEach((area, index) => {
+          const areaNombre = typeof area === 'object' ? area.nombre : area;
+          doc.text(`- ${areaNombre || 'Área sin nombre'}`, 20, 180 + (index * 10));
+        });
+      }
+
+      doc.save(`orden_pago_${ordenId}.pdf`);
+      
     } catch (err) {
       console.error('Error al descargar orden de pago:', err);
       alert('No se pudo descargar la orden de pago. Intenta nuevamente.');
@@ -242,52 +234,69 @@ const MisInscripciones = () => {
   };
   
   // Guardar cambios en la inscripción
-  const handleGuardarCambios = async () => {
-    if (!inscripcionActual || !currentUser) return;
-    
+  const handleGuardarCambios = async (inscripcionId) => {
     try {
-      setLoadingAction(true);
+      setGuardando(true);
       
-      // Verificar que se hayan seleccionado áreas
-      if (areasSeleccionadas.length === 0) {
-        alert('Debes seleccionar al menos un área');
-        return;
+      // Obtener inscripciones actuales
+      const inscripcionesActuales = JSON.parse(localStorage.getItem('olimpiadas_inscripciones') || '[]');
+      
+      // Encontrar la inscripción a actualizar
+      const inscripcionIndex = inscripcionesActuales.findIndex(insc => insc.id === inscripcionId);
+      
+      if (inscripcionIndex === -1) {
+        throw new Error('Inscripción no encontrada');
       }
       
-      // Verificar que no se exceda el límite de áreas
-      if (inscripcionActual.convocatoria && 
-          inscripcionActual.convocatoria.maximo_areas && 
-          areasSeleccionadas.length > inscripcionActual.convocatoria.maximo_areas) {
-        alert(`Solo puedes seleccionar hasta ${inscripcionActual.convocatoria.maximo_areas} áreas.`);
-        return;
+      // Obtener la convocatoria actual
+      const convocatorias = JSON.parse(localStorage.getItem('convocatorias') || '[]');
+      const convocatoria = convocatorias.find(c => c.id === inscripcionesActuales[inscripcionIndex].convocatoria.id);
+      
+      if (!convocatoria) {
+        throw new Error('Convocatoria no encontrada');
       }
       
-      // Actualizar áreas del estudiante
-      await apiService.updateStudentAreas(currentUser.id, areasSeleccionadas);
+      // Obtener las áreas seleccionadas de la convocatoria
+      const areasConvocatoria = convocatoria.areas || [];
       
-      // Actualizar la inscripción en el estado local
-      const updatedInscripciones = inscripciones.map(insc => {
-        if (insc.id === inscripcionActual.id) {
-          // Obtener objetos completos de las áreas
-          const areasActualizadas = areasDisponibles.filter(area => areasSeleccionadas.includes(area.id));
+      // Filtrar las áreas seleccionadas para mantener solo las que están en la convocatoria
+      const areasFiltradas = areasSeleccionadas
+        .filter(areaId => areasConvocatoria.some(a => a.id === areaId))
+        .map(areaId => {
+          const area = areasConvocatoria.find(a => a.id === areaId);
           return {
-            ...insc,
-            areas: areasActualizadas
+            id: area.id,
+            nombre: area.nombre,
+            descripcion: area.descripcion
           };
-        }
-        return insc;
-      });
+        });
       
-      setInscripciones(updatedInscripciones);
+      // Actualizar la inscripción
+      inscripcionesActuales[inscripcionIndex] = {
+        ...inscripcionesActuales[inscripcionIndex],
+        areas: areasFiltradas,
+        fechaActualizacion: new Date().toISOString()
+      };
+      
+      // Guardar cambios
+      localStorage.setItem('olimpiadas_inscripciones', JSON.stringify(inscripcionesActuales));
+      
+      // Actualizar el estado local
+      setInscripciones(prev => prev.map(insc => 
+        insc.id === inscripcionId 
+          ? { ...insc, areas: areasFiltradas }
+          : insc
+      ));
+      
       setShowModalEditar(false);
+      setInscripcionActual(null);
+      setAreasSeleccionadas([]);
       
-      // Mostrar mensaje de éxito
-      alert('Inscripción actualizada correctamente');
     } catch (err) {
-      console.error('Error al actualizar inscripción:', err);
-      alert('No se pudo actualizar la inscripción. Intenta nuevamente.');
+      console.error('Error al guardar cambios:', err);
+      alert('Error al guardar los cambios. Por favor, inténtalo de nuevo.');
     } finally {
-      setLoadingAction(false);
+      setGuardando(false);
     }
   };
   
@@ -298,13 +307,19 @@ const MisInscripciones = () => {
     try {
       setLoadingAction(true);
       
-      // Lógica para eliminar inscripción
-      // Asumimos que hay un método para esto, si no existe se tendría que implementar
-      await apiService.updateStudentAreas(currentUser.id, []);
+      // *** Lógica para eliminar inscripción de localStorage ***
+      const inscripcionesKey = 'olimpiadas_inscripciones';
+      let todasLasInscripciones = JSON.parse(localStorage.getItem(inscripcionesKey) || '[]');
       
-      // Eliminar la inscripción del estado local
-      const updatedInscripciones = inscripciones.filter(insc => insc.id !== inscripcionActual.id);
-      setInscripciones(updatedInscripciones);
+      // Filtrar la inscripción a eliminar
+      const updatedLocalStorageInscripciones = todasLasInscripciones.filter(
+        insc => insc.id !== inscripcionActual.id
+      );
+      localStorage.setItem(inscripcionesKey, JSON.stringify(updatedLocalStorageInscripciones));
+      
+      // Eliminar la inscripción del estado local (UI)
+      const updatedInscripcionesUI = inscripciones.filter(insc => insc.id !== inscripcionActual.id);
+      setInscripciones(updatedInscripcionesUI);
       
       setShowModalEliminar(false);
       
@@ -426,12 +441,27 @@ const MisInscripciones = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {inscripcion.areas.map((area, index) => (
-                      <tr key={index}>
+                    {inscripcion.areas && inscripcion.areas.length > 0 ? (
+                      inscripcion.areas
+                        .filter(area => {
+                          // Verificar si el área está en las áreas permitidas de la convocatoria
+                          const convocatoria = JSON.parse(localStorage.getItem('convocatorias') || '[]')
+                            .find(c => c.id === inscripcion.convocatoria.id);
+                          return convocatoria?.areas?.some(a => a.id === area.id);
+                        })
+                        .map((area, index) => (
+                          <tr key={`${inscripcion.id}-${index}-${area.id}`}>
                         <td>{index + 1}</td>
                         <td>{area.nombre}</td>
+                          </tr>
+                        ))
+                    ) : (
+                      <tr>
+                        <td colSpan={2} className="text-center text-gray-500">
+                          No hay áreas seleccionadas
+                        </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </Table>
               </Col>
@@ -549,10 +579,10 @@ const MisInscripciones = () => {
           </Button>
           <Button 
             variant="primary" 
-            onClick={handleGuardarCambios}
-            disabled={loadingAction || areasSeleccionadas.length === 0}
+            onClick={() => handleGuardarCambios(inscripcionActual.id)}
+            disabled={guardando || areasSeleccionadas.length === 0}
           >
-            {loadingAction ? 'Guardando...' : 'Guardar cambios'}
+            {guardando ? 'Guardando...' : 'Guardar cambios'}
           </Button>
         </Modal.Footer>
       </Modal>

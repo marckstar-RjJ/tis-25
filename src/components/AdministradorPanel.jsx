@@ -7,6 +7,7 @@ import { apiService } from '../services/api';
 import AdminConvocatorias from './convocatorias/AdminConvocatorias';
 import Reportes from '../pages/admin/Reportes';
 import { FaCog, FaSchool, FaCalendarAlt, FaGraduationCap, FaMedal, FaSignOutAlt, FaTrash } from 'react-icons/fa';
+import 'bootstrap-icons/font/bootstrap-icons.min.css';
 
 // Componente para la configuración de olimpiadas
 const ConfiguracionOlimpiadas = () => {
@@ -37,8 +38,9 @@ const ConfiguracionOlimpiadas = () => {
       try {
         setLoading(true);
         // Obtener convocatorias desde localStorage
-        const convocatoriasKey = 'olimpiadas_convocatorias';
+        const convocatoriasKey = 'convocatorias';
         const data = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
+        console.log('Convocatorias cargadas:', data); // Log para depuración
         
         // Verificar si hay convocatorias
         if (data.length === 0) {
@@ -47,8 +49,10 @@ const ConfiguracionOlimpiadas = () => {
         } else {
           setConvocatorias(data);
           // Seleccionar la primera convocatoria por defecto
-          setSelectedConvocatoriaId(data[0].id);
-          cargarDatosConvocatoria(data[0]);
+          if (data[0] && data[0].id) {
+            setSelectedConvocatoriaId(data[0].id);
+            cargarDatosConvocatoria(data[0]);
+          }
         }
       } catch (err) {
         console.error('Error al cargar convocatorias:', err);
@@ -82,11 +86,16 @@ const ConfiguracionOlimpiadas = () => {
   
   // Manejar el cambio de convocatoria seleccionada
   const handleConvocatoriaChange = (e) => {
-    const convocatoriaId = e.target.value;
+    const convocatoriaId = parseInt(e.target.value, 10); // Convertir a número
+    console.log('Convocatoria seleccionada:', convocatoriaId);
     setSelectedConvocatoriaId(convocatoriaId);
     
     // Buscar la convocatoria seleccionada y cargar sus datos
-    const convocatoriaSeleccionada = convocatorias.find(c => c.id === convocatoriaId);
+    const convocatoriaSeleccionada = convocatorias.find(c => {
+      console.log('Buscando convocatoria:', c.id, convocatoriaId);
+      return parseInt(c.id, 10) === convocatoriaId;
+    });
+    
     if (convocatoriaSeleccionada) {
       cargarDatosConvocatoria(convocatoriaSeleccionada);
     }
@@ -113,9 +122,15 @@ const ConfiguracionOlimpiadas = () => {
     
     try {
       // Actualizar la convocatoria en localStorage
-      const convocatoriasKey = 'olimpiadas_convocatorias';
+      const convocatoriasKey = 'convocatorias';
       const convocatoriasActuales = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
-      const index = convocatoriasActuales.findIndex(c => c.id === selectedConvocatoriaId);
+      console.log('Convocatorias actuales:', convocatoriasActuales);
+      console.log('ID de convocatoria seleccionada:', selectedConvocatoriaId);
+      
+      const index = convocatoriasActuales.findIndex(c => {
+        console.log('Comparando:', c.id, selectedConvocatoriaId, typeof c.id, typeof selectedConvocatoriaId);
+        return parseInt(c.id, 10) === parseInt(selectedConvocatoriaId, 10);
+      });
       
       if (index === -1) {
         throw new Error('La convocatoria seleccionada no existe');
@@ -133,7 +148,8 @@ const ConfiguracionOlimpiadas = () => {
         costo_por_area: parseFloat(formData.precioPorArea),
         maximo_areas: parseInt(formData.maxAreasEstudiante),
         activa: formData.activa,
-        areas: areasActuales
+        areas: areasActuales,
+        fecha_actualizacion: new Date().toISOString()
       };
       
       // Actualizar en localStorage
@@ -143,7 +159,11 @@ const ConfiguracionOlimpiadas = () => {
       // Actualizar la lista de convocatorias
       setConvocatorias(convocatoriasActuales);
       
-      alert('Configuración de la olimpiada actualizada con éxito');
+      // Mostrar mensaje de éxito con el nombre de la convocatoria
+      alert(`Configuración de la olimpiada "${formData.nombre}" actualizada con éxito`);
+      
+      // Recargar los datos de la convocatoria actualizada
+      cargarDatosConvocatoria(convocatoriaActualizada);
     } catch (err) {
       console.error('Error al actualizar configuración:', err);
       setError('No se pudo actualizar la configuración. ' + (err.message || 'Intente nuevamente.'));
@@ -158,12 +178,18 @@ const ConfiguracionOlimpiadas = () => {
 
   return (
     <div className="config-container">
-      <h2>Configuración de Olimpiadas</h2>
+      <h2>
+        <i className="bi bi-gear-fill text-primary me-2"></i>
+        Configuración de Olimpiadas
+      </h2>
       {error && <div className="alert alert-danger">{error}</div>}
       
       {/* Selector de Convocatoria */}
       <div className="form-group mb-4">
-        <label htmlFor="convocatoriaSelect">Seleccionar Olimpiada a Configurar:</label>
+        <label htmlFor="convocatoriaSelect">
+          <i className="bi bi-list-check text-primary me-2"></i>
+          Seleccionar Olimpiada a Configurar:
+        </label>
         <select 
           id="convocatoriaSelect" 
           className="form-select form-select-lg mb-3"
@@ -185,85 +211,137 @@ const ConfiguracionOlimpiadas = () => {
       
       {selectedConvocatoriaId && (
         <form onSubmit={handleSubmit} className="config-form">
-          <div className="form-group">
-            <label htmlFor="nombre">Nombre de la Olimpiada</label>
-            <input 
-              type="text" 
-              id="nombre" 
-              className="form-control"
-              name="nombre" 
-              value={formData.nombre} 
-              onChange={handleChange} 
-              required 
-            />
+          <div className="form-group mb-3">
+            <label htmlFor="nombre" className="form-label">
+              <i className="bi bi-trophy-fill text-primary me-2"></i>
+              Nombre de la Olimpiada
+            </label>
+            <div className="input-group">
+              <span className="input-group-text">
+                <i className="bi bi-trophy-fill"></i>
+              </span>
+              <input 
+                type="text" 
+                id="nombre" 
+                className="form-control"
+                name="nombre" 
+                value={formData.nombre} 
+                onChange={handleChange} 
+                required 
+              />
+            </div>
           </div>
           
-          <div className="form-group">
-            <label htmlFor="fechaInicio">Fecha de Inicio de Inscripciones</label>
-            <input 
-              type="date" 
-              id="fechaInicio" 
-              className="form-control"
-              name="fechaInicio" 
-              value={formData.fechaInicio} 
-              onChange={handleChange} 
-              required 
-            />
+          <div className="form-group mb-3">
+            <label htmlFor="fechaInicio" className="form-label">
+              <i className="bi bi-calendar-event text-primary me-2"></i>
+              Fecha de Inicio de Inscripciones
+            </label>
+            <div className="input-group">
+              <span className="input-group-text">
+                <i className="bi bi-calendar-event"></i>
+              </span>
+              <input 
+                type="date" 
+                id="fechaInicio" 
+                className="form-control"
+                name="fechaInicio" 
+                value={formData.fechaInicio} 
+                onChange={handleChange} 
+                required 
+              />
+            </div>
           </div>
           
-          <div className="form-group">
-            <label htmlFor="fechaFin">Fecha de Fin de Inscripciones</label>
-            <input 
-              type="date" 
-              id="fechaFin" 
-              className="form-control"
-              name="fechaFin" 
-              value={formData.fechaFin} 
-              onChange={handleChange} 
-              required 
-            />
+          <div className="form-group mb-3">
+            <label htmlFor="fechaFin" className="form-label">
+              <i className="bi bi-calendar-check text-primary me-2"></i>
+              Fecha de Fin de Inscripciones
+            </label>
+            <div className="input-group">
+              <span className="input-group-text">
+                <i className="bi bi-calendar-check"></i>
+              </span>
+              <input 
+                type="date" 
+                id="fechaFin" 
+                className="form-control"
+                name="fechaFin" 
+                value={formData.fechaFin} 
+                onChange={handleChange} 
+                required 
+              />
+            </div>
           </div>
           
-          <div className="form-group">
-            <label htmlFor="precioPorArea">Precio por Área ($)</label>
-            <input 
-              type="number" 
-              id="precioPorArea" 
-              className="form-control"
-              name="precioPorArea" 
-              value={formData.precioPorArea} 
-              onChange={handleChange} 
-              min="1" 
-              required 
-            />
+          <div className="form-group mb-3">
+            <label htmlFor="precioPorArea" className="form-label">
+              <i className="bi bi-coin text-primary me-2"></i>
+              Precio por Área (Bs.)
+            </label>
+            <div className="input-group">
+              <span className="input-group-text">
+                <i className="bi bi-coin"></i>
+              </span>
+              <input 
+                type="number" 
+                id="precioPorArea" 
+                className="form-control"
+                name="precioPorArea" 
+                value={formData.precioPorArea} 
+                onChange={handleChange} 
+                min="1" 
+                required 
+              />
+            </div>
           </div>
           
-          <div className="form-group">
-            <label htmlFor="maxAreasEstudiante">Máximo de Áreas por Estudiante</label>
-            <input 
-              type="number" 
-              id="maxAreasEstudiante" 
-              className="form-control"
-              name="maxAreasEstudiante" 
-              value={formData.maxAreasEstudiante} 
-              onChange={handleChange} 
-              min="1" 
-              max="10" 
-              required 
-            />
-            <input 
-              type="checkbox" 
-              id="activa" 
-              className="form-check-input"
-              name="activa" 
-              checked={formData.activa} 
-              onChange={handleChange} 
-            />
-            <label htmlFor="activa" className="form-check-label">Olimpiada Activa</label>
+          <div className="form-group mb-3">
+            <label htmlFor="maxAreasEstudiante" className="form-label">
+              <i className="bi bi-book text-primary me-2"></i>
+              Máximo de Áreas por Estudiante
+            </label>
+            <div className="input-group">
+              <span className="input-group-text">
+                <i className="bi bi-book"></i>
+              </span>
+              <input 
+                type="number" 
+                id="maxAreasEstudiante" 
+                className="form-control"
+                name="maxAreasEstudiante" 
+                value={formData.maxAreasEstudiante} 
+                onChange={handleChange} 
+                min="1" 
+                required 
+              />
+            </div>
           </div>
           
-          <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Guardando...' : 'Guardar Configuración'}
+          <div className="form-group mb-3">
+            <div className="form-check">
+              <input 
+                type="checkbox" 
+                id="activa"
+                className="form-check-input"
+                name="activa" 
+                checked={formData.activa} 
+                onChange={handleChange}
+              />
+              <label htmlFor="activa" className="form-check-label">
+                <i className="bi bi-toggle-on text-primary me-2"></i>
+                Olimpiada Activa
+              </label>
+            </div>
+          </div>
+          
+          <button 
+            type="submit" 
+            className="btn btn-primary"
+            disabled={isSubmitting}
+          >
+            <i className="bi bi-save me-2"></i>
+            {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
           </button>
         </form>
       )}
@@ -379,19 +457,25 @@ const GestionColegios = () => {
         telefono: newColegio.telefonoReferencia
       };
 
-      const addedColegio = await apiService.addCollege(colegioData);
+      console.log('Enviando datos del colegio:', colegioData);
+      const response = await apiService.addCollege(colegioData);
       
       // Actualizar la lista de colegios
-      setColegios(prevColegios => [...prevColegios, addedColegio.colegio]);
+      setColegios(prevColegios => [...prevColegios, response.colegio]);
       
       setSnackbar({
         open: true,
-        message: `¡Colegio "${colegioData.nombre}" creado con éxito! Código generado: ${addedColegio.colegio.verification_code}`,
+        message: `¡Colegio "${colegioData.nombre}" creado con éxito! Código generado: ${response.colegio.verification_code}`,
         severity: 'success'
       });
 
       // Limpiar el formulario
-      setNewColegio({ nombre: '', direccion: '', telefonoReferencia: '' });
+      setNewColegio({ 
+        nombre: '', 
+        direccion: '', 
+        telefonoReferencia: '',
+        codigoColegio: ''
+      });
 
     } catch (err) {
       console.error('Error al añadir colegio:', err);

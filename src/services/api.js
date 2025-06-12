@@ -1,4 +1,51 @@
 const API_URL = 'https://tis-25-backend.onrender.com/api';
+const SERVER_URL = API_URL.replace(/\/api$/, '');
+
+// Verificar si el servidor está operativo
+const checkServerHealth = async () => {
+  try {
+    console.log(`Verificando salud del servidor ${SERVER_URL}...`);
+    const startTime = Date.now();
+    
+    const response = await fetch(`${SERVER_URL}/sanctum/csrf-cookie`, {
+      method: 'HEAD',
+      cache: 'no-cache',
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
+    
+    console.log(`Servidor respondió en ${responseTime}ms con estado: ${response.status}`);
+    
+    return {
+      isOnline: response.ok,
+      responseTime,
+      status: response.status,
+      statusText: response.statusText
+    };
+  } catch (error) {
+    console.error('Error al verificar salud del servidor:', error);
+    return {
+      isOnline: false,
+      error: error.message
+    };
+  }
+};
+
+// Opciones predeterminadas para todas las solicitudes fetch
+const defaultOptions = {
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest'
+  },
+  credentials: 'include'
+};
 
 // Métodos para recuperación de contraseña
 export const checkUserEmail = async (email) => {
@@ -317,63 +364,30 @@ const getConvocatorias = async () => {
 // Obtener datos del estudiante actual (usando el token)
 const getCurrentStudent = async () => {
   try {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No hay token de autenticación disponible.');
+    // Obtener el estudiante actual del localStorage
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) {
+      throw new Error('No hay usuario autenticado');
     }
 
-    const response = await fetch(`${API_URL}/user-student`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Error al obtener datos del estudiante actual');
-    }
-
-    const data = await response.json();
-    console.log("Datos del estudiante actual:", data);
-
-    // Asegurarse de que `areas_inscritas` sea un array, incluso si viene null o indefinido
-    if (data && data.areas_inscritas && typeof data.areas_inscritas === 'string') {
-      try {
-        data.areasInscritas = JSON.parse(data.areas_inscritas);
-      } catch (parseError) {
-        console.error('Error al parsear areas_inscritas:', parseError);
-        data.areasInscritas = []; // Asignar un array vacío si hay un error de parseo
-      }
-    } else if (!data.areas_inscritas) {
-      data.areasInscritas = []; // Si no existe o es null, inicializar como array vacío
-    } else {
-      data.areasInscritas = data.areas_inscritas; // Si ya es un array, usarlo directamente
-    }
+    // Obtener las inscripciones del localStorage
+    const inscripcionesKey = 'olimpiadas_inscripciones';
+    const inscripciones = JSON.parse(localStorage.getItem(inscripcionesKey) || '[]');
     
-    // Mapear areas_inscritas a areasInscritas para compatibilidad
-    if (data && data.areas_inscritas) {
-      data.areasInscritas = data.areas_inscritas;
-    } else {
-      data.areasInscritas = [];
-    }
+    // Filtrar las inscripciones del estudiante actual
+    const inscripcionesEstudiante = inscripciones.filter(inscripcion => 
+      inscripcion.estudianteId === currentUser.id
+    );
 
+    // Construir el objeto del estudiante con toda la información
+    const estudiante = {
+      ...currentUser,
+      inscripciones: inscripcionesEstudiante,
+      areasInscritas: inscripcionesEstudiante.flatMap(inscripcion => inscripcion.areas || [])
+    };
 
-    // Asegurarse de que `convocatorias_inscritas` sea un array de IDs
-    if (data && data.convocatorias_inscritas && typeof data.convocatorias_inscritas === 'string') {
-      try {
-        data.convocatoriasInscritas = JSON.parse(data.convocatorias_inscritas);
-      } catch (parseError) {
-        console.error('Error al parsear convocatorias_inscritas:', parseError);
-        data.convocatoriasInscritas = [];
-      }
-    } else if (!data.convocatorias_inscritas) {
-      data.convocatoriasInscritas = [];
-    } else {
-      data.convocatoriasInscritas = data.convocatorias_inscritas;
-    }
-
-
-    return data;
+    console.log("Datos del estudiante recuperados del localStorage:", estudiante);
+    return estudiante;
   } catch (error) {
     console.error('Error en getCurrentStudent:', error);
     throw error;
@@ -478,21 +492,40 @@ const getAreas = async () => {
 const addCollege = async (collegeData) => {
   try {
     const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No hay token de autenticación');
+    }
+
+    console.log('Enviando datos del colegio:', collegeData);
     const response = await fetch(`${API_URL}/colegios`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'X-Requested-With': 'XMLHttpRequest'
       },
-      body: JSON.stringify(collegeData),
+      credentials: 'include',
+      body: JSON.stringify({
+        nombre: collegeData.nombre,
+        direccion: collegeData.direccion,
+        telefono: collegeData.telefono
+      })
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Error al agregar colegio');
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al agregar colegio');
+      } else {
+        throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+      }
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log('Respuesta exitosa de addCollege:', data);
+    return data;
   } catch (error) {
     console.error('Error en addCollege:', error);
     throw error;

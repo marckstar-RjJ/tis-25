@@ -4,41 +4,30 @@ import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
 import { Container, Spinner, Alert, Button, Card } from 'react-bootstrap';
 
-// Función para verificar si un estudiante cumple con los requisitos de curso para un área específica
-const cumpleRequisitosArea = (curso, nombreArea) => {
-  // Convertir curso a formato numérico
-  const cursoNum = parseInt(curso);
+// Función para verificar si el estudiante cumple con los requisitos de un área
+const cumpleRequisitosArea = (student, area) => {
+  if (!student || !area) return false;
   
-  // Si el curso no es un número válido, no puede inscribirse
-  if (isNaN(cursoNum)) {
-    console.warn(`El curso '${curso}' no es válido para la verificación`);
+  // Verificar si el estudiante tiene curso definido
+  if (!student.curso) {
+    console.warn('El estudiante no tiene curso definido');
     return false;
   }
-  
-  // Normalizar el nombre del área (quitar acentos, convertir a minúsculas, etc.)
-  const areaNormalizada = nombreArea.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  
-  console.log(`Verificando requisitos para curso ${cursoNum} y área ${nombreArea} (normalizada: ${areaNormalizada})`);
-  
-  // Validaciones según el reglamento
-  if (areaNormalizada.includes('astronom')) {
-    return cursoNum >= 4 && cursoNum <= 12; // 4° Primaria - 6° Secundaria
-  } else if (areaNormalizada.includes('biolog')) {
-    return cursoNum >= 3 && cursoNum <= 12; // 3° Primaria - 6° Secundaria
-  } else if (areaNormalizada.includes('fisic')) {
-    return cursoNum >= 7 && cursoNum <= 12; // 1° Secundaria - 6° Secundaria
-  } else if (areaNormalizada.includes('matematic')) {
-    return cursoNum >= 3 && cursoNum <= 12; // 3° Primaria - 6° Secundaria
-  } else if (areaNormalizada.includes('informatic')) {
-    return cursoNum >= 7 && cursoNum <= 12; // 1° Secundaria - 6° Secundaria
-  } else if (areaNormalizada.includes('robotic')) {
-    return cursoNum >= 3 && cursoNum <= 12; // 3° Primaria - 6° Secundaria
-  } else if (areaNormalizada.includes('quimic')) {
-    return cursoNum >= 7 && cursoNum <= 12; // 1° Secundaria - 6° Secundaria
-  } else {
-    // Por defecto, para otras áreas no listadas, permitimos la inscripción
-    return true;
+
+  const cursoEstudiante = parseInt(student.curso);
+  if (isNaN(cursoEstudiante)) {
+    console.warn('El curso del estudiante no es un número válido');
+    return false;
   }
+
+  // Si no hay requisitos específicos, cualquier curso puede inscribirse
+  if (!area.requisitos || area.requisitos.length === 0) return true;
+  
+  // Verificar si el curso del estudiante está dentro del rango permitido
+  return area.requisitos.some(req => {
+    const [min, max] = req.split('-').map(Number);
+    return cursoEstudiante >= min && cursoEstudiante <= max;
+  });
 };
 
 function InscripcionAreaEstudiante() {
@@ -354,7 +343,7 @@ function InscripcionAreaEstudiante() {
             <h4 className="mb-3">Seleccionar Áreas</h4>
         <div className="areas-grid">
           {areas.map(area => {
-            const cumpleRequisitos = student && student.curso !== undefined && cumpleRequisitosArea(student.curso, area.nombre);
+            const cumpleRequisitos = cumpleRequisitosArea(student, area);
             return (
                   <Card
                 key={area.id} 

@@ -58,38 +58,25 @@ function InscripcionArea() {
         const studentData = await apiService.getStudentById(studentId);
         setStudent(studentData);
         
+        // Obtener convocatorias disponibles desde localStorage
+        const convocatoriasData = JSON.parse(localStorage.getItem('convocatorias') || '[]');
+        console.log('Convocatorias cargadas:', convocatoriasData);
+        
+        if (convocatoriasData && convocatoriasData.length > 0) {
+          setConvocatorias(convocatoriasData);
+        } else {
+          setError('No hay convocatorias disponibles para inscripción.');
+        }
+        
         // Obtener áreas ya inscritas
-        if (studentData.areasInscritas && studentData.areasInscritas.length > 0) {
-          setSelectedAreaIds(studentData.areasInscritas);
+        const inscripciones = JSON.parse(localStorage.getItem('olimpiadas_inscripciones') || '[]');
+        const inscripcionEstudiante = inscripciones.find(insc => insc.estudiante.id === studentId);
+        
+        if (inscripcionEstudiante) {
+          setSelectedAreaIds(inscripcionEstudiante.areas.map(area => area.id));
+          setSelectedAreas(inscripcionEstudiante.areas);
         }
         
-        // Obtener todas las áreas disponibles
-        const areasData = await apiService.getAreas();
-        setAreas(areasData);
-        
-        if (studentData.areasInscritas && studentData.areasInscritas.length > 0) {
-          // Encontrar los objetos de área completos para las áreas inscritas
-          const areasSeleccionadas = areasData.filter(area => 
-            studentData.areasInscritas.includes(area.id)
-          );
-          setSelectedAreas(areasSeleccionadas);
-        }
-        
-        // Obtener convocatorias disponibles
-        console.log('Intentando obtener convocatorias...');
-        try {
-          const convocatoriasData = await apiService.getAllConvocatorias();
-          console.log('Convocatorias obtenidas:', convocatoriasData);
-          if (convocatoriasData && convocatoriasData.length > 0) {
-            setConvocatorias(convocatoriasData);
-          } else {
-            console.log('No se obtuvieron convocatorias');
-            setError('No hay convocatorias disponibles para inscripción.');
-          }
-        } catch (convocatoriaError) {
-          console.error('Error específico al cargar convocatorias:', convocatoriaError);
-          setError(`Error al cargar convocatorias: ${convocatoriaError.message || 'Error desconocido'}`);
-        }
       } catch (err) {
         console.error('Error al cargar datos:', err);
         setError('No se pudieron cargar los datos necesarios. Intente nuevamente.');
@@ -101,36 +88,30 @@ function InscripcionArea() {
     fetchData();
   }, [studentId]);
 
-  // Cargar configuración de olimpiada cuando se selecciona una convocatoria
+  // Cargar áreas disponibles cuando se selecciona una convocatoria
   useEffect(() => {
-    const fetchOlympiadConfig = async () => {
-      if (selectedConvocatoriaId) {
-        try {
-          const olympiadData = await apiService.getOlympiadConfigById(selectedConvocatoriaId);
-          setOlympiadConfig(olympiadData);
-          setConvocatoriaSelected(true);
-          
-          // Resetear áreas seleccionadas cuando se cambia de convocatoria
-          if (student && !student.areasInscritas) {
-            setSelectedAreas([]);
-            setSelectedAreaIds([]);
-          }
-        } catch (err) {
-          console.error('Error al cargar configuración de olimpiada:', err);
-          setError('No se pudo cargar la configuración de la convocatoria seleccionada.');
-        }
-      }
-    };
-    
     if (selectedConvocatoriaId) {
-      fetchOlympiadConfig();
+      const convocatoria = convocatorias.find(c => c.id === selectedConvocatoriaId);
+      console.log('Convocatoria seleccionada:', convocatoria);
+      
+      if (convocatoria) {
+        setOlympiadConfig(convocatoria);
+        setAreas(convocatoria.areas || []);
+        setConvocatoriaSelected(true);
+        
+        // Resetear áreas seleccionadas cuando se cambia de convocatoria
+        setSelectedAreas([]);
+        setSelectedAreaIds([]);
+      }
     }
-  }, [selectedConvocatoriaId, student]);
+  }, [selectedConvocatoriaId, convocatorias]);
   
   // Calcular costo total cuando cambian las áreas seleccionadas o se carga la configuración
   useEffect(() => {
-    if (olympiadConfig && olympiadConfig.precioPorArea) {
-      setTotalCost(selectedAreas.length * olympiadConfig.precioPorArea);
+    if (olympiadConfig) {
+      // Usar el costo por área de la convocatoria seleccionada
+      const costoPorArea = olympiadConfig.costo_por_area || 0;
+      setTotalCost(selectedAreas.length * costoPorArea);
     }
   }, [selectedAreas, olympiadConfig]);
 
@@ -177,8 +158,8 @@ function InscripcionArea() {
       
       // Verificar si estamos dentro del período de inscripción
       const currentDate = new Date();
-      const startDate = new Date(olympiadConfig.fechaInicio);
-      const endDate = new Date(olympiadConfig.fechaFin);
+      const startDate = new Date(olympiadConfig.fecha_inicio);
+      const endDate = new Date(olympiadConfig.fecha_fin);
       
       if (currentDate < startDate) {
         throw new Error(`Las inscripciones comienzan el ${startDate.toLocaleDateString()}`);
@@ -187,11 +168,54 @@ function InscripcionArea() {
       if (currentDate > endDate) {
         throw new Error(`El período de inscripción finalizó el ${endDate.toLocaleDateString()}`);
       }
+
+      // Obtener inscripciones actuales
+      const inscripciones = JSON.parse(localStorage.getItem('olimpiadas_inscripciones') || '[]');
       
-      // Enviar inscripción
-      await apiService.updateStudentAreas(studentId, selectedAreaIds, selectedConvocatoriaId);
+      // Crear nueva inscripción con la convocatoria completa
+      const nuevaInscripcion = {
+        id: Date.now(),
+        estudiante: student,
+        convocatoria: {
+          id: olympiadConfig.id,
+          nombre: olympiadConfig.nombre,
+          descripcion: olympiadConfig.descripcion,
+          fecha_inicio: olympiadConfig.fecha_inicio,
+          fecha_fin: olympiadConfig.fecha_fin,
+          costo_por_area: olympiadConfig.costo_por_area
+        },
+        areas: selectedAreas.map(area => ({
+          id: area.id,
+          nombre: area.nombre,
+          descripcion: area.descripcion
+        })),
+        fecha: new Date().toISOString(),
+        estado: 'pendiente',
+        ordenPago: {
+          id: Date.now(),
+          fecha: new Date().toISOString(),
+          estado: 'pendiente',
+          total: totalCost
+        }
+      };
       
-      setSuccess('Inscripción actualizada correctamente');
+      // Verificar si ya existe una inscripción para esta convocatoria
+      const inscripcionExistenteIndex = inscripciones.findIndex(
+        insc => insc.estudiante.id === student.id && insc.convocatoria.id === olympiadConfig.id
+      );
+      
+      if (inscripcionExistenteIndex !== -1) {
+        // Actualizar inscripción existente
+        inscripciones[inscripcionExistenteIndex] = nuevaInscripcion;
+      } else {
+        // Añadir nueva inscripción
+        inscripciones.push(nuevaInscripcion);
+      }
+      
+      // Guardar en localStorage
+      localStorage.setItem('olimpiadas_inscripciones', JSON.stringify(inscripciones));
+      
+      setSuccess('Inscripción realizada correctamente');
       
       // Si el usuario es un tutor, mostramos opciones adicionales
       if (currentUser.tipoUsuario === 'tutor') {
@@ -200,7 +224,7 @@ function InscripcionArea() {
         }, 2000);
       }
     } catch (err) {
-      console.error('Error al actualizar inscripción:', err);
+      console.error('Error al realizar la inscripción:', err);
       setError(err.message || 'Error al realizar la inscripción. Intente nuevamente.');
     } finally {
       setSubmitting(false);
@@ -270,7 +294,7 @@ function InscripcionArea() {
         <div className="olympiad-info">
           <h3>Información de la Olimpiada</h3>
           <p><strong>Período de Inscripción:</strong> {new Date(olympiadConfig.fechaInicio).toLocaleDateString()} - {new Date(olympiadConfig.fechaFin).toLocaleDateString()}</p>
-          <p><strong>Precio por área:</strong> Bs. {olympiadConfig.precioPorArea}</p>
+          <p><strong>Precio por área:</strong> Bs. {olympiadConfig.costo_por_area}</p>
           <p><strong>Máximo de áreas:</strong> {olympiadConfig.maxAreasEstudiante} por estudiante</p>
         </div>
       )}
