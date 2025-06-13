@@ -38,7 +38,7 @@ const sendEmail = async (toEmail, subject, message, templateParams = {}) => {
     console.log('Parámetros finales para EmailJS:', emailParams);
 
     const response = await emailjs.send(
-      "service_pj9u56o",
+      "service_7db38qa",
       "template_30m993y",
       emailParams,
       {

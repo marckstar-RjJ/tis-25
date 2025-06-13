@@ -21,7 +21,7 @@ const RegistroEstudiantes = () => {
     ci: '',
     email: '',
     fechaNacimiento: '',
-    curso: '3', 
+    curso: '3',
     colegio: ''
   });
   const [colegios, setColegios] = useState([]);
@@ -29,19 +29,21 @@ const RegistroEstudiantes = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [credentials, setCredentials] = useState(null);
 
-  const fechaLimite = '2017-06-30';
-
+  // Cargar la lista de colegios disponibles
   useEffect(() => {
     const fetchColegios = async () => {
       try {
         const data = await apiService.getAllColleges();
         setColegios(data);
         
-        if (currentUser && currentUser.colegio) {
-          setFormData(prev => ({ ...prev, colegio: currentUser.colegio }));
-        } else if (data.length > 0) {
-          setFormData(prev => ({ ...prev, colegio: data[0].id }));
+        // Si hay colegios, establecer el primero como valor predeterminado
+        if (data.length > 0) {
+          setFormData(prev => ({ 
+            ...prev, 
+            colegio: currentUser && currentUser.colegio ? currentUser.colegio : data[0].id 
+          }));
         }
       } catch (err) {
         console.error('Error al cargar colegios:', err);
@@ -56,26 +58,28 @@ const RegistroEstudiantes = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [name]: value
-    });
+    }));
   };
 
   const validarFormulario = () => {
-    if (formData.fechaNacimiento) {
-      const fechaSeleccionada = new Date(formData.fechaNacimiento);
-      const fechaMax = new Date(fechaLimite);
-      
-      if (fechaSeleccionada > fechaMax) {
-        setError('Solo se permiten fechas anteriores a Julio de 2017');
-        return false;
-      }
-    } else {
-      setError('La fecha de nacimiento es requerida');
+    // Validar fecha de nacimiento (debe ser antes del 30 de junio de 2017)
+    const fechaLimite = new Date('2017-06-30');
+    const fechaNacimiento = new Date(formData.fechaNacimiento);
+    
+    if (fechaNacimiento > fechaLimite) {
+      setError('La fecha de nacimiento debe ser anterior al 30 de junio de 2017');
       return false;
     }
-    
+
+    // Validar CI (debe ser un número válido)
+    if (!/^\d+$/.test(formData.ci)) {
+      setError('El CI debe contener solo números');
+      return false;
+    }
+
     return true;
   };
 
@@ -84,6 +88,7 @@ const RegistroEstudiantes = () => {
     setIsSubmitting(true);
     setError('');
     setSuccess('');
+    setCredentials(null);
     
     if (!validarFormulario()) {
       setIsSubmitting(false);
@@ -91,11 +96,15 @@ const RegistroEstudiantes = () => {
     }
     
     try {
-      await apiService.registerStudentByTutor(currentUser.id, {
+      const response = await apiService.registerStudentByTutor(currentUser.id, {
         ...formData,
-        curso: Number(formData.curso),
-        tutorId: currentUser.id
+        curso: Number(formData.curso)
       });
+      
+      // Guardar las credenciales para mostrarlas
+      if (response.credentials) {
+        setCredentials(response.credentials);
+      }
       
       setFormData({
         nombre: '',
@@ -103,7 +112,7 @@ const RegistroEstudiantes = () => {
         ci: '',
         email: '',
         fechaNacimiento: '',
-        curso: '3', 
+        curso: '3',
         colegio: currentUser && currentUser.colegio ? currentUser.colegio : (colegios.length > 0 ? colegios[0].id : '')
       });
       
@@ -113,10 +122,7 @@ const RegistroEstudiantes = () => {
         refreshStudents();
       }
       
-      setTimeout(() => {
-        navigate('/tutor');
-      }, 1500);
-      
+      // No redirigir inmediatamente para mostrar las credenciales
     } catch (err) {
       console.error('Error al registrar estudiante:', err);
       setError(err.message || 'Error al registrar estudiante. Intente nuevamente.');
@@ -136,124 +142,143 @@ const RegistroEstudiantes = () => {
       {error && <p className="error-message">{error}</p>}
       {success && <p className="success-message">{success}</p>}
       
-      <form onSubmit={handleSubmit} className="registro-form">
-        <div className="form-group">
-          <label htmlFor="nombre">Nombre</label>
-          <input 
-            type="text" 
-            id="nombre" 
-            name="nombre" 
-            value={formData.nombre} 
-            onChange={handleChange} 
-            required 
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="apellido">Apellido</label>
-          <input 
-            type="text" 
-            id="apellido" 
-            name="apellido" 
-            value={formData.apellido} 
-            onChange={handleChange} 
-            required 
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="ci">Carnet de Identidad</label>
-          <input 
-            type="text" 
-            id="ci" 
-            name="ci" 
-            value={formData.ci} 
-            onChange={handleChange} 
-            required 
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="email">Correo Electrónico</label>
-          <input 
-            type="email" 
-            id="email" 
-            name="email" 
-            value={formData.email} 
-            onChange={handleChange} 
-            required 
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="fechaNacimiento">Fecha de Nacimiento</label>
-          <input 
-            type="date" 
-            id="fechaNacimiento" 
-            name="fechaNacimiento" 
-            value={formData.fechaNacimiento} 
-            onChange={handleChange}
-            max={fechaLimite}
-            required 
-          />
-          <small className="help-text">Debe ser anterior a Julio de 2017</small>
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="curso">Curso</label>
-          <select 
-            id="curso" 
-            name="curso" 
-            value={formData.curso} 
-            onChange={handleChange} 
-            required
+      {credentials && (
+        <div className="credentials-box">
+          <h3>Credenciales del Estudiante</h3>
+          <p><strong>Email:</strong> {credentials.email}</p>
+          <p><strong>Contraseña:</strong> {credentials.password}</p>
+          <p className="credentials-warning">
+            Por favor, guarde estas credenciales. Serán necesarias para que el estudiante pueda iniciar sesión.
+          </p>
+          <button 
+            onClick={() => {
+              setCredentials(null);
+              navigate('/tutor/estudiantes');
+            }}
+            className="continue-button"
           >
-            <option value="3">3° Primaria</option>
-            <option value="4">4° Primaria</option>
-            <option value="5">5° Primaria</option>
-            <option value="6">6° Primaria</option>
-            <option value="7">1° Secundaria</option>
-            <option value="8">2° Secundaria</option>
-            <option value="9">3° Secundaria</option>
-            <option value="10">4° Secundaria</option>
-            <option value="11">5° Secundaria</option>
-            <option value="12">6° Secundaria</option>
-          </select>
+            Continuar
+          </button>
         </div>
-        
-        <div className="form-group">
-          <label htmlFor="colegio">Colegio</label>
-          <select 
-            id="colegio" 
-            name="colegio" 
-            value={formData.colegio} 
-            onChange={handleChange} 
-            required
-            disabled={currentUser && currentUser.colegio}
+      )}
+      
+      {!credentials && (
+        <form onSubmit={handleSubmit} className="registro-form">
+          <div className="form-group">
+            <label htmlFor="nombre">Nombre</label>
+            <input 
+              type="text" 
+              id="nombre" 
+              name="nombre" 
+              value={formData.nombre} 
+              onChange={handleChange} 
+              required 
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="apellido">Apellido</label>
+            <input 
+              type="text" 
+              id="apellido" 
+              name="apellido" 
+              value={formData.apellido} 
+              onChange={handleChange} 
+              required 
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="ci">Carnet de Identidad</label>
+            <input 
+              type="text" 
+              id="ci" 
+              name="ci" 
+              value={formData.ci} 
+              onChange={handleChange} 
+              required 
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="email">Correo Electrónico</label>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              value={formData.email} 
+              onChange={handleChange} 
+              required 
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="fechaNacimiento">Fecha de Nacimiento</label>
+            <input 
+              type="date" 
+              id="fechaNacimiento" 
+              name="fechaNacimiento" 
+              value={formData.fechaNacimiento} 
+              onChange={handleChange} 
+              required 
+              max="2017-06-30"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="curso">Curso</label>
+            <select 
+              id="curso" 
+              name="curso" 
+              value={formData.curso} 
+              onChange={handleChange} 
+              required
+            >
+              <option value="1">1° Primaria</option>
+              <option value="2">2° Primaria</option>
+              <option value="3">3° Primaria</option>
+              <option value="4">4° Primaria</option>
+              <option value="5">5° Primaria</option>
+              <option value="6">6° Primaria</option>
+              <option value="7">1° Secundaria</option>
+              <option value="8">2° Secundaria</option>
+              <option value="9">3° Secundaria</option>
+              <option value="10">4° Secundaria</option>
+              <option value="11">5° Secundaria</option>
+              <option value="12">6° Secundaria</option>
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="colegio">Colegio</label>
+            <select 
+              id="colegio" 
+              name="colegio" 
+              value={formData.colegio} 
+              onChange={handleChange} 
+              required
+            >
+              {colegios.length === 0 ? (
+                <option value="">No hay colegios disponibles</option>
+              ) : (
+                colegios.map(colegio => (
+                  <option key={colegio.id} value={colegio.id}>
+                    {colegio.nombre}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+          
+          <button 
+            type="submit" 
+            className="submit-button" 
+            disabled={isSubmitting || colegios.length === 0}
           >
-            {colegios.length === 0 ? (
-              <option value="">No hay colegios disponibles</option>
-            ) : (
-              colegios.map(colegio => (
-                <option key={colegio.id} value={colegio.id}>
-                  {colegio.nombre}
-                </option>
-              ))
-            )}
-          </select>
-          {currentUser && currentUser.colegio && (
-            <p className="info-message">Los estudiantes serán registrados automáticamente a tu colegio.</p>
-          )}
-        </div>
-        
-        <button 
-          type="submit" 
-          className="submit-button" 
-          disabled={isSubmitting || colegios.length === 0}
-        >
-          {isSubmitting ? 'Registrando...' : 'Registrar Estudiante'}
-        </button>
-      </form>
+            {isSubmitting ? 'Registrando...' : 'Registrar Estudiante'}
+          </button>
+        </form>
+      )}
     </div>
   );
 };
