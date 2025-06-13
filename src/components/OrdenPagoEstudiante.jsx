@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
 import jsPDF from 'jspdf'; // Importar jsPDF
 import '../App.css';
-import { sendPaymentOrderEmail } from '../InscripcionIndividual';
 import { Container, Row, Col, Card, Button, Spinner, Alert, Badge } from 'react-bootstrap';
 
 function OrdenPagoEstudiante() {
@@ -13,16 +12,8 @@ function OrdenPagoEstudiante() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [estudiante, setEstudiante] = useState(null);
-  const [areasInscritas, setAreasInscritas] = useState([]);
-  const [config, setConfig] = useState(null);
-  const [generandoOrden, setGenerandoOrden] = useState(false);
-  const [ordenGenerada, setOrdenGenerada] = useState(null);
-  const [ordenActivaExistente, setOrdenActivaExistente] = useState(false);
   const [inscripcion, setInscripcion] = useState(null);
-  const [total, setTotal] = useState(0);
   const [generandoPDF, setGenerandoPDF] = useState(false);
-  const [mensaje, setMensaje] = useState('');
-  const [enviandoCorreo, setEnviandoCorreo] = useState(false);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -61,25 +52,6 @@ function OrdenPagoEstudiante() {
 
         setEstudiante(studentData);
         setInscripcion(inscripcion);
-        setTotal(inscripcion.costoTotal);
-
-        // Enviar correo automáticamente al cargar la orden
-        if (studentData.email) {
-          setEnviandoCorreo(true);
-          const emailEnviado = await sendPaymentOrderEmail(
-            studentData.email,
-            inscripcion.areas,
-            inscripcion.costoTotal,
-            `Número de Orden: ${inscripcion.id}\nFecha: ${new Date().toLocaleDateString()}`
-          );
-          if (emailEnviado) {
-            setMensaje('Se envió la orden de pago a su correo');
-            setTimeout(() => setMensaje(''), 5000);
-          } else {
-            setError('No se pudo enviar el correo electrónico.');
-          }
-          setEnviandoCorreo(false);
-        }
 
       } catch (err) {
         console.error('Error al cargar datos:', err);
@@ -93,128 +65,8 @@ function OrdenPagoEstudiante() {
     fetchData();
   }, [currentUser, navigate]);
   
-  const handleGenerarOrden = async () => {
-    if (!estudiante || !config) return;
-    
-    // Si ya hay una verificación que indica que existe orden, bloquear directamente
-    if (ordenActivaExistente) {
-      setError('Ya tienes una orden de pago activa. No puedes generar una nueva.');
-      return;
-    }
-    
-    setGenerandoOrden(true);
-    setError('');
-    
-    try {
-      // Preparar datos para la orden de pago
-      const ordenData = {
-        studentId: estudiante.id,
-        areas: estudiante.areasInscritas,
-        nombre: estudiante.nombre,
-        apellido: estudiante.apellido || estudiante.apellidos,
-        email: estudiante.email,
-        total: total
-      };
-      
-      // Simular generación de orden (en producción se llamaría a la API)
-      console.log("Generando orden de pago para:", ordenData);
-      
-      // En un entorno real, aquí llamaríamos al backend:
-      // const result = await apiService.generarOrdenPago(ordenData);
-      
-      // Simulación para desarrollo:
-      const result = {
-        id: `ORDEN-${Date.now()}`,
-        fecha: new Date().toISOString(),
-        total: ordenData.total,
-        estudiante: {
-          id: estudiante.id,
-          nombre: `${estudiante.nombre} ${estudiante.apellido || estudiante.apellidos}`,
-          email: estudiante.email
-        },
-        areas: areasInscritas.map(a => a.nombre).join(', '),
-        instrucciones: "Para completar el pago, presente este código en la oficina de tesorería de la UMSS en horario de 8:00 a 16:00, de lunes a viernes.",
-        fechaExpiracion: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 días
-      };
-      
-      setOrdenGenerada(result);
-
-      // Enviar correo con la orden de pago
-      const emailSent = await sendPaymentOrderEmail(
-        estudiante.email,
-        areasInscritas,
-        total,
-        `Número de orden: ${result.id}
-Fecha de emisión: ${new Date(result.fecha).toLocaleDateString()}
-Fecha límite de pago: ${new Date(result.fechaExpiracion).toLocaleDateString()}
-Instrucciones de pago: ${result.instrucciones}`
-      );
-
-      if (!emailSent) {
-        console.error('No se pudo enviar el correo');
-        setError('No se pudo enviar el correo con la orden de pago. Por favor, intente nuevamente.');
-        return;
-      }
-
-      alert('Orden de pago generada exitosamente. Se ha enviado un correo con los detalles de la orden.');
-    } catch (err) {
-      console.error('Error al generar orden de pago:', err);
-      setError('Ocurrió un error al generar la orden de pago. Intente nuevamente.');
-    } finally {
-      setGenerandoOrden(false);
-    }
-  };
-  
   const handleVolver = () => {
-    navigate('/estudiante/areas');
-  };
-  
-  const handleDescargarPDF = () => {
-    if (!ordenGenerada || !estudiante || !config) return; // Asegurarse que los datos están cargados
-
-    const doc = new jsPDF();
-
-    // Título
-    doc.setFontSize(18);
-    doc.text('Orden de Pago - Olimpiadas Oh Sansi!', 14, 22);
-
-    // Datos del Estudiante
-    doc.setFontSize(12);
-    doc.text(`ID Orden: ${ordenGenerada.id}`, 14, 40);
-    doc.text(`Fecha: ${new Date(ordenGenerada.fecha).toLocaleDateString()}`, 14, 48);
-    doc.text(`Estudiante: ${ordenGenerada.estudiante.nombre}`, 14, 56);
-    doc.text(`CI: ${estudiante.ci}`, 14, 64);
-    doc.text(`Colegio: ${estudiante.colegio?.nombre || (typeof estudiante?.colegio === 'string' ? estudiante.colegio : 'No asignado') || 'No asignado'}`, 14, 72);
-    
-    // Áreas Inscritas
-    doc.setFontSize(14);
-    doc.text('Áreas Inscritas:', 14, 90);
-    doc.setFontSize(12);
-    let yPosition = 98;
-    areasInscritas.forEach((area) => {
-      doc.text(`- ${area.nombre}`, 14, yPosition);
-      yPosition += 7;
-    });
-
-    // Total a Pagar
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold'); // Poner en negrita
-    doc.text(`Total a Pagar: $${ordenGenerada.total}`, 14, yPosition + 10);
-    doc.setFont(undefined, 'normal'); // Volver a normal
-
-    // Instrucciones
-    doc.setFontSize(10);
-    doc.text('Instrucciones:', 14, yPosition + 25);
-    // Usar splitTextToSize para manejar texto largo y ajustar el ancho
-    const instruccionesTexto = doc.splitTextToSize(ordenGenerada.instrucciones, 180); // 180 es el ancho máximo
-    doc.text(instruccionesTexto, 14, yPosition + 32);
-    
-    doc.setFontSize(10);
-    doc.text(`Fecha de Expiración: ${new Date(ordenGenerada.fechaExpiracion).toLocaleDateString()}`, 14, yPosition + 50);
-
-
-    // Guardar el PDF
-    doc.save(`orden_pago_${ordenGenerada.id}.pdf`);
+    navigate('/estudiante');
   };
   
   const handleGenerarPDF = async () => {
@@ -236,10 +88,10 @@ Instrucciones de pago: ${result.instrucciones}`
       doc.setFontSize(12);
       doc.text('Información del Estudiante:', 20, 45);
       doc.setFontSize(10);
-      doc.text(`Nombre: ${estudiante.nombre} ${estudiante.apellido}`, 20, 55);
+      doc.text(`Nombre: ${estudiante.nombre} ${estudiante.apellido || estudiante.apellidos || ''}`, 20, 55);
       doc.text(`CI: ${estudiante.ci}`, 20, 60);
       doc.text(`Curso: ${estudiante.curso <= 6 ? `${estudiante.curso}° Primaria` : `${estudiante.curso - 6}° Secundaria`}`, 20, 65);
-      doc.text(`Colegio: ${estudiante.colegio?.nombre || 'No asignado'}`, 20, 70);
+      doc.text(`Colegio: ${estudiante.colegio?.nombre || estudiante.colegio || 'No asignado'}`, 20, 70);
       
       // Detalles de la inscripción
       doc.setFontSize(12);
@@ -259,63 +111,26 @@ Instrucciones de pago: ${result.instrucciones}`
       doc.text(`Costo por área: Bs. ${inscripcion.convocatoria.costo_por_area}`, 25, yPos + 20);
       doc.text(`Total a pagar: Bs. ${inscripcion.costoTotal}`, 25, yPos + 25);
       
-      // Fecha y número de orden
+      doc.setFontSize(12);
+      doc.text('Instrucciones de Pago:', 20, yPos + 40);
       doc.setFontSize(10);
-      doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 20, yPos + 35);
-      doc.text(`Número de Orden: ${inscripcion.id}`, 20, yPos + 40);
+      doc.text('Tiene que pasar a oficinas de cajas de la UMSS para el pago correspondiente', 25, yPos + 50);
+      doc.text('a su orden de compra en horarios de oficina de 8:00 a 12:00 y de 14:00 a 18:00.', 25, yPos + 57);
+
+      // Total
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text(`Total: Bs. ${inscripcion.costoTotal}`, 20, yPos + 70);
+      doc.setFont(undefined, 'normal');
       
       // Guardar el PDF
       doc.save(`orden_pago_${inscripcion.id}.pdf`);
       
-      setMensaje('PDF generado exitosamente');
-      setTimeout(() => setMensaje(''), 3000);
-      
     } catch (err) {
       console.error('Error al generar PDF:', err);
-      setError('Error al generar el PDF. Intente nuevamente.');
+      setError('No se pudo generar el PDF. Intente nuevamente.');
     } finally {
       setGenerandoPDF(false);
-    }
-  };
-
-  const handleEnviarCorreo = async () => {
-    try {
-      setEnviandoCorreo(true);
-      
-      if (!estudiante.email) {
-        throw new Error('No se encontró un correo electrónico asociado al estudiante.');
-      }
-
-      const areasTexto = inscripcion.areas.map(area => `- ${area.nombre}`).join('\n');
-      
-      const templateParams = {
-        nombre: estudiante.nombre,
-        convocatoria: inscripcion.convocatoria.nombre,
-        areas: areasTexto,
-        total: inscripcion.costoTotal,
-        fecha: new Date().toLocaleDateString(),
-        numeroOrden: inscripcion.id
-      };
-
-      const emailEnviado = await sendPaymentOrderEmail(
-        estudiante.email,
-        inscripcion.areas,
-        inscripcion.costoTotal,
-        `Número de Orden: ${inscripcion.id}\nFecha: ${new Date().toLocaleDateString()}`
-      );
-
-      if (emailEnviado) {
-        setMensaje('Correo enviado exitosamente');
-        setTimeout(() => setMensaje(''), 3000);
-      } else {
-        throw new Error('No se pudo enviar el correo electrónico.');
-      }
-      
-    } catch (err) {
-      console.error('Error al enviar correo:', err);
-      setError(err.message || 'Error al enviar el correo. Intente nuevamente.');
-    } finally {
-      setEnviandoCorreo(false);
     }
   };
   
@@ -343,13 +158,6 @@ Instrucciones de pago: ${result.instrucciones}`
             <Alert variant="danger" className="mb-4 shadow-sm">
               <i className="fas fa-exclamation-circle me-2"></i>
               {error}
-            </Alert>
-          )}
-
-          {mensaje && (
-            <Alert variant="success" className="mb-4 shadow-sm">
-              <i className="fas fa-check-circle me-2"></i>
-              {mensaje}
             </Alert>
           )}
 
@@ -426,8 +234,8 @@ Instrucciones de pago: ${result.instrucciones}`
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 gap-3">
             <Button
               variant="outline-secondary"
-              onClick={() => navigate('/estudiante/inscripcion')}
-              disabled={generandoPDF || enviandoCorreo}
+              onClick={handleVolver}
+              disabled={generandoPDF}
               className="px-4"
             >
               <i className="fas fa-arrow-left me-2"></i>
@@ -437,7 +245,7 @@ Instrucciones de pago: ${result.instrucciones}`
               <Button
                 variant="primary"
                 onClick={handleGenerarPDF}
-                disabled={generandoPDF || enviandoCorreo}
+                disabled={generandoPDF}
                 className="px-4"
               >
                 {generandoPDF ? (
@@ -455,51 +263,6 @@ Instrucciones de pago: ${result.instrucciones}`
             </div>
           </div>
         </Card.Body>
-        <style jsx>{`
-          .main-card {
-            max-width: 900px;
-            width: 100%;
-            border-radius: 1.5rem;
-            background: #fff;
-          }
-          .section-title {
-            font-size: 1.1rem;
-            letter-spacing: 0.5px;
-            color: #222;
-            display: flex;
-            align-items: center;
-          }
-          .info-list {
-            background: #f8f9fa;
-            border-radius: 0.75rem;
-            padding: 1rem 1.25rem;
-            font-size: 1rem;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-          }
-          .info-list .label {
-            font-weight: 500;
-            color: #555;
-            margin-right: 0.5rem;
-          }
-          .area-card {
-            min-width: 180px;
-            max-width: 220px;
-            border-radius: 1rem;
-            border: 1px solid #e3e3e3;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            transition: box-shadow 0.2s, transform 0.2s;
-          }
-          .area-card:hover {
-            box-shadow: 0 6px 18px rgba(0,0,0,0.10);
-            transform: translateY(-2px) scale(1.03);
-          }
-          .payment-box {
-            background: #f8f9fa;
-            border-radius: 0.75rem;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-            font-size: 1.1rem;
-          }
-        `}</style>
       </Card>
     </Container>
   );
