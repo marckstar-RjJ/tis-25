@@ -95,7 +95,8 @@ function Registro() {
 
   // Reiniciar campos no necesarios cuando cambia el tipo de usuario
   useEffect(() => {
-    let newFormData = { ...formData };
+    setFormData(prevFormData => {
+      let newFormData = { ...prevFormData };
     
     if (tipoUsuario === 'administrador') {
       newFormData = {
@@ -135,8 +136,9 @@ function Registro() {
       }
     }
     
-    setFormData(newFormData);
-  }, [tipoUsuario, colegios, tutorColegio, formData]); // Agregamos formData como dependencia
+      return newFormData;
+    });
+  }, [tipoUsuario, colegios, tutorColegio]); // Removido formData de las dependencias
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

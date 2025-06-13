@@ -324,22 +324,41 @@ const registerUser = async (userData) => {
 // Crear usuario (para administradores o tutores)
 const createUser = async (userData) => {
   try {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/users`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(userData),
-    });
+    // Si es un estudiante, usar la ruta de estudiantes
+    if (userData.tipoUsuario === 'estudiante') {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/students`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(userData),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Error al crear usuario');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al crear estudiante');
+      }
+
+      return await response.json();
+    } else {
+      // Para otros tipos de usuario, usar la ruta de registro público
+      const response = await fetch(`${API_URL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al registrar usuario');
+      }
+
+      return await response.json();
     }
-
-    return await response.json();
   } catch (error) {
     console.error('Error en createUser:', error);
     throw error;
@@ -585,6 +604,26 @@ const tieneOrdenPagoActiva = async (studentId) => {
   }
 };
 
+// Obtener estudiantes por colegio
+const getStudentsByCollege = async (collegeId) => {
+  try {
+    const response = await fetch(`${API_URL}/students/college/${collegeId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al obtener estudiantes del colegio');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en getStudentsByCollege:', error);
+    throw error;
+  }
+};
 
 export const apiService = {
   checkUserEmail,
@@ -608,5 +647,6 @@ export const apiService = {
   getAreas,
   addCollege,
   deleteCollege,
-  tieneOrdenPagoActiva, // Exportar la función
+  tieneOrdenPagoActiva,
+  getStudentsByCollege,
 };
