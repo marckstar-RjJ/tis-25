@@ -13,13 +13,15 @@ const MisInscripciones = () => {
   const [error, setError] = useState('');
   const [showModalEditar, setShowModalEditar] = useState(false);
   const [showModalEliminar, setShowModalEliminar] = useState(false);
+  const [showModalExito, setShowModalExito] = useState(false);
+  const [mensajeExito, setMensajeExito] = useState('');
   const [inscripcionActual, setInscripcionActual] = useState(null);
   const [areasDisponibles, setAreasDisponibles] = useState([]);
   const [areasSeleccionadas, setAreasSeleccionadas] = useState([]);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
   const [loadingAction, setLoadingAction] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [editandoInscripcion, setEditandoInscripcion] = useState(null);
+  const [costoTotalActualizado, setCostoTotalActualizado] = useState(0);
   
   // Limpiar inscripciones incorrectas al iniciar el componente
   useEffect(() => {
@@ -43,9 +45,25 @@ const MisInscripciones = () => {
           return;
         }
         
-        // Obtener todas las convocatorias del localStorage
+        // Obtener todas las convocatorias del localStorage y sessionStorage
         const convocatoriasKey = 'olimpiadas_convocatorias';
-        const convocatorias = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
+        let convocatorias = JSON.parse(localStorage.getItem(convocatoriasKey) || '[]');
+        
+        // Intentar obtener convocatoria del sessionStorage
+        const convocatoriaSession = sessionStorage.getItem('convocatoriaSeleccionada');
+        if (convocatoriaSession) {
+          try {
+            const convocatoriaActual = JSON.parse(convocatoriaSession);
+            // Verificar si la convocatoria ya existe en el array
+            const existe = convocatorias.some(c => c.id === convocatoriaActual.id);
+            if (!existe) {
+              convocatorias.push(convocatoriaActual);
+            }
+          } catch (err) {
+            console.error('Error al parsear convocatoria del sessionStorage:', err);
+          }
+        }
+        
         console.log('Convocatorias obtenidas:', convocatorias);
         
         // Obtener todas las áreas del localStorage
@@ -60,50 +78,76 @@ const MisInscripciones = () => {
         
         // Filtrar las inscripciones del estudiante actual
         const inscripcionesEstudiante = todasLasInscripciones.filter(
-          inscripcion => inscripcion.estudianteId === estudiante.id
+          inscripcion => {
+            // Verificar tanto el estudianteId como el id dentro del objeto estudiante
+            return inscripcion.estudianteId === estudiante.id || 
+                   (inscripcion.estudiante && inscripcion.estudiante.id === estudiante.id);
+          }
         );
         console.log('Inscripciones del estudiante:', inscripcionesEstudiante);
         
         // Procesar las inscripciones con datos completos
         const inscripcionesCompletas = inscripcionesEstudiante.map(inscripcion => {
           // Obtener la convocatoria correspondiente
-          const convocatoria = convocatorias.find(c => c.id === inscripcion.convocatoriaId) || 
-                             convocatorias[0]; // Usar la primera como fallback
+          let convocatoria = null;
+          
+          // Primero intentar usar la convocatoria guardada en la inscripción
+          if (inscripcion.convocatoria && inscripcion.convocatoria.id) {
+            convocatoria = inscripcion.convocatoria;
+          }
+          
+          // Si no hay convocatoria en la inscripción, buscar por convocatoriaId
+          if (!convocatoria && inscripcion.convocatoriaId) {
+            convocatoria = convocatorias.find(c => c.id === inscripcion.convocatoriaId);
+          }
+          
+          if (!convocatoria) {
+            console.warn('Convocatoria no encontrada para inscripción:', inscripcion);
+            return null;
+          }
           
           // Obtener las áreas completas
-          const areasCompletas = inscripcion.areas.map(areaId => {
-            // Primero buscar en las áreas de la convocatoria
-            const areaConvocatoria = convocatoria.areas?.find(a => a.id === areaId);
+          const areasCompletas = inscripcion.areas.map(area => {
+            // Si el área ya tiene toda la información, usarla directamente
+            if (area.nombre && area.descripcion) {
+              return area;
+            }
+            
+            // Si no, buscar en las áreas de la convocatoria
+            const areaConvocatoria = convocatoria.areas?.find(a => a.id === area.id);
             if (areaConvocatoria) {
               return areaConvocatoria;
             }
             
             // Si no está en la convocatoria, buscar en el listado general de áreas
-            const area = areas.find(a => a.id === areaId);
-            if (area) {
-              return area;
+            const areaGeneral = areas.find(a => a.id === area.id);
+            if (areaGeneral) {
+              return areaGeneral;
             }
             
             // Si no se encuentra, devolver un objeto con la información mínima
             return { 
-              id: areaId, 
-              nombre: `Área ${areaId}`,
+              id: area.id, 
+              nombre: `Área ${area.id}`,
               descripcion: 'Área no encontrada'
             };
           });
               
-              return {
-                ...inscripcion,
-                convocatoria,
-                areas: areasCompletas,
-                ordenPago: inscripcion.ordenPago || {
-                  id: 'orden-' + Date.now(),
-                  fecha: inscripcion.fechaInscripcion || new Date().toISOString(),
-                  estado: 'pendiente',
-                  total: (convocatoria.costo_por_area || 16) * areasCompletas.length
-                }
-              };
-        });
+          return {
+            ...inscripcion,
+            convocatoria,
+            areas: areasCompletas,
+            ordenPago: inscripcion.ordenPago || {
+              id: 'orden-' + Date.now(),
+              fecha: inscripcion.fechaInscripcion || new Date().toISOString(),
+              estado: 'pendiente',
+              total: (convocatoria.costo_por_area || 16) * areasCompletas.length
+            }
+          };
+        }).filter(inscripcion => inscripcion !== null); // Filtrar inscripciones sin convocatoria
+        
+        // Guardar las convocatorias actualizadas en localStorage
+        localStorage.setItem(convocatoriasKey, JSON.stringify(convocatorias));
         
         console.log('Inscripciones procesadas:', inscripcionesCompletas);
         setInscripciones(inscripcionesCompletas);
@@ -123,30 +167,65 @@ const MisInscripciones = () => {
   // Cargar áreas disponibles para la edición
   const cargarAreasDisponibles = async (convocatoriaId) => {
     try {
-      // Obtener convocatoria completa
-      const convocatoria = await apiService.getConvocatoriaById(convocatoriaId);
-      if (convocatoria && convocatoria.areas) {
+      console.log("Cargando áreas para convocatoria:", convocatoriaId);
+      
+      // Obtener convocatoria del localStorage
+      const convocatorias = JSON.parse(localStorage.getItem('olimpiadas_convocatorias') || '[]');
+      const convocatoria = convocatorias.find(c => c.id === convocatoriaId);
+      
+      console.log("Convocatoria encontrada:", convocatoria);
+      
+      if (convocatoria && convocatoria.areas && convocatoria.areas.length > 0) {
+        console.log("Áreas de la convocatoria:", convocatoria.areas);
         setAreasDisponibles(convocatoria.areas);
       } else {
-        // Si no hay información de áreas, obtener áreas generales
-        const todasLasAreas = await apiService.getAreas();
-        setAreasDisponibles(todasLasAreas);
+        // Si no hay áreas en la convocatoria, intentar obtener las áreas generales
+        const areasGenerales = JSON.parse(localStorage.getItem('areas') || '[]');
+        console.log("Áreas generales:", areasGenerales);
+        
+        if (areasGenerales.length > 0) {
+          setAreasDisponibles(areasGenerales);
+        } else {
+          console.error('No se encontraron áreas disponibles');
+          setAreasDisponibles([]);
+        }
       }
     } catch (err) {
       console.error('Error al cargar áreas disponibles:', err);
-      // Usar un array vacío en caso de error
       setAreasDisponibles([]);
     }
   };
   
   // Abrir modal para editar inscripción
   const handleEditarInscripcion = async (inscripcion) => {
-    setInscripcionActual(inscripcion);
-    // Cargar áreas disponibles para esta convocatoria
-    await cargarAreasDisponibles(inscripcion.convocatoriaId);
-    // Establecer áreas ya seleccionadas
-    setAreasSeleccionadas(inscripcion.areas.map(area => area.id || area));
-    setShowModalEditar(true);
+    try {
+      console.log("Editando inscripción:", inscripcion);
+      setInscripcionActual(inscripcion);
+      
+      // Asegurarnos de que tenemos el ID de la convocatoria
+      const convocatoriaId = inscripcion.convocatoriaId || inscripcion.convocatoria?.id;
+      if (!convocatoriaId) {
+        throw new Error('No se encontró el ID de la convocatoria');
+      }
+      
+      // Cargar áreas disponibles para esta convocatoria
+      await cargarAreasDisponibles(convocatoriaId);
+      
+      // Establecer áreas ya seleccionadas
+      const areasIds = inscripcion.areas.map(area => {
+        if (typeof area === 'object' && area.id) {
+          return area.id;
+        }
+        return area;
+      });
+      console.log("Áreas seleccionadas actuales:", areasIds);
+      setAreasSeleccionadas(areasIds);
+      
+      setShowModalEditar(true);
+    } catch (err) {
+      console.error('Error al abrir modal de edición:', err);
+      alert('Error al cargar la información de la inscripción. Por favor, inténtalo de nuevo.');
+    }
   };
   
   // Abrir modal para eliminar inscripción
@@ -214,7 +293,7 @@ const MisInscripciones = () => {
     }
   };
   
-  // Actualizar áreas seleccionadas
+  // Actualizar áreas seleccionadas y calcular costo
   const handleToggleArea = (areaId) => {
     if (areasSeleccionadas.includes(areaId)) {
       // Si ya está seleccionada, quitarla
@@ -233,6 +312,15 @@ const MisInscripciones = () => {
     }
   };
   
+  // Calcular costo total cuando cambian las áreas seleccionadas
+  useEffect(() => {
+    if (inscripcionActual && inscripcionActual.convocatoria) {
+      const costoPorArea = inscripcionActual.convocatoria.costo_por_area || 16;
+      const nuevoTotal = areasSeleccionadas.length * costoPorArea;
+      setCostoTotalActualizado(nuevoTotal);
+    }
+  }, [areasSeleccionadas, inscripcionActual]);
+  
   // Guardar cambios en la inscripción
   const handleGuardarCambios = async (inscripcionId) => {
     try {
@@ -249,8 +337,8 @@ const MisInscripciones = () => {
       }
       
       // Obtener la convocatoria actual
-      const convocatorias = JSON.parse(localStorage.getItem('convocatorias') || '[]');
-      const convocatoria = convocatorias.find(c => c.id === inscripcionesActuales[inscripcionIndex].convocatoria.id);
+      const convocatorias = JSON.parse(localStorage.getItem('olimpiadas_convocatorias') || '[]');
+      const convocatoria = convocatorias.find(c => c.id === inscripcionesActuales[inscripcionIndex].convocatoriaId);
       
       if (!convocatoria) {
         throw new Error('Convocatoria no encontrada');
@@ -270,64 +358,80 @@ const MisInscripciones = () => {
             descripcion: area.descripcion
           };
         });
+
+      // Calcular nuevo costo total
+      const costoPorArea = convocatoria.costo_por_area || 16;
+      const nuevoTotal = areasFiltradas.length * costoPorArea;
       
       // Actualizar la inscripción
-      inscripcionesActuales[inscripcionIndex] = {
+      const inscripcionActualizada = {
         ...inscripcionesActuales[inscripcionIndex],
         areas: areasFiltradas,
-        fechaActualizacion: new Date().toISOString()
+        fechaActualizacion: new Date().toISOString(),
+        costoTotal: nuevoTotal,
+        ordenPago: {
+          id: 'orden-' + Date.now(),
+          fecha: new Date().toISOString(),
+          estado: 'pendiente',
+          total: nuevoTotal
+        }
       };
-      
-      // Guardar cambios
+
+      // Actualizar en localStorage
+      inscripcionesActuales[inscripcionIndex] = inscripcionActualizada;
       localStorage.setItem('olimpiadas_inscripciones', JSON.stringify(inscripcionesActuales));
-      
-      // Actualizar el estado local
-      setInscripciones(prev => prev.map(insc => 
-        insc.id === inscripcionId 
-          ? { ...insc, areas: areasFiltradas }
-          : insc
-      ));
-      
+
+      // Cerrar el modal de edición
       setShowModalEditar(false);
-      setInscripcionActual(null);
-      setAreasSeleccionadas([]);
       
+      // Mostrar mensaje de éxito en el modal
+      setMensajeExito('Inscripción actualizada correctamente. Se ha generado una nueva orden de pago con el monto actualizado.');
+      setShowModalExito(true);
+
     } catch (err) {
       console.error('Error al guardar cambios:', err);
-      alert('Error al guardar los cambios. Por favor, inténtalo de nuevo.');
+      setError(err.message || 'Error al guardar los cambios. Por favor, inténtalo de nuevo.');
     } finally {
       setGuardando(false);
     }
   };
   
+  // Función para manejar el cierre del modal de éxito
+  const handleCerrarModalExito = () => {
+    setShowModalExito(false);
+    // Recargar la página
+    window.location.reload();
+  };
+  
   // Confirmar eliminación de inscripción
   const handleConfirmarEliminar = async () => {
-    if (!inscripcionActual || !currentUser) return;
+    if (!inscripcionActual) return;
     
     try {
       setLoadingAction(true);
       
-      // *** Lógica para eliminar inscripción de localStorage ***
-      const inscripcionesKey = 'olimpiadas_inscripciones';
-      let todasLasInscripciones = JSON.parse(localStorage.getItem(inscripcionesKey) || '[]');
+      // Obtener inscripciones actuales
+      const inscripcionesActuales = JSON.parse(localStorage.getItem('olimpiadas_inscripciones') || '[]');
       
       // Filtrar la inscripción a eliminar
-      const updatedLocalStorageInscripciones = todasLasInscripciones.filter(
+      const inscripcionesActualizadas = inscripcionesActuales.filter(
         insc => insc.id !== inscripcionActual.id
       );
-      localStorage.setItem(inscripcionesKey, JSON.stringify(updatedLocalStorageInscripciones));
       
-      // Eliminar la inscripción del estado local (UI)
-      const updatedInscripcionesUI = inscripciones.filter(insc => insc.id !== inscripcionActual.id);
-      setInscripciones(updatedInscripcionesUI);
+      // Guardar cambios
+      localStorage.setItem('olimpiadas_inscripciones', JSON.stringify(inscripcionesActualizadas));
       
+      // Cerrar el modal de eliminación
       setShowModalEliminar(false);
+      setInscripcionActual(null);
       
-      // Mostrar mensaje de éxito
-      alert('Inscripción eliminada correctamente');
+      // Mostrar mensaje de éxito en el modal
+      setMensajeExito('Inscripción eliminada correctamente.');
+      setShowModalExito(true);
+      
     } catch (err) {
       console.error('Error al eliminar inscripción:', err);
-      alert('No se pudo eliminar la inscripción. Intenta nuevamente.');
+      setError('Error al eliminar la inscripción. Por favor, inténtalo de nuevo.');
     } finally {
       setLoadingAction(false);
     }
@@ -532,6 +636,7 @@ const MisInscripciones = () => {
               <Alert variant="info">
                 <p className="mb-0">
                   Puedes seleccionar hasta {inscripcionActual.convocatoria?.maximo_areas || 2} áreas.
+                  El costo por área es de ${inscripcionActual.convocatoria?.costo_por_area || 16}.
                 </p>
               </Alert>
               
@@ -558,14 +663,27 @@ const MisInscripciones = () => {
               <div className="selected-areas-summary mt-4">
                 <h6>Áreas seleccionadas: {areasSeleccionadas.length}/{inscripcionActual.convocatoria?.maximo_areas || 2}</h6>
                 {areasSeleccionadas.length > 0 ? (
-                  <ul>
-                    {areasSeleccionadas.map((areaId) => {
-                      const area = areasDisponibles.find(a => a.id === areaId);
-                      return area ? (
-                        <li key={areaId}>{area.nombre}</li>
-                      ) : null;
-                    })}
-                  </ul>
+                  <>
+                    <ul>
+                      {areasSeleccionadas.map((areaId) => {
+                        const area = areasDisponibles.find(a => a.id === areaId);
+                        return area ? (
+                          <li key={areaId}>{area.nombre}</li>
+                        ) : null;
+                      })}
+                    </ul>
+                    <div className="alert alert-warning">
+                      <strong>Costo total actualizado:</strong> ${costoTotalActualizado}
+                      {inscripcionActual.ordenPago && (
+                        <div className="mt-2">
+                          <small>
+                            * Al guardar los cambios, se generará una nueva orden de pago con este monto.
+                            El estado de pago se reiniciará a pendiente.
+                          </small>
+                        </div>
+                      )}
+                    </div>
+                  </>
                 ) : (
                   <p className="text-muted">No has seleccionado ningún área.</p>
                 )}
@@ -606,6 +724,24 @@ const MisInscripciones = () => {
             disabled={loadingAction}
           >
             {loadingAction ? 'Eliminando...' : 'Eliminar inscripción'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal de Éxito */}
+      <Modal show={showModalExito} onHide={handleCerrarModalExito} centered>
+        <Modal.Header closeButton className="bg-success text-white">
+          <Modal.Title>¡Éxito!</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="text-center">
+            <FaCheckCircle className="text-success mb-3" style={{ fontSize: '3rem' }} />
+            <p className="mb-0">{mensajeExito}</p>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="success" onClick={handleCerrarModalExito}>
+            Aceptar
           </Button>
         </Modal.Footer>
       </Modal>

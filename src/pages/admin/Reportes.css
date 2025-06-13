@@ -1,6 +1,6 @@
 .reportes-container {
     padding: 20px;
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
 }
 
@@ -14,36 +14,69 @@
 .reportes-table-card {
     margin-bottom: 20px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+.filtros-card .MuiTextField-root {
+    background-color: #fff;
+    border-radius: 4px;
+}
+
+.filtros-card .MuiOutlinedInput-root {
+    transition: all 0.3s ease;
+}
+
+.filtros-card .MuiOutlinedInput-root:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.filtros-card .MuiOutlinedInput-root.Mui-focused {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 
 .table-container {
     overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .reportes-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     margin-top: 10px;
 }
 
 .reportes-table th,
 .reportes-table td {
-    padding: 12px;
+    padding: 16px;
     text-align: left;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #eee;
 }
 
 .reportes-table th {
-    background-color: #f5f5f5;
+    background-color: #f8f9fa;
     font-weight: 600;
+    color: #333;
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 .reportes-table tr:hover {
-    background-color: #f9f9f9;
+    background-color: #f8f9fa;
+}
+
+.reportes-table tr:last-child td {
+    border-bottom: none;
 }
 
 .MuiButton-contained {
     margin-right: 10px;
+    text-transform: none;
+    font-weight: 500;
+    padding: 8px 24px;
+    border-radius: 6px;
 }
 
 .MuiTextField-root {
@@ -54,6 +87,95 @@
     min-width: 400px !important;
 }
 
+.estado-pago {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-transform: capitalize;
+    display: inline-block;
+    text-align: center;
+    min-width: 100px;
+}
+
+.estado-pago.pendiente {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.estado-pago.pagado {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.estado-pago.rechazado {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Estilos para el campo de búsqueda */
+.search-field {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.search-field .MuiOutlinedInput-root {
+    padding-left: 12px;
+}
+
+.search-field .search-icon {
+    color: #666;
+    margin-right: 8px;
+}
+
+.search-field .MuiOutlinedInput-notchedOutline {
+    border-color: #ddd;
+}
+
+.search-field .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+    border-color: #999;
+}
+
+.search-field .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+    border-color: #1976d2;
+}
+
+/* Estilos para la tabla */
+.MuiTableContainer-root {
+    margin-top: 16px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.MuiTableHead-root {
+    background-color: #f5f5f5;
+}
+
+.MuiTableHead-root .MuiTableCell-root {
+    font-weight: 600;
+    color: #333;
+}
+
+.MuiTableBody-root .MuiTableRow-root:hover {
+    background-color: #f8f9fa;
+}
+
+/* Estilos para los filtros */
+.MuiGrid-item {
+    margin-bottom: 16px;
+}
+
+/* Estilos para las estadísticas */
+.estadisticas-card .MuiTypography-subtitle1 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #333;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    text-align: center;
+}
+
+/* Responsive */
 @media (max-width: 600px) {
     .reportes-container {
         padding: 10px;
@@ -61,6 +183,34 @@
 
     .reportes-table th,
     .reportes-table td {
-        padding: 8px;
+        padding: 12px 8px;
+        font-size: 0.875rem;
     }
+
+    .estado-pago {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+        min-width: 80px;
+    }
+
+    .MuiButton-contained {
+        padding: 6px 16px;
+        font-size: 0.875rem;
+    }
+}
+
+/* Animación para la tabla */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.reportes-table-card {
+    animation: fadeIn 0.3s ease-out;
 } 

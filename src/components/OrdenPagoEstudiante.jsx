@@ -23,6 +23,8 @@ function OrdenPagoEstudiante() {
 
         // Obtener la inscripción actual del sessionStorage
         const inscripcionStr = sessionStorage.getItem('inscripcionActual');
+        console.log('Inscripción en sessionStorage:', inscripcionStr);
+        
         if (!inscripcionStr) {
           throw new Error('No se encontró la información de la inscripción. Por favor, vuelve a realizar la inscripción.');
         }
@@ -30,9 +32,22 @@ function OrdenPagoEstudiante() {
         const inscripcion = JSON.parse(inscripcionStr);
         console.log("FetchData: Inscripción cargada:", inscripcion);
 
-        if (!inscripcion) {
-          throw new Error('La información de la inscripción no es válida.');
+        if (!inscripcion || !inscripcion.convocatoria) {
+          throw new Error('La información de la inscripción no es válida o no contiene la convocatoria.');
         }
+
+        // Verificar que la convocatoria sea la correcta
+        const convocatorias = JSON.parse(localStorage.getItem('olimpiadas_convocatorias') || '[]');
+        const convocatoriaActual = convocatorias.find(c => c.id === inscripcion.convocatoriaId);
+        
+        if (!convocatoriaActual) {
+          console.error('Convocatoria no encontrada en localStorage:', inscripcion.convocatoriaId);
+          throw new Error('No se encontró la información de la convocatoria.');
+        }
+
+        // Actualizar la convocatoria en la inscripción con los datos más recientes
+        inscripcion.convocatoria = convocatoriaActual;
+        console.log("Inscripción actualizada con convocatoria:", inscripcion);
         
         // Obtener datos del estudiante
         let studentData;
@@ -72,6 +87,13 @@ function OrdenPagoEstudiante() {
   const handleGenerarPDF = async () => {
     try {
       setGenerandoPDF(true);
+      
+      // Verificar que tenemos la información correcta
+      if (!inscripcion || !inscripcion.convocatoria) {
+        throw new Error('No se encontró la información necesaria para generar el PDF');
+      }
+
+      console.log('Generando PDF para inscripción:', inscripcion);
       
       // Crear el contenido del PDF
       const doc = new jsPDF();
@@ -123,8 +145,9 @@ function OrdenPagoEstudiante() {
       doc.text(`Total: Bs. ${inscripcion.costoTotal}`, 20, yPos + 70);
       doc.setFont(undefined, 'normal');
       
-      // Guardar el PDF
-      doc.save(`orden_pago_${inscripcion.id}.pdf`);
+      // Guardar el PDF con un nombre que incluya la convocatoria
+      const nombreArchivo = `orden_pago_${inscripcion.convocatoria.nombre.toLowerCase().replace(/\s+/g, '_')}_${inscripcion.id}.pdf`;
+      doc.save(nombreArchivo);
       
     } catch (err) {
       console.error('Error al generar PDF:', err);
