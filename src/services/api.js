@@ -326,18 +326,18 @@ const createUser = async (userData) => {
   try {
     // Si es un estudiante, usar la ruta de estudiantes
     if (userData.tipoUsuario === 'estudiante') {
-      const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/students`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(userData),
-      });
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(userData),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+    if (!response.ok) {
+      const errorData = await response.json();
         throw new Error(errorData.message || 'Error al crear estudiante');
       }
 
@@ -355,9 +355,9 @@ const createUser = async (userData) => {
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Error al registrar usuario');
-      }
+    }
 
-      return await response.json();
+    return await response.json();
     }
   } catch (error) {
     console.error('Error en createUser:', error);

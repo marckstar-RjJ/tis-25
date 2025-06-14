@@ -61,7 +61,7 @@ const RecuperarContrasena = () => {
       };
 
       const emailResponse = await emailjs.send(
-        "service_7db38qa",
+        "service_pj9u56o",
         "template_30m993y",
         templateParams,
         {

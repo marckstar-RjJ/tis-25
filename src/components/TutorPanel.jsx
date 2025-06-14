@@ -365,6 +365,7 @@ const ListaEstudiantes = ({ colegioId }) => {
   const [convocatorias, setConvocatorias] = useState([]);
   const [convocatoriaSeleccionada, setConvocatoriaSeleccionada] = useState(null);
   const [areas, setAreas] = useState([]);
+  const [areasSeleccionadas, setAreasSeleccionadas] = useState([]);
   const [inscripciones, setInscripciones] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalConfig, setModalConfig] = useState({ title: '', message: '', type: 'info' });
@@ -500,92 +501,63 @@ const ListaEstudiantes = ({ colegioId }) => {
   };
 
   const handleInscripcionGrupal = () => {
-    // Validar convocatoria seleccionada
-    if (!convocatoriaSeleccionada) {
-      showAdvertencia(
-        'Convocatoria no seleccionada',
-        'Por favor, selecciona una convocatoria antes de inscribir estudiantes.'
-      );
-      return;
-    }
-    
-    // Validar áreas seleccionadas
-    if (areas.length === 0) {
-      showAdvertencia(
-        'Áreas no seleccionadas',
-        'Por favor, selecciona al menos un área antes de inscribir estudiantes.'
-      );
-      return;
-    }
-
-    // Validar estudiantes seleccionados
-    if (selectedStudents.length === 0) {
-      showAdvertencia(
-        'Estudiantes no seleccionados',
-        'Por favor, selecciona al menos un estudiante para inscribir.'
-      );
-      return;
-    }
-
-    // Verificar inscripciones duplicadas
-    const estudiantesYaInscritos = selectedStudents.filter(estudiante => 
-      inscripciones.some(insc => 
-        insc.estudiante_id === estudiante.id && 
-        insc.convocatoria_id === convocatoriaSeleccionada.id
-      )
+    // Obtener estudiantes seleccionados con sus datos completos
+    const estudiantesSeleccionados = estudiantes.filter(e => 
+      selectedStudents.some(s => s.id === e.id)
     );
 
-    if (estudiantesYaInscritos.length > 0) {
-      showAdvertencia(
-        'Estudiantes ya inscritos',
-        `Los siguientes estudiantes ya están inscritos en esta convocatoria: ${estudiantesYaInscritos.map(e => e.nombre).join(', ')}`
-      );
-      return;
-    }
+    // Crear objeto con los datos de la inscripción
+    const datosInscripcion = {
+      estudiantes: estudiantesSeleccionados.map(est => ({
+        id: est.id,
+        nombre: est.nombre,
+        apellidos: est.apellidos,
+        ci: est.ci,
+        curso: est.curso,
+        email: est.email,
+        celular: est.celular,
+        colegio: est.colegio?.nombre || est.colegio
+      })),
+      convocatoria: {
+        id: convocatoriaSeleccionada.id,
+        nombre: convocatoriaSeleccionada.nombre,
+        fecha_inicio: convocatoriaSeleccionada.fecha_inicio,
+        fecha_fin: convocatoriaSeleccionada.fecha_fin
+      },
+      areas: areasSeleccionadas.map(area => ({
+        id: area.id,
+        nombre: area.nombre,
+        descripcion: area.descripcion
+      })),
+      fecha_inscripcion: new Date().toISOString(),
+      estado: 'pendiente'
+    };
 
-    // Verificar áreas duplicadas
-    const estudiantesConAreasDuplicadas = selectedStudents.filter(estudiante => 
-      areas.some(area => 
-        inscripciones.some(insc => 
-          insc.estudiante_id === estudiante.id && 
-          insc.convocatoria_id === convocatoriaSeleccionada.id &&
-          insc.areas.some(a => a.id === area.id)
-        )
-      )
-    );
+    // Guardar en un array de órdenes de pago consolidadas
+    const ordenesPrevias = JSON.parse(localStorage.getItem('ordenesPagoConsolidadas') || '[]');
+    ordenesPrevias.push(datosInscripcion);
+    localStorage.setItem('ordenesPagoConsolidadas', JSON.stringify(ordenesPrevias));
 
-    if (estudiantesConAreasDuplicadas.length > 0) {
-      showAdvertencia(
-        'Áreas ya inscritas',
-        `Los siguientes estudiantes ya están inscritos en algunas de las áreas seleccionadas: ${estudiantesConAreasDuplicadas.map(e => e.nombre).join(', ')}`
-      );
-      return;
-    }
-
-    // Si todo está bien, proceder con la inscripción
-    const nuevasInscripciones = selectedStudents.map(estudiante => ({
+    // También guardar en la lista de inscripciones existente
+    const inscripcionesExistentes = JSON.parse(localStorage.getItem('inscripcionesEstudiantes') || '[]');
+    const nuevasInscripciones = estudiantesSeleccionados.map(estudiante => ({
       id: Date.now() + Math.random(),
       estudiante_id: estudiante.id,
-      estudiante_nombre: estudiante.nombre,
+      estudiante_nombre: `${estudiante.nombre} ${estudiante.apellidos}`,
       convocatoria_id: convocatoriaSeleccionada.id,
       convocatoria_nombre: convocatoriaSeleccionada.nombre,
-      areas: areas,
+      areas: areasSeleccionadas,
       fecha_inscripcion: new Date().toISOString(),
       estado: 'pendiente',
-      tutor_id: JSON.parse(localStorage.getItem('currentUser')).id
+      tutor_id: currentUser.id
     }));
 
-    const todasLasInscripciones = [...inscripciones, ...nuevasInscripciones];
-    localStorage.setItem('inscripcionesEstudiantes', JSON.stringify(todasLasInscripciones));
-    setInscripciones(todasLasInscripciones);
-    setSelectedStudents([]);
-    setAreas([]);
-
-    showAdvertencia(
-      'Inscripción exitosa',
-      `Se han inscrito ${selectedStudents.length} estudiantes en ${areas.length} área(s).`,
-      'success'
+    localStorage.setItem('inscripcionesEstudiantes', 
+      JSON.stringify([...inscripcionesExistentes, ...nuevasInscripciones])
     );
+
+    // Redirigir a la página de orden de pago consolidada
+    navigate('/tutor/orden-pago-consolidada');
   };
 
   const handleInscripcion = (estudianteId) => {
@@ -633,7 +605,7 @@ const ListaEstudiantes = ({ colegioId }) => {
           <div className="text-center mb-4">
             <i className="bi bi-person-circle text-success" style={{ fontSize: '3rem' }}></i>
             <h5 className="mt-2 text-success">{estudiante.nombre}</h5>
-          </div>
+        </div>
           
           <div className="bg-light rounded p-3 mb-4">
             <h6 className="text-success mb-3">
@@ -657,7 +629,7 @@ const ListaEstudiantes = ({ colegioId }) => {
                   ) : (
                     <span className="badge bg-warning">No hay áreas seleccionadas</span>
                   )}
-                </div>
+              </div>
               </p>
               <p className="mb-0">
                 <strong>Estado:</strong>
@@ -711,6 +683,192 @@ const ListaEstudiantes = ({ colegioId }) => {
     }
   };
 
+  // Función para validar si un estudiante puede inscribirse en un área
+  const validarNivelArea = (estudiante, area) => {
+    // El curso ya viene como número de la base de datos (1-6 Primaria, 7-12 Secundaria)
+    const curso = estudiante.curso;
+    
+    // Definir restricciones por área usando el curso numérico
+    const restricciones = {
+      // ASTRONOMÍA-ASTROFÍSICA: 3P a 6S (curso 3-12)
+      'astronomia': { min: 3, max: 12 },
+      // BIOLOGÍA: 2S a 6S (curso 8-12)
+      'biologia': { min: 8, max: 12 },
+      // FÍSICA: 4S a 6S (curso 10-12)
+      'fisica': { min: 10, max: 12 },
+      // INFORMÁTICA: 5P a 6S (curso 5-12)
+      'informatica': { min: 5, max: 12 },
+      // MATEMÁTICAS: 1S a 6S (curso 7-12)
+      'matematicas': { min: 7, max: 12 },
+      // QUÍMICA: 2S a 6S (curso 8-12)
+      'quimica': { min: 8, max: 12 },
+      // ROBÓTICA: 5P a 6S (curso 5-12)
+      'robotica': { min: 5, max: 12 }
+    };
+
+    // Normalizar el nombre del área para obtener la clave
+    const normalizarNombre = (nombre) => {
+      return nombre
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+        .replace(/[^a-z0-9]/g, '') // Eliminar caracteres especiales
+        .trim();
+    };
+
+    const claveArea = normalizarNombre(area.nombre);
+    const restriccion = restricciones[claveArea];
+
+    if (!restriccion) {
+      console.warn(`No se encontró restricción para el área: ${area.nombre} (clave: ${claveArea})`);
+      return true; // Si no hay restricción definida, permitir
+    }
+
+    // Validar si el curso del estudiante está dentro del rango permitido
+    return curso >= restriccion.min && curso <= restriccion.max;
+  };
+
+  // Función para obtener el mensaje de restricción
+  const getMensajeRestriccion = (area) => {
+    // Normalizar el nombre del área para obtener la clave
+    const normalizarNombre = (nombre) => {
+      return nombre
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+        .replace(/[^a-z0-9]/g, '') // Eliminar caracteres especiales
+        .trim();
+    };
+
+    const restricciones = {
+      'astronomia': '3ro Primaria a 6to Secundaria',
+      'biologia': '2do Secundaria a 6to Secundaria',
+      'fisica': '4to Secundaria a 6to Secundaria',
+      'informatica': '5to Primaria a 6to Secundaria',
+      'matematicas': '1ro Secundaria a 6to Secundaria',
+      'quimica': '2do Secundaria a 6to Secundaria',
+      'robotica': '5to Primaria a 6to Secundaria'
+    };
+
+    const claveArea = normalizarNombre(area.nombre);
+    return restricciones[claveArea] || '';
+  };
+
+  const handleInscribirEstudiante = (estudiante) => {
+    setAreasSeleccionadas([]);
+    showAdvertencia(
+      'Inscribir Estudiante',
+      <div className="p-3">
+        <div className="text-center mb-4">
+          <i className="bi bi-person-plus text-success" style={{ fontSize: '3rem' }}></i>
+          <h5 className="mt-2 text-success">{estudiante.nombre}</h5>
+          <p className="text-muted mb-0">
+            {estudiante.grado}° {estudiante.nivel}
+          </p>
+        </div>
+
+        <div className="bg-light rounded p-3">
+          <h6 className="text-success mb-3">
+            <i className="bi bi-list-check me-2"></i>
+            Áreas Disponibles
+          </h6>
+          <div className="row g-2">
+            {areas.map(area => {
+              const puedeInscribirse = validarNivelArea(estudiante, area);
+              const mensajeRestriccion = getMensajeRestriccion(area);
+              return (
+                <div key={area.id} className="col-md-6">
+                  <div className={`form-check ${!puedeInscribirse ? 'opacity-50' : ''}`}>
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id={`area-${area.id}`}
+                      disabled={!puedeInscribirse}
+                      checked={areasSeleccionadas.some(a => a.id === area.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setAreasSeleccionadas([...areasSeleccionadas, area]);
+                        } else {
+                          setAreasSeleccionadas(areasSeleccionadas.filter(a => a.id !== area.id));
+                        }
+                      }}
+                    />
+                    <label 
+                      className="form-check-label" 
+                      htmlFor={`area-${area.id}`}
+                      title={!puedeInscribirse ? `Requisito: ${mensajeRestriccion}` : ''}
+                    >
+                      {area.nombre}
+                      {!puedeInscribirse && mensajeRestriccion && (
+                        <small className="d-block text-muted">
+                          <i className="bi bi-info-circle me-1"></i>
+                          {mensajeRestriccion}
+                        </small>
+                      )}
+                    </label>
+              </div>
+            </div>
+              );
+            })}
+                  </div>
+        </div>
+
+        <div className="d-flex justify-content-center gap-2 mt-4">
+                    <button 
+            className="btn btn-outline-secondary"
+            onClick={() => setShowModal(false)}
+                    >
+            <i className="bi bi-x-circle me-2"></i>
+            Cancelar
+                    </button>
+                          <button 
+            className="btn btn-success"
+            onClick={() => {
+              if (areasSeleccionadas.length === 0) {
+                showAdvertencia(
+                  'Error',
+                  'Debes seleccionar al menos un área para inscribir al estudiante.',
+                  'error'
+                );
+                return;
+              }
+
+              const nuevaInscripcion = {
+                id: Date.now(),
+                estudiante_id: estudiante.id,
+                estudiante_nombre: estudiante.nombre,
+                convocatoria_id: convocatoriaSeleccionada.id,
+                convocatoria_nombre: convocatoriaSeleccionada.nombre,
+                areas: areasSeleccionadas,
+                estado: 'pendiente',
+                fecha_inscripcion: new Date().toISOString()
+              };
+
+              const nuevasInscripciones = [...inscripciones, nuevaInscripcion];
+              localStorage.setItem('inscripcionesEstudiantes', JSON.stringify(nuevasInscripciones));
+              setInscripciones(nuevasInscripciones);
+              setShowModal(false);
+              showAdvertencia(
+                'Inscripción Exitosa',
+                <div className="text-center p-3">
+                  <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '3rem' }}></i>
+                  <h5 className="mt-3 text-success">¡Inscripción Realizada!</h5>
+                  <p className="mb-0">El estudiante ha sido inscrito correctamente en las áreas seleccionadas.</p>
+                </div>,
+                'success'
+              );
+            }}
+            disabled={areasSeleccionadas.length === 0}
+          >
+            <i className="bi bi-check-circle me-2"></i>
+            Confirmar Inscripción
+                          </button>
+        </div>
+      </div>,
+      'info'
+    );
+  };
+
   if (loading) return (
     <div className="d-flex justify-content-center p-4">
       <div className="spinner-border text-success" role="status">
@@ -739,7 +897,7 @@ const ListaEstudiantes = ({ colegioId }) => {
                   <div 
                     key={conv.id}
                     className={`card ${convocatoriaSeleccionada?.id === conv.id ? 'border-success' : 'border-secondary'}`}
-                    style={{ 
+                            style={{ 
                       width: '200px', 
                       cursor: 'pointer',
                       transition: 'all 0.3s ease'
@@ -761,8 +919,8 @@ const ListaEstudiantes = ({ colegioId }) => {
             ) : (
               <div className="alert alert-warning mb-0 py-1 px-3">
                 No hay convocatorias activas
-              </div>
-            )}
+                      </div>
+                    )}
           </div>
         </div>
 
@@ -792,9 +950,9 @@ const ListaEstudiantes = ({ colegioId }) => {
                       <p className="card-text small mb-0">
                         {area.descripcion}
                       </p>
-                    </div>
                   </div>
-                ))}
+                </div>
+              ))}
               </div>
               </div>
             </div>
@@ -802,15 +960,55 @@ const ListaEstudiantes = ({ colegioId }) => {
           
         <div className="card-body">
           {convocatoriaSeleccionada && areas.length > 0 && (
+            <div className="mb-3">
+              <label className="fw-bold">Selecciona hasta 2 áreas para la inscripción grupal:</label>
+              <div>
+                {areas.map(area => (
+                  <div key={area.id} className="form-check form-check-inline">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id={`area-${area.id}`}
+                      value={area.id}
+                      checked={areasSeleccionadas.some(a => a.id === area.id)}
+                      disabled={
+                        !areasSeleccionadas.some(a => a.id === area.id) &&
+                        areasSeleccionadas.length >= 2
+                      }
+                      onChange={e => {
+                        let nuevas = [...areasSeleccionadas];
+                        if (e.target.checked) {
+                          if (nuevas.length < 2) {
+                            const areaObj = areas.find(a => a.id === area.id);
+                            nuevas.push(areaObj);
+                          }
+                        } else {
+                          nuevas = nuevas.filter(a => a.id !== area.id);
+                        }
+                        setAreasSeleccionadas(nuevas);
+                      }}
+                    />
+                    <label className="form-check-label" htmlFor={`area-${area.id}`}>
+                      {area.nombre}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              {areasSeleccionadas.length === 2 && (
+                <div className="text-success small mt-1">¡Máximo 2 áreas seleccionadas!</div>
+              )}
+            </div>
+          )}
+          {convocatoriaSeleccionada && areas.length > 0 && (
             <div className="d-flex justify-content-end mb-3">
-                    <button 
+              <button 
                 onClick={handleInscripcionGrupal}
                 className="btn btn-success"
-                disabled={selectedStudents.length === 0}
-                    >
+                disabled={selectedStudents.length === 0 || areasSeleccionadas.length === 0}
+              >
                 Inscribir Seleccionados ({selectedStudents.length})
-                    </button>
-            </div>
+              </button>
+          </div>
           )}
           <div className="table-responsive">
             <table className="table table-striped table-hover">
@@ -824,7 +1022,7 @@ const ListaEstudiantes = ({ colegioId }) => {
                         checked={selectedStudents.length === estudiantes.length}
                         onChange={handleSelectAll}
                       />
-                    </div>
+        </div>
                   </th>
                   <th className="border-success">Nombre Completo</th>
                   <th className="border-success">CI</th>
@@ -832,7 +1030,6 @@ const ListaEstudiantes = ({ colegioId }) => {
                   <th className="border-success">Email</th>
                   <th className="border-success">Celular</th>
                   <th className="border-success text-center">Estado</th>
-                  <th className="border-success text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -851,7 +1048,7 @@ const ListaEstudiantes = ({ colegioId }) => {
                             onChange={() => handleSelectStudent(estudiante)}
                             disabled={yaInscrito}
                           />
-                        </div>
+          </div>
                       </td>
                       <td className="border-success">{`${estudiante.nombre} ${estudiante.apellidos}`}</td>
                       <td className="border-success">{estudiante.ci}</td>
@@ -867,21 +1064,12 @@ const ListaEstudiantes = ({ colegioId }) => {
                           {estado}
                         </span>
                       </td>
-                      <td className="border-success text-center">
-                        <button
-                          onClick={() => handleEditarInscripcion(estudiante)}
-                          className={`btn btn-${yaInscrito ? 'warning' : 'success'} btn-sm`}
-                        >
-                          <i className={`bi ${yaInscrito ? 'bi-pencil-square' : 'bi-plus-circle'} me-1`}></i>
-                          {yaInscrito ? 'Editar Inscripción' : 'Inscribir'}
-                        </button>
-                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-          </div>
+        </div>
         </div>
       </div>
 
@@ -965,6 +1153,26 @@ const ListaEstudiantes = ({ colegioId }) => {
 function TutorPanel() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [estudiantes, setEstudiantes] = useState([]);
+  const [convocatorias, setConvocatorias] = useState([]);
+  const [convocatoriaSeleccionada, setConvocatoriaSeleccionada] = useState(null);
+  const [areas, setAreas] = useState([]);
+  const [areasSeleccionadas, setAreasSeleccionadas] = useState([]);
+  const [inscripciones, setInscripciones] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState({ title: '', message: '', type: 'info' });
+
+  useEffect(() => {
+    // Cargar convocatoria actual y áreas
+    const convocatoriaActual = JSON.parse(localStorage.getItem('convocatoriaActual'));
+    const areasConvocatoria = JSON.parse(localStorage.getItem('areasConvocatoria')) || [];
+    const inscripcionesEstudiantes = JSON.parse(localStorage.getItem('inscripcionesEstudiantes')) || [];
+    
+    setConvocatoriaSeleccionada(convocatoriaActual);
+    setAreas(areasConvocatoria);
+    setInscripciones(inscripcionesEstudiantes);
+  }, []);
 
   const handleLogout = async () => {
     try {

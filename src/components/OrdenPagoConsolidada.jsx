@@ -1,391 +1,277 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { apiService } from '../services/api';
-import { guardarOrdenGrupal, descargarOrdenGrupalPDF } from './utils/ordenesGrupales';
-import '../App.css';
+import jsPDF from 'jspdf';
 
 const OrdenPagoConsolidada = () => {
-  const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const [ordenesPago, setOrdenesPago] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [students, setStudents] = useState([]);
-  const [config, setConfig] = useState(null);
-  const [generandoOrden, setGenerandoOrden] = useState(false);
-  const [ordenGenerada, setOrdenGenerada] = useState(null);
-  const [estudiantesSeleccionados, setEstudiantesSeleccionados] = useState([]);
-  const [selectAll, setSelectAll] = useState(false);
+  const [ordenesGeneradas, setOrdenesGeneradas] = useState({});
+  const [showModal, setShowModal] = useState(false);
+  const navigate = useNavigate();
   
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Obtener configuración de olimpiadas
-        const configData = await apiService.getOlympiadConfig();
-        setConfig(configData);
-        
-        // Obtener estudiantes del tutor - explícitamente excluir los que ya tienen orden
-        const studentsData = await apiService.getStudentsByTutor(currentUser.id, false);
-        console.log('Estudiantes obtenidos (sin órdenes activas):', studentsData);
-        
-        // Filtrar solo estudiantes con áreas inscritas
-        const studentsWithAreas = studentsData.filter(student => 
-          student.areasInscritas && student.areasInscritas.length > 0
-        );
-        
-        console.log('Estudiantes con áreas inscritas sin órdenes pendientes:', studentsWithAreas);
-        setStudents(studentsWithAreas);
-        
-        // Mensaje apropiado según la cantidad de estudiantes disponibles
-        if (studentsWithAreas.length === 0) {
-          setError('No hay estudiantes disponibles con áreas inscritas sin órdenes de pago pendientes.');
-        } else if (studentsWithAreas.length === 1) {
-          setError('Para utilizar el módulo de Orden de Pago Grupal se necesitan al menos 2 estudiantes inscritos con áreas sin órdenes de pago pendientes.');
-        }
-      } catch (err) {
-        console.error('Error al cargar datos:', err);
-        setError('No se pudieron cargar los datos necesarios. Intente nuevamente.');
-      } finally {
-        setLoading(false);
+    // Migrar orden antigua (si existe) al array de órdenes nuevas
+    const ordenAntigua = JSON.parse(localStorage.getItem('datosInscripcionGrupal'));
+    let ordenes = JSON.parse(localStorage.getItem('ordenesPagoConsolidadas')) || [];
+    if (ordenAntigua) {
+      // Si la orden antigua no está ya en el array, la agregamos
+      if (!ordenes.some(o => JSON.stringify(o) === JSON.stringify(ordenAntigua))) {
+        ordenes.push(ordenAntigua);
+        localStorage.setItem('ordenesPagoConsolidadas', JSON.stringify(ordenes));
       }
-    };
-    
-    fetchData();
-  }, [currentUser]);
-  
-  const handleToggleSelectAll = () => {
-    const newSelectAllValue = !selectAll;
-    setSelectAll(newSelectAllValue);
-    
-    if (newSelectAllValue) {
-      // Seleccionar todos los estudiantes
-      setEstudiantesSeleccionados(students.map(student => student.id));
-    } else {
-      // Deseleccionar todos
-      setEstudiantesSeleccionados([]);
+      // Borramos la orden antigua para evitar que se bloquee la inscripción
+      localStorage.removeItem('datosInscripcionGrupal');
     }
-  };
-  
-  const handleToggleEstudiante = (studentId) => {
-    if (estudiantesSeleccionados.includes(studentId)) {
-      // Quitar de la selección
-      setEstudiantesSeleccionados(prev => prev.filter(id => id !== studentId));
-      setSelectAll(false);
-    } else {
-      // Agregar a la selección
-      setEstudiantesSeleccionados(prev => [...prev, studentId]);
-      
-      // Verificar si todos están seleccionados
-      if (students.length === estudiantesSeleccionados.length + 1) {
-        setSelectAll(true);
-      }
-    }
-  };
+    setOrdenesPago(ordenes);
+    setLoading(false);
+  }, []);
 
-  const calcularTotalPorEstudiante = (student) => {
-    if (!student.areasInscritas || !config) return 0;
-    return student.areasInscritas.length * (config.precioPorArea || 16);
-  };
-  
-  const calcularTotal = () => {
-    if (!config || estudiantesSeleccionados.length === 0) return 0;
-    
-    return students
-      .filter(student => estudiantesSeleccionados.includes(student.id))
-      .reduce((total, student) => {
-        return total + calcularTotalPorEstudiante(student);
-      }, 0);
-  };
-  
-  const contarAreasSeleccionadas = () => {
-    if (estudiantesSeleccionados.length === 0) return 0;
-    
-    return students
-      .filter(student => estudiantesSeleccionados.includes(student.id))
-      .reduce((total, student) => {
-        return total + (student.areasInscritas ? student.areasInscritas.length : 0);
-      }, 0);
-  };
-  
-  const handleGenerarOrden = async () => {
-    if (estudiantesSeleccionados.length === 0) {
-      setError('Debe seleccionar al menos un estudiante.');
-      return;
-    }
-    
-    setGenerandoOrden(true);
-    setError('');
-    
-    try {
-      const estudiantesInfo = estudiantesSeleccionados.map(id => {
-        const estudiante = students.find(e => e.id === id);
-        return {
-          id: estudiante.id,
-          nombre: estudiante.nombre,
-          apellido: estudiante.apellido || '',
-          curso: estudiante.curso,
-          areasInscritas: estudiante.areasInscritas || []
-        };
-      });
-      
-      const cantidadAreas = estudiantesInfo.reduce((total, est) => 
-        total + (est.areasInscritas?.length || 0), 0);
-      
-      const precioPorArea = config.precioPorArea || 16;
-      const total = cantidadAreas * precioPorArea;
-      
-      const ordenData = {
-        tutorNombre: `${currentUser.nombre} ${currentUser.apellido || ''}`,
-        cantidadEstudiantes: estudiantesInfo.length,
-        cantidadAreas,
-        total
-      };
-      
-      const fechaActual = new Date();
-      const fechaExpiracion = new Date(fechaActual);
-      fechaExpiracion.setHours(fechaExpiracion.getHours() + 48);
-      
-      const ordenGrupal = {
-        id: `ORDEN-GRUPO-${Date.now()}`,
-        fecha: fechaActual.toISOString(),
-        fechaExpiracion: fechaExpiracion.toISOString(),
-        total: ordenData.total,
-        precioPorArea,
-        cantidadAreas: ordenData.cantidadAreas,
-        tutor: { 
-          id: currentUser.id, 
-          nombre: ordenData.tutorNombre, 
-          email: currentUser.email 
-        },
-        cantidadEstudiantes: ordenData.cantidadEstudiantes,
-        estudiantes: estudiantesInfo,
-        estado: 'Pendiente',
-        instrucciones: "Esta orden tiene validez por 48 horas. Realice el pago a través de transferencia bancaria a la cuenta XXXX-XXXX-XXXX-XXXX y envíe el comprobante al correo booleanssolutions@gmail.com"
-      };
-      
-      const result = guardarOrdenGrupal(ordenGrupal);
-      
-      // Almacenar los IDs para actualización posterior
-      const idsEstudiantesSeleccionados = [...estudiantesSeleccionados];
-      
-      // Marcar a los estudiantes como con orden de pago generada
-      // Promise.all para manejar todas las actualizaciones en paralelo
-      await Promise.all(
-        idsEstudiantesSeleccionados.map(async (studentId) => {
-          try {
-            console.log(`Marcando estudiante ${studentId} con orden ${result.id}`);
-            await apiService.marcarEstudianteConOrden(studentId, result.id);
-          } catch (err) {
-            console.error(`Error al marcar estudiante ${studentId}:`, err);
-          }
-        })
+  function generarOrdenPago(idx, datosInscripcion) {
+    const orden = {
+      id: `ORDEN-${Date.now()}`,
+      fecha: new Date().toISOString(),
+      convocatoria: datosInscripcion.convocatoria,
+      areas: datosInscripcion.areas,
+      estudiantes: datosInscripcion.estudiantes,
+      totalEstudiantes: datosInscripcion.estudiantes.length,
+      estado: 'generada'
+    };
+    setOrdenesGeneradas(prev => ({ ...prev, [idx]: orden }));
+    setShowModal(true);
+  }
+
+  function descargarOrdenPagoGrupalPDF(orden, idx) {
+    const doc = new jsPDF();
+    const precioPorArea = 16; // Cambia esto si tienes el precio real en la convocatoria
+    const fechaExpiracion = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
+
+    // Título
+    doc.setFontSize(16);
+    doc.text('ORDEN DE PAGO CONSOLIDADA', 105, 20, { align: 'center' });
+
+    // Agregar el ID de la orden (código de pago)
+    doc.setFontSize(12);
+    doc.text(`ID Orden: ${orden.id}`, 20, 30);
+
+    // Convocatoria y áreas
+    doc.setFontSize(12);
+    doc.text(`Convocatoria: ${orden.convocatoria.nombre}`, 20, 35);
+    doc.text(`Áreas: ${orden.areas.map(a => a.nombre).join(', ')}`, 20, 43);
+
+    // Fecha de emisión y expiración
+    doc.text(`Fecha de emisión: ${new Date(orden.fecha).toLocaleDateString()}`, 20, 51);
+    doc.text(`Fecha de expiración: ${fechaExpiracion.toLocaleDateString()}`, 20, 59);
+
+    // Tabla de estudiantes
+    doc.setFontSize(12);
+    doc.text('Estudiantes:', 20, 70);
+    let y = 78;
+    doc.setFontSize(10);
+    doc.text('NOMBRE', 20, y);
+    doc.text('CI', 90, y);
+    doc.text('CURSO', 120, y);
+    y += 6;
+    doc.line(20, y, 180, y);
+    y += 6;
+
+    orden.estudiantes.forEach((est, i) => {
+      doc.text(`${est.nombre} ${est.apellidos}`, 20, y);
+      doc.text(est.ci, 90, y);
+      doc.text(
+        est.curso <= 6 ? `${est.curso}° Primaria` : `${est.curso - 6}° Secundaria`,
+        120,
+        y
       );
-      
-      setOrdenGenerada(result);
-      
-      // Actualizar la lista local de estudiantes
-      setStudents(prevStudents => {
-        return prevStudents.filter(student => !idsEstudiantesSeleccionados.includes(student.id));
-      });
-      
-      // Limpiar selecciones
-      setEstudiantesSeleccionados([]);
-      setSelectAll(false);
-      
-      // Alternativamente, volver a cargar los datos para asegurar consistencia
-      const refreshData = async () => {
-        try {
-          const freshStudentsData = await apiService.getStudentsByTutor(currentUser.id, false);
-          const freshWithAreas = freshStudentsData.filter(student => 
-            student.areasInscritas && student.areasInscritas.length > 0
-          );
-          
-          setStudents(freshWithAreas);
-          
-          if (freshWithAreas.length < 2) {
-            setError('Para utilizar el módulo de Orden de Pago Grupal se necesitan al menos 2 estudiantes inscritos con áreas sin órdenes de pago pendientes.');
-          }
-        } catch (refreshError) {
-          console.error('Error al actualizar datos:', refreshError);
-        }
-      };
-      
-      // Ejecutar la actualización de datos
-      refreshData();
-    } catch (err) {
-      console.error('Error al generar orden de pago consolidada:', err);
-      setError('Ocurrió un error al generar la orden de pago. Intente nuevamente.');
-    } finally {
-      setGenerandoOrden(false);
-    }
-  };
-  
-  // Descargar PDF
-  const handleDescargarPDF = async () => {
-    if (!ordenGenerada) return;
-    
-    try {
-      setGenerandoOrden(true);
-      
-      // Usar la utilidad para descargar el PDF
-      const pdfBlob = await descargarOrdenGrupalPDF(ordenGenerada.id);
-      
-      // Descargar PDF
-      const url = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `orden_pago_grupal_${ordenGenerada.id}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-    } catch (err) {
-      console.error('Error al generar PDF:', err);
-      setError('No se pudo generar el PDF de la orden de pago.');
-    } finally {
-      setGenerandoOrden(false);
-    }
-  };
-  
-  const handleVolver = () => {
-    navigate('/tutor');
-  };
+      y += 6;
+      if (y > 270 && i < orden.estudiantes.length - 1) {
+        doc.addPage();
+        y = 20;
+      }
+    });
+
+    y += 8;
+    doc.setFontSize(12);
+    doc.text(`Total estudiantes: ${orden.estudiantes.length}`, 20, y);
+    y += 8;
+    doc.text(
+      `Total a pagar: Bs. ${orden.areas.length * orden.estudiantes.length * precioPorArea}`,
+      20,
+      y
+    );
+
+    y += 12;
+    doc.setFontSize(11);
+    doc.text('Instrucciones de pago:', 20, y);
+    y += 7;
+    doc.setFontSize(10);
+    doc.text(
+      'Presentar esta orden en la oficina de tesorería de la UMSS en horario de 8:00 a 16:00, de lunes a viernes.',
+      20,
+      y
+    );
+
+    doc.save(
+      `orden_pago_consolidada_${orden.convocatoria.nombre.replace(/\s+/g, '_')}_${idx + 1}.pdf`
+    );
+  }
   
   if (loading) {
-    return <p className="loading-message">Cargando información...</p>;
+    return (
+      <div className="d-flex justify-content-center p-4">
+        <div className="spinner-border text-success" role="status">
+          <span className="visually-hidden">Cargando...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!ordenesPago || ordenesPago.length === 0) {
+    return (
+      <div className="alert alert-warning m-4" role="alert">
+        No hay órdenes de pago consolidadas disponibles
+      </div>
+    );
   }
   
   return (
-    <div className="orden-pago-container">
-      <h2>Generación de Orden de Pago Consolidada</h2>
-      
-      {error && <div className="error-message">{error}</div>}
-      
-      {!ordenGenerada ? (
-        <div className="orden-pago-form">
-          {students.length > 0 ? (
-            <>
-              <div className="estudiantes-selection">
-                <h3>Seleccione los estudiantes a incluir en la orden de pago</h3>
-                
-                <div className="select-all-container">
-                  <label className="checkbox-container">
-                    <input 
-                      type="checkbox" 
-                      checked={selectAll} 
-                      onChange={handleToggleSelectAll} 
-                    />
-                    <span className="checkbox-text">Seleccionar todos</span>
-                  </label>
+    <div className="container-fluid p-4">
+      {ordenesPago.map((datosInscripcion, idx) => (
+        <div className="card shadow-sm mb-4" key={idx}>
+          <div className="card-header bg-success text-white">
+            <h5 className="mb-0">Orden de Pago Consolidada</h5>
                 </div>
-                
-                <ul className="estudiantes-list">
-                  {students.map(student => (
-                    <li key={student.id} className="estudiante-item">
-                      <label className="checkbox-container">
-                        <input 
-                          type="checkbox" 
-                          checked={estudiantesSeleccionados.includes(student.id)} 
-                          onChange={() => handleToggleEstudiante(student.id)} 
-                        />
-                        <div className="estudiante-info">
-                          <span className="estudiante-nombre">
-                            {student.nombre} {student.apellido || student.apellidos}
-                          </span>
-                          <span className="estudiante-detalle">
-                            {student.areasInscritas.length} áreas - ${calcularTotalPorEstudiante(student)}
-                          </span>
-                        </div>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
+          <div className="card-body">
+            {/* Información de la Convocatoria */}
+            <div className="mb-4">
+              <h6 className="text-success mb-3">
+                <i className="bi bi-calendar-event me-2"></i>
+                Convocatoria
+              </h6>
+              <div className="bg-light p-3 rounded">
+                <h5 className="mb-2">{datosInscripcion.convocatoria.nombre}</h5>
+                <p className="mb-0 text-muted">
+                  <i className="bi bi-calendar-range me-2"></i>
+                  Del {new Date(datosInscripcion.convocatoria.fecha_inicio).toLocaleDateString()} 
+                  al {new Date(datosInscripcion.convocatoria.fecha_fin).toLocaleDateString()}
+                </p>
+              </div>
               </div>
               
-              <div className="resumen-orden">
-                <h3>Resumen de la Orden</h3>
-                <div className="resumen-detalles">
-                  <p><strong>Estudiantes seleccionados:</strong> {estudiantesSeleccionados.length}</p>
-                  <p><strong>Total de áreas académicas:</strong> {contarAreasSeleccionadas()}</p>
-                  <p><strong>Precio por área:</strong> ${config?.precioPorArea || 16}</p>
-                  <div className="total-pago">
-                    <span>Total a pagar:</span>
-                    <span className="precio-total">
-                      ${calcularTotal()}
-                    </span>
+            {/* Áreas Seleccionadas */}
+            <div className="mb-4">
+              <h6 className="text-success mb-3">
+                <i className="bi bi-list-check me-2"></i>
+                Áreas Seleccionadas
+              </h6>
+              <div className="row g-3">
+                {datosInscripcion.areas && datosInscripcion.areas.length > 0 ? (
+                  datosInscripcion.areas.map(area => (
+                    <div key={area.id} className="col-md-6">
+                      <div className="bg-light p-3 rounded">
+                        <h6 className="mb-1">{area.nombre}</h6>
+                        <p className="mb-0 text-muted small">{area.descripcion}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-12">
+                    <div className="alert alert-warning mb-0">
+                      No hay áreas seleccionadas.
+                    </div>
                   </div>
+                )}
+                  </div>
+            </div>
+
+            {/* Lista de Estudiantes */}
+            <div className="mb-4">
+              <h6 className="text-success mb-3">
+                <i className="bi bi-people me-2"></i>
+                Estudiantes Inscritos ({datosInscripcion.estudiantes.length})
+              </h6>
+              <div className="table-responsive">
+                <table className="table table-hover">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Nombre Completo</th>
+                      <th>CI</th>
+                      <th>Curso</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {datosInscripcion.estudiantes.map(estudiante => (
+                      <tr key={estudiante.id}>
+                        <td>{`${estudiante.nombre} ${estudiante.apellidos}`}</td>
+                        <td>{estudiante.ci}</td>
+                        <td>
+                          {estudiante.curso <= 6 
+                            ? `${estudiante.curso}° Primaria` 
+                            : `${estudiante.curso - 6}° Secundaria`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
                 </div>
               </div>
               
-              <div className="botones-accion">
+            {/* Botones de Acción */}
+            <div className="d-flex justify-content-end gap-2">
                 <button 
-                  onClick={handleVolver} 
-                  className="btn-secundario"
+                onClick={() => navigate('/tutor/estudiantes')}
+                className="btn btn-outline-secondary"
                 >
+                <i className="bi bi-arrow-left me-2"></i>
                   Volver
                 </button>
                 <button 
-                  onClick={handleGenerarOrden} 
-                  className="btn-primario"
-                  disabled={generandoOrden || estudiantesSeleccionados.length === 0}
-                >
-                  {generandoOrden ? 'Generando...' : 'Generar Orden de Pago Consolidada'}
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="no-estudiantes">
-              <p>No tiene estudiantes con áreas inscritas para generar una orden de pago.</p>
-              <button onClick={handleVolver} className="btn-primario">
-                Volver al Panel de Tutor
+                onClick={() => generarOrdenPago(idx, datosInscripcion)}
+                className="btn btn-success"
+              >
+                <i className="bi bi-file-earmark-text me-2"></i>
+                Generar Orden de Pago
               </button>
             </div>
-          )}
+
+            {/* Resumen de la orden generada */}
+            {ordenesGeneradas[idx] && (
+              <div className="alert alert-success mt-4">
+                <h5>Resumen de la Orden Generada</h5>
+                <p><b>ID Orden:</b> {ordenesGeneradas[idx].id}</p>
+                <p><b>Convocatoria:</b> {ordenesGeneradas[idx].convocatoria.nombre}</p>
+                <p><b>Áreas:</b> {ordenesGeneradas[idx].areas.map(a => a.nombre).join(', ')}</p>
+                <p><b>Total de estudiantes:</b> {ordenesGeneradas[idx].totalEstudiantes}</p>
+                <p><b>Fecha:</b> {new Date(ordenesGeneradas[idx].fecha).toLocaleString()}</p>
+                <button
+                  className="btn btn-outline-primary btn-sm mt-2"
+                  onClick={() => descargarOrdenPagoGrupalPDF(ordenesGeneradas[idx], idx)}
+                >
+                  Descargar PDF
+                </button>
+              </div>
+            )}
+            </div>
         </div>
-      ) : (
-        <div className="orden-generada">
-          <div className="orden-header">
-            <h3>¡Orden de pago consolidada generada correctamente!</h3>
-            <p className="orden-id">Código: <strong>{ordenGenerada.id}</strong></p>
+      ))}
+      {/* Modal de éxito */}
+      {showModal && (
+        <div className="modal fade show" style={{ display: 'block', background: 'rgba(0,0,0,0.3)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-success">
+              <div className="modal-header bg-success text-white">
+                <h5 className="modal-title">¡Éxito!</h5>
+                <button type="button" className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
+              </div>
+              <div className="modal-body text-center">
+                <i className="bi bi-check-circle-fill" style={{ fontSize: 48, color: '#198754' }}></i>
+                <p className="mt-3 mb-0 fs-5">¡Orden de pago generada con éxito!</p>
           </div>
-          
-          <div className="orden-detalles">
-            <div className="orden-info">
-              <p><strong>Fecha:</strong> {new Date(ordenGenerada.fecha).toLocaleDateString()}</p>
-              <p><strong>Tutor:</strong> {ordenGenerada.tutor.nombre}</p>
-              <p><strong>Estudiantes incluidos:</strong> {ordenGenerada.cantidadEstudiantes}</p>
-              <p><strong>Total de áreas:</strong> {ordenGenerada.cantidadAreas}</p>
-              <p><strong>Total a pagar:</strong> ${ordenGenerada.total}</p>
-              <p><strong>Fecha de expiración:</strong> {new Date(ordenGenerada.fechaExpiracion).toLocaleDateString()}</p>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-success" onClick={() => setShowModal(false)}>
+                  Cerrar
+                </button>
             </div>
-            
-            <div className="orden-instrucciones">
-              <h4>Instrucciones de Pago</h4>
-              <p>{ordenGenerada.instrucciones}</p>
             </div>
-          </div>
-          
-          <div className="orden-estudiantes">
-            <h4>Estudiantes incluidos:</h4>
-            <ul className="estudiantes-incluidos">
-              {ordenGenerada.estudiantes.map(estudiante => (
-                <li key={estudiante.id}>
-                  {estudiante.nombre} {estudiante.apellido} - {estudiante.areas.length} áreas
-                </li>
-              ))}
-            </ul>
-          </div>
-          
-          <div className="orden-acciones">
-            <button onClick={handleDescargarPDF} className="btn-descargar">
-              Descargar PDF
-            </button>
-            <button onClick={handleVolver} className="btn-volver">
-              Volver al Panel
-            </button>
           </div>
         </div>
       )}
